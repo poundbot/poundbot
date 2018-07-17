@@ -42,7 +42,7 @@ func main() {
 	}
 	defer dr.Close()
 
-	t := twitter.NewTwitter(tConsumerKey, tConsumerSecret, tAccessToken, tAccessSecret, dr.TweetChan)
+	t := twitter.NewTwitter(tConsumerKey, tConsumerSecret, tAccessToken, tAccessSecret, dr.LinkChan)
 	t.Start()
 	defer t.Stop()
 

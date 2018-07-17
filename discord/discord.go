@@ -2,11 +2,9 @@ package discord
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/dghubble/go-twitter/twitter"
 )
 
 type discord struct {
@@ -15,14 +13,14 @@ type discord struct {
 	token          string
 	status         chan bool
 	// kill           chan bool
-	TweetChan chan *twitter.Tweet
+	LinkChan chan string
 }
 
 func DiscordRunner(token, channel string) *discord {
 	return &discord{
 		twitterChannel: channel,
 		token:          token,
-		TweetChan:      make(chan *twitter.Tweet),
+		LinkChan:       make(chan string),
 	}
 }
 
@@ -67,22 +65,16 @@ Connected:
 				// 	fmt.Println("🎈🏃 DISCORD: Exiting")
 				// 	return
 
-				case t := <-d.TweetChan:
-					if strings.Contains(strings.ToLower(t.Text), "#almupdate") {
-						_, err := d.session.ChannelMessageSend(
-							d.twitterChannel,
-							fmt.Sprintf(
-								"📝 @everyone New Update: https://twitter.com/%s/status/%d",
-								t.User.ScreenName,
-								t.ID,
-							),
-						)
-						if err != nil {
-							fmt.Println(err)
-						}
-					} else {
-						fmt.Println("🎈🏃 DISCORD: Not posting tweet: ", t.Text)
+				case t := <-d.LinkChan:
+
+					_, err := d.session.ChannelMessageSend(
+						d.twitterChannel,
+						fmt.Sprintf("📝 @everyone New Update: %s", t),
+					)
+					if err != nil {
+						fmt.Printf("🎈🏃 DISCORD: Error sending to channel: %v\n", err)
 					}
+
 				}
 			}
 		}
@@ -137,6 +129,7 @@ func (d *discord) disconnected(s *discordgo.Session, event *discordgo.Disconnect
 // the "ready" event from Discord.
 func (d *discord) ready(s *discordgo.Session, event *discordgo.Ready) {
 	d.status <- true
+	fmt.Println("🎈✔️ DISCORD: Ready!")
 
 	// uguilds, err := s.UserGuilds(100, "", "")
 	// if err != nil {

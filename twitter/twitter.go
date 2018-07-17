@@ -2,6 +2,7 @@ package twitter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
@@ -10,10 +11,10 @@ import (
 type Twitter struct {
 	client *twitter.Client
 	stream *twitter.Stream
-	ch     chan *twitter.Tweet
+	ch     chan string
 }
 
-func NewTwitter(consumerKey, consumerSecret, accessToken, accessSecret string, ch chan *twitter.Tweet) *Twitter {
+func NewTwitter(consumerKey, consumerSecret, accessToken, accessSecret string, ch chan string) *Twitter {
 	config := oauth1.NewConfig(consumerKey, consumerSecret)
 
 	return &Twitter{
@@ -54,9 +55,10 @@ func (t Twitter) Stop() {
 
 func (t Twitter) handleTweet(tweet *twitter.Tweet) {
 	fmt.Printf("🐔🏃 Processing tweet %v\n", tweet.Text)
-	if tweet.User.ID == 1016357953807400960 {
+	if tweet.User.ID == 1016357953807400960 &&
+		strings.Contains(strings.ToLower(tweet.Text), "#almupdate") {
 		fmt.Println("🐔🏃 Sending to channel")
-		t.ch <- tweet
+		t.ch <- fmt.Sprintf("https://twitter.com/%s/status/%d", tweet.User.ScreenName, tweet.ID)
 	} else {
 		fmt.Println("🐔🏃 Not worthy")
 	}
