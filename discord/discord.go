@@ -45,9 +45,9 @@ func (d *discord) Start() error {
 }
 
 func (d *discord) Close() {
-	fmt.Println("🛑 DISCORD: Closing")
+	fmt.Println("🎈🛑 DISCORD: Closing")
 	// d.kill <- true
-	fmt.Println("🛑 DISCORD: Disconnecting")
+	fmt.Println("🎈🛑 DISCORD: Disconnecting")
 	d.session.Close()
 }
 
@@ -56,15 +56,15 @@ func (d *discord) runner() {
 Connected:
 	for {
 		if connectedState {
-			fmt.Println("🏃 DISCORD: Waiting for messages")
+			fmt.Println("🎈🏃 DISCORD: Waiting for messages")
 			for {
 				select {
 				case connectedState = <-d.status:
-					fmt.Println("🏃 DISCORD: Connection state changed to ", connectedState)
+					fmt.Println("🎈🏃 DISCORD: Connection state changed to ", connectedState)
 					break Connected
 
 				// case <-d.kill:
-				// 	fmt.Println("🏃 DISCORD: Exiting")
+				// 	fmt.Println("🎈🏃 DISCORD: Exiting")
 				// 	return
 
 				case t := <-d.TweetChan:
@@ -81,26 +81,26 @@ Connected:
 							fmt.Println(err)
 						}
 					} else {
-						fmt.Println("🏃 DISCORD: Not posting tweet: ", t.Text)
+						fmt.Println("🎈🏃 DISCORD: Not posting tweet: ", t.Text)
 					}
 				}
 			}
 		}
 
-		fmt.Println("🏃 DISCORD: Waiting for connected state")
+		fmt.Println("🎈🏃 DISCORD: Waiting for connected state")
 
 		// Wait for connected
 		for {
 			select {
 			case connectedState = <-d.status:
 				if connectedState {
-					fmt.Println("🏃 DISCORD: Connected")
+					fmt.Println("🎈🏃 DISCORD: Connected")
 					break Connected
 				} else {
-					fmt.Println("🏃 DISCORD: Disconnected")
+					fmt.Println("🎈🏃 DISCORD: Disconnected")
 				}
 				// case <-d.kill:
-				// 	fmt.Println("🏃 DISCORD: Exiting")
+				// 	fmt.Println("🎈🏃 DISCORD: Exiting")
 				// 	return
 			}
 
@@ -111,16 +111,16 @@ Connected:
 }
 
 func (d *discord) connect() {
-	fmt.Println("⚪ DISCORD: Connecting")
+	fmt.Println("🎈⚪ DISCORD: Connecting")
 	d.status <- false
 	for {
 		err := d.session.Open()
 		if err != nil {
-			fmt.Println("⚠️ DISCORD: Error connecting: ", err)
-			fmt.Println("🔁 DISCORD: Attempting discord reconnect...")
+			fmt.Println("🎈⚠️ DISCORD: Error connecting: ", err)
+			fmt.Println("🎈🔁 DISCORD: Attempting discord reconnect...")
 			time.Sleep(1 * time.Second)
 		} else {
-			fmt.Println("✔️ DISCORD: Connected!")
+			fmt.Println("🎈✔️ DISCORD: Connected!")
 			return
 		}
 	}
@@ -129,7 +129,7 @@ func (d *discord) connect() {
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
 func (d *discord) disconnected(s *discordgo.Session, event *discordgo.Disconnect) {
-	fmt.Println("🛑 DISCORD: Disconnected!")
+	fmt.Println("🎈🛑 DISCORD: Disconnected!")
 	d.connect()
 }
 
@@ -138,23 +138,23 @@ func (d *discord) disconnected(s *discordgo.Session, event *discordgo.Disconnect
 func (d *discord) ready(s *discordgo.Session, event *discordgo.Ready) {
 	d.status <- true
 
-	uguilds, err := s.UserGuilds(100, "", "")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	for _, g := range uguilds {
-		fmt.Printf("%s: %s\n", g.ID, g.Name)
-		channels, err := s.GuildChannels(g.ID)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		for _, c := range channels {
-			fmt.Printf("%v %s: %s\n", c.Type, c.ID, c.Name)
-		}
-	}
+	// uguilds, err := s.UserGuilds(100, "", "")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	//
+	// for _, g := range uguilds {
+	// 	fmt.Printf("🎈 %s: %s\n", g.ID, g.Name)
+	// 	channels, err := s.GuildChannels(g.ID)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		return
+	// 	}
+	// 	for _, c := range channels {
+	// 		fmt.Printf("🎈 %v %s: %s\n", c.Type, c.ID, c.Name)
+	// 	}
+	// }
 	// Set the playing status.
 	s.UpdateStatus(0, "With JonnyNof's Tiny Penis!")
 }
@@ -173,7 +173,7 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 	// if strings.HasPrefix(m.Content, "!test") {
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			fmt.Printf("Message %s from %s\n", m.Content, m.ChannelID)
+			fmt.Printf("🎈 Message %s from %s\n", m.Content, m.ChannelID)
 			s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
 			for _, embed := range m.Embeds {
 				fmt.Println(embed.Type)
