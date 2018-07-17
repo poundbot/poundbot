@@ -23,10 +23,10 @@ var discordChannel = ""
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	viper.AddConfigPath("/etc/almbot/")
-	viper.AddConfigPath("$HOME/.almbot")
+	viper.AddConfigPath("/etc/poundbot/")
+	viper.AddConfigPath("$HOME/.poundbot")
 	viper.AddConfigPath(".")
-	viper.SetConfigFile("config.json")
+	viper.SetConfigName("config")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		panic(fmt.Errorf("fatal error config file: %s", err))
