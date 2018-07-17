@@ -56,7 +56,7 @@ func (d *discord) runner() {
 Connected:
 	for {
 		if connectedState {
-			fmt.Println("🏃🏽 DISCORD: Waiting for messages")
+			fmt.Println("🏃 DISCORD: Waiting for messages")
 			for {
 				select {
 				case connectedState = <-d.status:
@@ -81,23 +81,23 @@ Connected:
 							fmt.Println(err)
 						}
 					} else {
-						fmt.Println("🏃🏽 DISCORD: Not posting tweet: ", t.Text)
+						fmt.Println("🏃 DISCORD: Not posting tweet: ", t.Text)
 					}
 				}
 			}
 		}
 
-		fmt.Println("🏃🏽 DISCORD: Waiting for connected state")
+		fmt.Println("🏃 DISCORD: Waiting for connected state")
 
 		// Wait for connected
 		for {
 			select {
 			case connectedState = <-d.status:
 				if connectedState {
-					fmt.Println("🏃🏽 DISCORD: Connected")
+					fmt.Println("🏃 DISCORD: Connected")
 					break Connected
 				} else {
-					fmt.Println("🏃🏽 DISCORD: Disconnected")
+					fmt.Println("🏃 DISCORD: Disconnected")
 				}
 				// case <-d.kill:
 				// 	fmt.Println("🏃 DISCORD: Exiting")
