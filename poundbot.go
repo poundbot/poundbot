@@ -8,8 +8,8 @@ import (
 	"syscall"
 
 	"github.com/spf13/viper"
-	"mrpoundsign.com/almbot/discord"
-	"mrpoundsign.com/almbot/twitter"
+	"mrpoundsign.com/poundbot/discord"
+	"mrpoundsign.com/poundbot/twitter"
 )
 
 // var discordStatus = make(chan bool)
@@ -42,12 +42,30 @@ func main() {
 	}
 	defer dr.Close()
 
-	t := twitter.NewTwitter(tConsumerKey, tConsumerSecret, tAccessToken, tAccessSecret, dr.LinkChan)
+	tcreds := twitter.TwitterConfig{
+		ConsumerKey:    tConsumerKey,
+		ConsumerSecret: tConsumerSecret,
+		AccessToken:    tAccessToken,
+		AccessSecret:   tAccessSecret,
+		UserID:         1016357953807400960,
+		Filters:        []string{"#almupdate"},
+	}
+
+	t := twitter.NewTwitter(tcreds, dr.LinkChan)
 	t.Start()
 	defer t.Stop()
 
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(
+		sc,
+		syscall.SIGTERM, // "the normal way to politely ask a program to terminate"
+		syscall.SIGINT,  // Ctrl+C
+		syscall.SIGQUIT, // Ctrl-\
+		syscall.SIGKILL, // "always fatal", "SIGKILL and SIGSTOP may not be caught by a program"
+		syscall.SIGHUP,  // "terminal is disconnected"
+		os.Kill,
+		os.Interrupt,
+	)
 	<-sc
 
 	fmt.Println("🤖 Stopping...")

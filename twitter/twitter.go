@@ -8,19 +8,32 @@ import (
 	"github.com/dghubble/oauth1"
 )
 
-type Twitter struct {
-	client *twitter.Client
-	stream *twitter.Stream
-	ch     chan string
+type TwitterConfig struct {
+	ConsumerKey    string
+	ConsumerSecret string
+	AccessToken    string
+	AccessSecret   string
+	UserID         int64
+	Filters        []string
 }
 
-func NewTwitter(consumerKey, consumerSecret, accessToken, accessSecret string, ch chan string) *Twitter {
-	config := oauth1.NewConfig(consumerKey, consumerSecret)
+type Twitter struct {
+	client  *twitter.Client
+	stream  *twitter.Stream
+	ch      chan string
+	UserID  int64
+	Filters []string
+}
+
+func NewTwitter(creds TwitterConfig, ch chan string) *Twitter {
+	config := oauth1.NewConfig(creds.ConsumerKey, creds.ConsumerSecret)
 
 	return &Twitter{
-		twitter.NewClient(config.Client(oauth1.NoContext, oauth1.NewToken(accessToken, accessSecret))),
-		nil,
-		ch,
+		client:  twitter.NewClient(config.Client(oauth1.NoContext, oauth1.NewToken(creds.AccessToken, creds.AccessSecret))),
+		stream:  nil,
+		ch:      ch,
+		UserID:  creds.UserID,
+		Filters: creds.Filters,
 	}
 }
 
@@ -33,7 +46,7 @@ func (t Twitter) Start() error {
 
 	// FILTER
 	filterParams := &twitter.StreamFilterParams{
-		Follow:        []string{"1016357953807400960"},
+		Follow:        []string{fmt.Sprintf("%d", t.UserID)},
 		StallWarnings: twitter.Bool(true),
 	}
 
@@ -55,13 +68,24 @@ func (t Twitter) Stop() {
 
 func (t Twitter) handleTweet(tweet *twitter.Tweet) {
 	fmt.Printf("🐔🏃 Processing tweet %v\n", tweet.Text)
-	if tweet.User.ID == 1016357953807400960 &&
-		strings.Contains(strings.ToLower(tweet.Text), "#almupdate") {
+	if t.filterTweet(tweet) {
 		fmt.Println("🐔🏃 Sending to channel")
 		t.ch <- fmt.Sprintf("https://twitter.com/%s/status/%d", tweet.User.ScreenName, tweet.ID)
 	} else {
-		fmt.Println("🐔🏃 Not worthy")
+		fmt.Println("🐔🏃 Tweet is NOT worthy!")
 	}
+}
+
+func (t Twitter) filterTweet(tweet *twitter.Tweet) bool {
+	if tweet.User.ID == t.UserID {
+		tweetText := strings.ToLower(tweet.Text)
+		for _, f := range t.Filters {
+			if strings.Contains(tweetText, f) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (t Twitter) handleEvent(event *twitter.Event) {

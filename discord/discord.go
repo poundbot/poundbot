@@ -50,6 +50,9 @@ func (d *discord) Close() {
 }
 
 func (d *discord) runner() {
+	defer func() {
+		fmt.Println("🎈🏃 DISCORD: Runner Exiting")
+	}()
 	connectedState := false
 Connected:
 	for {
