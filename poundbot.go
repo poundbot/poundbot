@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"runtime"
@@ -24,7 +24,7 @@ func main() {
 	viper.SetConfigName("config")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %s", err))
+		log.Panicf("fatal error config file: %s\n", err)
 	}
 
 	tConsumerKey := viper.GetString("twitter.consumer.key")
@@ -34,13 +34,16 @@ func main() {
 	discordToken := viper.GetString("discord.token")
 	discordChannel := viper.GetString("discord.twitter-channel")
 
-	fmt.Println("🤖 Discord channel is ", discordChannel)
+	log.Println("🤖 Starting discord on channel", discordChannel)
 	dr := discord.DiscordRunner(discordToken, discordChannel)
 	err = dr.Start()
 	if err != nil {
-		panic(err)
+		log.Println("🤖⚠️ Could not start Discord")
 	}
-	defer dr.Close()
+	defer func() {
+		log.Println("🤖 Shutting down Discord...")
+		dr.Close()
+	}()
 
 	tcreds := twitter.TwitterConfig{
 		ConsumerKey:    tConsumerKey,
@@ -53,7 +56,10 @@ func main() {
 
 	t := twitter.NewTwitter(tcreds, dr.LinkChan)
 	t.Start()
-	defer t.Stop()
+	defer func() {
+		log.Println("🤖 Shutting down Twitter...")
+		t.Stop()
+	}()
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(
@@ -68,7 +74,7 @@ func main() {
 	)
 	<-sc
 
-	fmt.Println("🤖 Stopping...")
+	log.Println("🤖 Stopping...")
 
 	if err != nil {
 		panic(err)

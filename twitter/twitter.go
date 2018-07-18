@@ -2,6 +2,7 @@ package twitter
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/dghubble/go-twitter/twitter"
@@ -42,7 +43,7 @@ func (t Twitter) Start() error {
 	demux.Tweet = t.handleTweet
 	demux.Event = t.handleEvent
 
-	fmt.Println("🐔 Starting Stream...")
+	log.Println("🐔 Starting Stream...")
 
 	// FILTER
 	filterParams := &twitter.StreamFilterParams{
@@ -59,7 +60,7 @@ func (t Twitter) Start() error {
 }
 
 func (t Twitter) Stop() {
-	fmt.Println("🐔 Stopping Stream...")
+	log.Println("🐔 Stopping Stream...")
 	if t.stream != nil {
 		t.stream.Stop()
 		t.stream = nil
@@ -67,12 +68,12 @@ func (t Twitter) Stop() {
 }
 
 func (t Twitter) handleTweet(tweet *twitter.Tweet) {
-	fmt.Printf("🐔🏃 Processing tweet %v\n", tweet.Text)
+	log.Printf("🐔🏃 Processing tweet %v\n", tweet.Text)
 	if t.filterTweet(tweet) {
-		fmt.Println("🐔🏃 Sending to channel")
+		log.Println("🐔🏃 Sending to channel")
 		t.ch <- fmt.Sprintf("https://twitter.com/%s/status/%d", tweet.User.ScreenName, tweet.ID)
 	} else {
-		fmt.Println("🐔🏃 Tweet is NOT worthy!")
+		log.Println("🐔🏃 Tweet is NOT worthy!")
 	}
 }
 
@@ -89,5 +90,5 @@ func (t Twitter) filterTweet(tweet *twitter.Tweet) bool {
 }
 
 func (t Twitter) handleEvent(event *twitter.Event) {
-	fmt.Printf("🐔 %#v\n", event)
+	log.Printf("🐔 %#v\n", event)
 }
