@@ -9,7 +9,7 @@ import (
 	"github.com/dghubble/oauth1"
 )
 
-type TwitterConfig struct {
+type Config struct {
 	ConsumerKey    string
 	ConsumerSecret string
 	AccessToken    string
@@ -26,15 +26,15 @@ type Twitter struct {
 	Filters []string
 }
 
-func NewTwitter(creds TwitterConfig, ch chan string) *Twitter {
-	config := oauth1.NewConfig(creds.ConsumerKey, creds.ConsumerSecret)
+func NewTwitter(config Config, ch chan string) *Twitter {
+	oconfig := oauth1.NewConfig(config.ConsumerKey, config.ConsumerSecret)
 
 	return &Twitter{
-		client:  twitter.NewClient(config.Client(oauth1.NoContext, oauth1.NewToken(creds.AccessToken, creds.AccessSecret))),
+		client:  twitter.NewClient(oconfig.Client(oauth1.NoContext, oauth1.NewToken(config.AccessToken, config.AccessSecret))),
 		stream:  nil,
 		ch:      ch,
-		UserID:  creds.UserID,
-		Filters: creds.Filters,
+		UserID:  config.UserID,
+		Filters: config.Filters,
 	}
 }
 

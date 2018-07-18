@@ -45,7 +45,7 @@ func main() {
 		dr.Close()
 	}()
 
-	tcreds := twitter.TwitterConfig{
+	tcreds := twitter.Config{
 		ConsumerKey:    tConsumerKey,
 		ConsumerSecret: tConsumerSecret,
 		AccessToken:    tAccessToken,
