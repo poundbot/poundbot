@@ -9,6 +9,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const logSymbol = "🏟️"
+const logRunnerSymbol = logSymbol + "🏃"
+
 type discord struct {
 	session        *discordgo.Session
 	twitterChannel string
@@ -33,6 +36,7 @@ func (d *discord) Start() error {
 		d.session.AddHandler(d.messageCreate)
 		d.session.AddHandler(d.ready)
 		d.session.AddHandler(d.disconnected)
+		d.session.AddHandler(d.resumed)
 
 		d.status = make(chan bool)
 
@@ -44,38 +48,42 @@ func (d *discord) Start() error {
 }
 
 func (d *discord) Close() {
-	log.Println("🏟️🛑 Disconnecting")
+	log.Println(logSymbol + "🛑 Disconnecting")
 	d.session.Close()
 }
 
 func (d *discord) runner() {
 	defer func() {
-		log.Println("🏟️🏃 Runner Exiting")
+		log.Println(logRunnerSymbol + " Runner Exiting")
 	}()
 	connectedState := false
 
 	for {
 		if connectedState {
-			log.Println("🏟️🏃 Waiting for messages")
+			log.Println(logRunnerSymbol + " Waiting for messages")
 		Reading:
 			for {
 				select {
 				case connectedState = <-d.status:
-					log.Println("🏟️🏃⚠️ Received disconnected message ")
-					break Reading
+					if !connectedState {
+						log.Println(logRunnerSymbol + "☎️ Received disconnected message")
+						break Reading
+					} else {
+						log.Println(logRunnerSymbol + "❓ Received unexpected connected message")
+					}
 				case t := <-d.LinkChan:
 					_, err := d.session.ChannelMessageSend(
 						d.twitterChannel,
 						fmt.Sprintf("📝 @everyone New Update: %s", t),
 					)
 					if err != nil {
-						log.Printf("🏟️🏃 Error sending to channel: %v\n", err)
+						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
 					}
 				}
 			}
 		}
 
-		log.Println("🏟️🏃 Waiting for connected state")
+		log.Println(logRunnerSymbol + " Waiting for connected state")
 
 		// Wait for connected
 	Connecting:
@@ -83,10 +91,10 @@ func (d *discord) runner() {
 			select {
 			case connectedState = <-d.status:
 				if connectedState {
-					log.Println("🏟️🏃 Connected")
+					log.Println(logRunnerSymbol + "📞 Received connected message")
 					break Connecting
 				} else {
-					log.Println("🏟️🏃 Disconnected")
+					log.Println(logRunnerSymbol + "☎️ Received disconnected message")
 				}
 			}
 
@@ -97,32 +105,37 @@ func (d *discord) runner() {
 }
 
 func (d *discord) connect() {
-	log.Println("🏟️⚪ Connecting")
+	log.Println(logSymbol + "☎️ Connecting")
 	d.status <- false
 	for {
 		err := d.session.Open()
 		if err != nil {
-			log.Println("🏟️⚠️ Error connecting: ", err)
-			log.Println("🏟️🔁 Attempting discord reconnect...")
+			log.Println(logSymbol+"⚠️ Error connecting: ", err)
+			log.Println(logSymbol + "🔁 Attempting discord reconnect...")
 			time.Sleep(1 * time.Second)
 		} else {
-			log.Println("🏟️✔️ Connected!")
+			log.Println(logSymbol + "✔️ Connected!")
 			return
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
 // This function will be called (due to AddHandler above) when the bot receives
-// the "ready" event from Discord.
+// the "disconnect" event from Discord.
 func (d *discord) disconnected(s *discordgo.Session, event *discordgo.Disconnect) {
-	log.Println("🏟️🛑 Disconnected!")
-	d.connect()
+	log.Println(logSymbol + "☎️ Disconnected!")
+}
+
+func (d *discord) resumed(s *discordgo.Session, event *discordgo.Resumed) {
+	log.Println(logSymbol + "📞 Resumed!")
+	d.status <- true
 }
 
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
 func (d *discord) ready(s *discordgo.Session, event *discordgo.Ready) {
-	log.Println("🏟️✔️ Ready!")
+	log.Println(logSymbol + "📞✔️ Ready!")
 	s.UpdateStatus(0, "I'm a real boy!")
 
 	uguilds, err := s.UserGuilds(100, "", "")
@@ -133,7 +146,7 @@ func (d *discord) ready(s *discordgo.Session, event *discordgo.Ready) {
 
 ChannelSearch:
 	for _, g := range uguilds {
-		// log.Printf("🏟️ %s: %s\n", g.ID, g.Name)
+		// log.Printf(logSymbol + " %s: %s\n", g.ID, g.Name)
 		channels, err := s.GuildChannels(g.ID)
 		if err != nil {
 			log.Println(err)
@@ -141,9 +154,9 @@ ChannelSearch:
 		}
 		for _, c := range channels {
 			if c.ID == d.twitterChannel {
-				log.Printf("🏟️✔️ Found channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
+				log.Printf(logSymbol+"📞✔️ Found channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
 				if c.Type != discordgo.ChannelTypeGuildText {
-					log.Printf("🏟️🛑 Invalid channel type: %v", c.Type)
+					log.Printf(logSymbol+"📞🛑 Invalid channel type: %v", c.Type)
 					os.Exit(3)
 				}
 				d.status <- true
@@ -167,7 +180,7 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 	// if strings.HasPrefix(m.Content, "!test") {
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			log.Printf("🏟️ Message %s from %s\n", m.Content, m.ChannelID)
+			log.Printf(logSymbol+" Message %s from %s\n", m.Content, m.ChannelID)
 			s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
 			for _, embed := range m.Embeds {
 				log.Println(embed.Type)
