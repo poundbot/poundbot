@@ -114,7 +114,7 @@ func (d *discord) connect() {
 			log.Println(logSymbol + "🔁 Attempting discord reconnect...")
 			time.Sleep(1 * time.Second)
 		} else {
-			log.Println(logSymbol + "✔️ Connected!")
+			log.Println(logSymbol + "📞✔️ Connected!")
 			return
 		}
 		time.Sleep(1 * time.Second)
