@@ -9,8 +9,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const logSymbol = "🏟️"
-const logRunnerSymbol = logSymbol + "🏃"
+const logSymbol = "🏟️ "
+const logRunnerSymbol = logSymbol + "🏃 "
 
 type discord struct {
 	session        *discordgo.Session
@@ -106,15 +106,14 @@ func (d *discord) runner() {
 
 func (d *discord) connect() {
 	log.Println(logSymbol + "☎️ Connecting")
-	d.status <- false
 	for {
 		err := d.session.Open()
 		if err != nil {
-			log.Println(logSymbol+"⚠️ Error connecting: ", err)
+			log.Println(logSymbol+"⚠️ Error connecting:", err)
 			log.Println(logSymbol + "🔁 Attempting discord reconnect...")
 			time.Sleep(1 * time.Second)
 		} else {
-			log.Println(logSymbol + "📞✔️ Connected!")
+			log.Println(logSymbol + "📞 ✔️ Connected!")
 			return
 		}
 		time.Sleep(1 * time.Second)
@@ -124,6 +123,7 @@ func (d *discord) connect() {
 // This function will be called (due to AddHandler above) when the bot receives
 // the "disconnect" event from Discord.
 func (d *discord) disconnected(s *discordgo.Session, event *discordgo.Disconnect) {
+	d.status <- false
 	log.Println(logSymbol + "☎️ Disconnected!")
 }
 
@@ -135,7 +135,7 @@ func (d *discord) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
 func (d *discord) ready(s *discordgo.Session, event *discordgo.Ready) {
-	log.Println(logSymbol + "📞✔️ Ready!")
+	log.Println(logSymbol + "📞 ✔️ Ready!")
 	s.UpdateStatus(0, "I'm a real boy!")
 
 	uguilds, err := s.UserGuilds(100, "", "")
@@ -154,9 +154,9 @@ ChannelSearch:
 		}
 		for _, c := range channels {
 			if c.ID == d.twitterChannel {
-				log.Printf(logSymbol+"📞✔️ Found channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
+				log.Printf(logSymbol+"📞 ✔️ Found channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
 				if c.Type != discordgo.ChannelTypeGuildText {
-					log.Printf(logSymbol+"📞🛑 Invalid channel type: %v", c.Type)
+					log.Printf(logSymbol+"📞 🛑 Invalid channel type: %v", c.Type)
 					os.Exit(3)
 				}
 				d.status <- true
