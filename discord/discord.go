@@ -13,19 +13,22 @@ const logSymbol = "🏟️ "
 const logRunnerSymbol = logSymbol + "🏃 "
 
 type discord struct {
-	session        *discordgo.Session
-	twitterChannel string
-	token          string
-	status         chan bool
-	// kill           chan bool
-	LinkChan chan string
+	session      *discordgo.Session
+	linkChanID   string
+	statusChanID string
+	token        string
+	status       chan bool
+	LinkChan     chan string
+	StatusChan   chan string
 }
 
-func DiscordRunner(token, channel string) *discord {
+func DiscordRunner(token, linkChanID, statusChanID string) *discord {
 	return &discord{
-		twitterChannel: channel,
-		token:          token,
-		LinkChan:       make(chan string),
+		linkChanID:   linkChanID,
+		statusChanID: statusChanID,
+		token:        token,
+		LinkChan:     make(chan string),
+		StatusChan:   make(chan string),
 	}
 }
 
@@ -73,8 +76,17 @@ func (d *discord) runner() {
 					}
 				case t := <-d.LinkChan:
 					_, err := d.session.ChannelMessageSend(
-						d.twitterChannel,
+						d.linkChanID,
 						fmt.Sprintf("📝 @everyone New Update: %s", t),
+					)
+					if err != nil {
+						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
+					}
+
+				case tt := <-d.StatusChan:
+					_, err := d.session.ChannelMessageSend(
+						d.statusChanID,
+						fmt.Sprintf(logRunnerSymbol+tt),
 					)
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
@@ -143,6 +155,8 @@ func (d *discord) ready(s *discordgo.Session, event *discordgo.Ready) {
 		log.Println(err)
 		return
 	}
+	var foundLinkChan = false
+	var foundStatusChan = false
 
 ChannelSearch:
 	for _, g := range uguilds {
@@ -153,16 +167,33 @@ ChannelSearch:
 			return
 		}
 		for _, c := range channels {
-			if c.ID == d.twitterChannel {
-				log.Printf(logSymbol+"📞 ✔️ Found channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
+			if c.ID == d.linkChanID {
+				log.Printf(logSymbol+"📞 ✔️ Found link channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
+				foundLinkChan = true
 				if c.Type != discordgo.ChannelTypeGuildText {
-					log.Printf(logSymbol+"📞 🛑 Invalid channel type: %v", c.Type)
+					log.Fatalf(logSymbol+"📞 🛑 Invalid channel type: %v\n", c.Type)
 					os.Exit(3)
 				}
-				d.status <- true
+			} else if c.ID == d.statusChanID {
+				log.Printf(logSymbol+"📞 ✔️ Found status channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
+				foundStatusChan = true
+				if c.Type != discordgo.ChannelTypeGuildText {
+					log.Fatalf(logSymbol+"📞 🛑 Invalid channel type: %v\n", c.Type)
+					os.Exit(3)
+				}
+			}
+			if foundLinkChan && foundStatusChan {
 				break ChannelSearch
 			}
+			// log.Printf("%s, %s", c.Name, c.ID)
 		}
+	}
+
+	if foundLinkChan && foundStatusChan {
+		d.status <- true
+	} else {
+		log.Fatalln("Could not find both link and status channels.")
+		os.Exit(3)
 	}
 }
 
@@ -178,9 +209,16 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 
 	// check if the message is "!test"
 	// if strings.HasPrefix(m.Content, "!test") {
+	log.Printf(logSymbol+" Message (%v) %s from %s on %s\n", m.Type, m.Content, m.Author.Username, m.ChannelID)
+	dChan, err := d.session.Channel(m.ChannelID)
+	if err != nil {
+		log.Printf(logSymbol+"❓ Could not get channel data for %s\n", m.ChannelID)
+	} else {
+		log.Printf("%v: %v", dChan, dChan.GuildID)
+	}
+
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			log.Printf(logSymbol+" Message %s from %s\n", m.Content, m.ChannelID)
 			s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
 			for _, embed := range m.Embeds {
 				log.Println(embed.Type)
@@ -188,5 +226,4 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 			return
 		}
 	}
-	// }
 }
