@@ -28,7 +28,7 @@ type ServerInfo struct {
 	PlayerInfo PlayerInfo
 }
 
-func NewServerInfo(server Server) (*ServerInfo, error) {
+func NewServerInfo(server *Server) (*ServerInfo, error) {
 	var sq = ServerInfo{}
 	rustIP, err := net.ResolveIPAddr("ip", server.Hostname)
 	if err != nil {

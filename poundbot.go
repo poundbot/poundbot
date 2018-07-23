@@ -15,10 +15,28 @@ import (
 	"mrpoundsign.com/poundbot/twitter"
 )
 
-// var rustServer = net.TCPAddr{IP: "rust.alittlemercy.com", Port: 28015}
+func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
+	return &discord.RunnerConfig{
+		Token:      cfg.GetString("token"),
+		LinkChan:   cfg.GetString("channels.link"),
+		StatusChan: cfg.GetString("channels.status"),
+	}
+}
 
-// var discordStatus = make(chan bool)
-// var incTweets = make(chan *twitter.Tweet)
+func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
+	return &twitter.Config{
+		ConsumerKey:    cfg.GetString("consumer.key"),
+		ConsumerSecret: cfg.GetString("consumer.secret"),
+		AccessToken:    cfg.GetString("access.token"),
+		AccessSecret:   cfg.GetString("access.secret"),
+		UserID:         cfg.GetInt64("userid"),
+		Filters:        cfg.GetStringSlice("filters"),
+	}
+}
+
+func newRustServer(cfg *viper.Viper) *rust.Server {
+	return &rust.Server{Hostname: cfg.GetString("hostname"), Port: cfg.GetInt("port")}
+}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -27,12 +45,18 @@ func main() {
 	viper.AddConfigPath("$HOME/.poundbot")
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
+	viper.SetDefault("player-delta-frequency", 30)
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		log.Panicf("fatal error config file: %s\n", err)
 	}
 
-	rs, err := rust.NewServerInfo(rust.Server{Hostname: "rust.alittlemercy.com", Port: 28015})
+	dConfig := newDiscordConfig(viper.Sub("discord"))
+	tConfig := newTwitterConfig(viper.Sub("twitter"))
+	rConfig := newRustServer(viper.Sub("rust.server"))
+	pDeltaFreq := viper.GetInt("player-delta-frequency")
+
+	rs, err := rust.NewServerInfo(rConfig)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -40,19 +64,11 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	log.Printf("%v", rs)
+	// log.Printf("%v", rs)
 	// os.Exit(3)
 
-	tConsumerKey := viper.GetString("twitter.consumer.key")
-	tConsumerSecret := viper.GetString("twitter.consumer.secret")
-	tAccessToken := viper.GetString("twitter.access.token")
-	tAccessSecret := viper.GetString("twitter.access.secret")
-	discordToken := viper.GetString("discord.token")
-	linkChan := viper.GetString("discord.link-channel")
-	statusChan := viper.GetString("discord.status-channel")
-
-	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", linkChan, statusChan)
-	dr := discord.DiscordRunner(discordToken, linkChan, statusChan)
+	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
+	dr := discord.DiscordRunner(dConfig)
 	err = dr.Start()
 	if err != nil {
 		log.Println("🤖⚠️ Could not start Discord")
@@ -62,16 +78,7 @@ func main() {
 		dr.Close()
 	}()
 
-	tcreds := twitter.Config{
-		ConsumerKey:    tConsumerKey,
-		ConsumerSecret: tConsumerSecret,
-		AccessToken:    tAccessToken,
-		AccessSecret:   tAccessSecret,
-		UserID:         1016357953807400960,
-		Filters:        []string{"#almupdate"},
-	}
-
-	t := twitter.NewTwitter(tcreds, dr.LinkChan)
+	t := twitter.NewTwitter(tConfig, dr.LinkChan)
 	t.Start()
 	defer func() {
 		log.Println("🤖 Shutting down Twitter...")
@@ -79,8 +86,10 @@ func main() {
 	}()
 
 	go func(statusChan *chan string) {
+		defer func() {
+			log.Println("🤖 Shutting down Rust Monitor")
+		}()
 		var lastCheck = time.Now().UTC()
-		// var lastUp = time.Now().UTC()
 
 		var serverDown = true
 		var downChecks uint
@@ -95,13 +104,12 @@ func main() {
 				serverDown = true
 				downChecks++
 				if downChecks == 3 {
-					fmt.Println("Server is down!")
+					fmt.Println("🤖 Server is down!")
 				}
 				continue
 			}
 
 			if serverDown {
-				// lastUp = time.Now().UTC()
 				lastCheck = time.Now().UTC()
 				playerDelta = 0
 				lowestPlayers = rs.PlayerInfo.Players
@@ -115,7 +123,7 @@ func main() {
 			// lastUp = time.Now().UTC()
 			var now = time.Now().UTC()
 			var duration = int(now.Sub(lastCheck).Minutes())
-			if playerDelta > 3 || duration >= 10 {
+			if playerDelta > 3 || duration >= pDeltaFreq {
 				lastCheck = time.Now().UTC()
 				if playerDelta > 0 {
 					lowestPlayers = rs.PlayerInfo.Players
@@ -129,7 +137,6 @@ func main() {
 					playerDelta = 0
 				}
 			}
-			// log.Printf("%d, %d", duration, playerDelta)
 			time.Sleep(30 * time.Second)
 		}
 	}(&dr.StatusChan)

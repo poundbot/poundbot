@@ -26,7 +26,7 @@ type Twitter struct {
 	Filters []string
 }
 
-func NewTwitter(config Config, ch chan string) *Twitter {
+func NewTwitter(config *Config, ch chan string) *Twitter {
 	oconfig := oauth1.NewConfig(config.ConsumerKey, config.ConsumerSecret)
 
 	return &Twitter{

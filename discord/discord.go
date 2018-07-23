@@ -12,6 +12,12 @@ import (
 const logSymbol = "🏟️ "
 const logRunnerSymbol = logSymbol + "🏃 "
 
+type RunnerConfig struct {
+	Token      string
+	LinkChan   string
+	StatusChan string
+}
+
 type discord struct {
 	session      *discordgo.Session
 	linkChanID   string
@@ -22,11 +28,11 @@ type discord struct {
 	StatusChan   chan string
 }
 
-func DiscordRunner(token, linkChanID, statusChanID string) *discord {
+func DiscordRunner(rc *RunnerConfig) *discord {
 	return &discord{
-		linkChanID:   linkChanID,
-		statusChanID: statusChanID,
-		token:        token,
+		linkChanID:   rc.LinkChan,
+		statusChanID: rc.StatusChan,
+		token:        rc.Token,
 		LinkChan:     make(chan string),
 		StatusChan:   make(chan string),
 	}
@@ -174,7 +180,8 @@ ChannelSearch:
 					log.Fatalf(logSymbol+"📞 🛑 Invalid channel type: %v\n", c.Type)
 					os.Exit(3)
 				}
-			} else if c.ID == d.statusChanID {
+			}
+			if c.ID == d.statusChanID {
 				log.Printf(logSymbol+"📞 ✔️ Found status channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
 				foundStatusChan = true
 				if c.Type != discordgo.ChannelTypeGuildText {
