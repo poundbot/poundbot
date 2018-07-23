@@ -220,17 +220,20 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 	dChan, err := d.session.Channel(m.ChannelID)
 	if err != nil {
 		log.Printf(logSymbol+"❓ Could not get channel data for %s\n", m.ChannelID)
-	} else {
-		log.Printf("%v: %v", dChan, dChan.GuildID)
+		return
+	} else if dChan.GuildID == "" {
+		goto Interact
 	}
 
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
-			for _, embed := range m.Embeds {
-				log.Println(embed.Type)
-			}
-			return
+			goto Interact
 		}
 	}
+
+	// Break out and do not interact.
+	return
+
+Interact:
+	s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
 }
