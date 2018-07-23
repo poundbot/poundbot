@@ -104,7 +104,7 @@ func main() {
 				serverDown = true
 				downChecks++
 				if downChecks == 3 {
-					fmt.Println("🤖 Server is down!")
+					fmt.Println("🤖 🏃 Server is down!")
 				}
 				time.Sleep(30 * time.Second)
 				continue
@@ -133,7 +133,7 @@ func main() {
 						playerString = "players have"
 					}
 					message := fmt.Sprintf("@here %d new %s connected, %d of %d playing now!", playerDelta, playerString, rs.PlayerInfo.Players, rs.PlayerInfo.MaxPlayers)
-					log.Printf("🤖 Sending notice of %d new players\n", playerDelta)
+					log.Printf("🤖 🏃 Sending notice of %d new players\n", playerDelta)
 					*statusChan <- message
 					playerDelta = 0
 				}
