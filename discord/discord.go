@@ -6,7 +6,10 @@ import (
 	"os"
 	"time"
 
+	"mrpoundsign.com/poundbot/rustconn"
+
 	"github.com/bwmarrin/discordgo"
+	cache "github.com/patrickmn/go-cache"
 )
 
 const logSymbol = "🏟️ "
@@ -19,22 +22,28 @@ type RunnerConfig struct {
 }
 
 type discord struct {
-	session      *discordgo.Session
-	linkChanID   string
-	statusChanID string
-	token        string
-	status       chan bool
-	LinkChan     chan string
-	StatusChan   chan string
+	session       *discordgo.Session
+	linkChanID    string
+	statusChanID  string
+	token         string
+	status        chan bool
+	userCache     *cache.Cache
+	LinkChan      chan string
+	StatusChan    chan string
+	RaidAlertChan chan rustconn.RaidNotification
+	GetIDChan     chan string
 }
 
 func DiscordRunner(rc *RunnerConfig) *discord {
 	return &discord{
-		linkChanID:   rc.LinkChan,
-		statusChanID: rc.StatusChan,
-		token:        rc.Token,
-		LinkChan:     make(chan string),
-		StatusChan:   make(chan string),
+		linkChanID:    rc.LinkChan,
+		statusChanID:  rc.StatusChan,
+		token:         rc.Token,
+		userCache:     cache.New(5*time.Minute, 10*time.Minute),
+		LinkChan:      make(chan string),
+		StatusChan:    make(chan string),
+		RaidAlertChan: make(chan rustconn.RaidNotification),
+		GetIDChan:     make(chan string),
 	}
 }
 
@@ -89,13 +98,36 @@ func (d *discord) runner() {
 						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
 					}
 
-				case tt := <-d.StatusChan:
+				case t := <-d.StatusChan:
 					_, err := d.session.ChannelMessageSend(
 						d.statusChanID,
-						fmt.Sprintf(logRunnerSymbol+tt),
+						fmt.Sprintf(logRunnerSymbol+t),
 					)
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
+					}
+				case t := <-d.RaidAlertChan:
+					log.Printf(logRunnerSymbol+" Got raid alert: %v", t)
+					user, err := d.getUser(t.DiscordID)
+					if err != nil {
+						log.Printf(logRunnerSymbol+" Error finding user %s: %s\n", t.DiscordID, err)
+						break
+					}
+
+					// var toChannel discordgo.Channel;
+					// channels, err := d.session.UserChannels()
+					// if err != nil {
+					// 	log.Printf(logRunnerSymbol+" Error loading user channels: %v", err)
+					// 	continue
+					// }
+					// for _, channel := range channels {
+					// 	for _
+					// }
+					channel, err := d.session.UserChannelCreate(user.ID)
+					if err != nil {
+						log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
+					} else {
+						d.session.ChannelMessageSend(channel.ID, fmt.Sprintf("%v", t.Items))
 					}
 				}
 			}
@@ -216,7 +248,7 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 
 	// check if the message is "!test"
 	// if strings.HasPrefix(m.Content, "!test") {
-	log.Printf(logSymbol+" Message (%v) %s from %s on %s\n", m.Type, m.Content, m.Author.Username, m.ChannelID)
+	log.Printf(logSymbol+" Message (%v) %s from %s %s on %s\n", m.Type, m.Content, m.Author.Username, m.Author.String(), m.ChannelID)
 	dChan, err := d.session.Channel(m.ChannelID)
 	if err != nil {
 		log.Printf(logSymbol+"❓ Could not get channel data for %s\n", m.ChannelID)
@@ -236,4 +268,34 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 
 Interact:
 	s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
+}
+
+// Returns nil user if they don't exist; Returns error if there was a communications error
+func (d *discord) getUser(id string) (user discordgo.User, err error) {
+	u, found := d.userCache.Get(id)
+	if found {
+		user = u.(discordgo.User)
+	} else {
+		guilds, err := d.session.UserGuilds(100, "", "")
+		if err == nil {
+			for _, guild := range guilds {
+				users, err := d.session.GuildMembers(guild.ID, "", 1000)
+				if err != nil {
+					return user, err
+				}
+
+				for _, user := range users {
+					if user.User.String() == id {
+						d.cacheUser(*user.User)
+						return *user.User, nil
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+func (d *discord) cacheUser(u discordgo.User) {
+	d.userCache.Set(u.String(), u, cache.DefaultExpiration)
 }

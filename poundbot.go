@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"mrpoundsign.com/poundbot/discord"
 	"mrpoundsign.com/poundbot/rust"
+	"mrpoundsign.com/poundbot/rustconn"
 	"mrpoundsign.com/poundbot/twitter"
 )
 
@@ -34,6 +35,17 @@ func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
 	}
 }
 
+func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
+	return &rustconn.ServerConfig{
+		BindAddr: cfg.GetString("bind_address"),
+		Port:     cfg.GetInt("port"),
+		MongoConfig: rustconn.MongoConfig{
+			DialAddress: cfg.GetString("mongo.dial-addr"),
+			Database:    cfg.GetString("mongo.database"),
+		},
+	}
+}
+
 func newRustServer(cfg *viper.Viper) *rust.Server {
 	return &rust.Server{Hostname: cfg.GetString("hostname"), Port: cfg.GetInt("port")}
 }
@@ -46,6 +58,10 @@ func main() {
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
 	viper.SetDefault("player-delta-frequency", 30)
+	viper.SetDefault("rust.api-server.bind_addr", "")
+	viper.SetDefault("rust.api-server.port", 9090)
+	viper.SetDefault("rust.api-server.mongo.dial-addr", "mongodb://localhost")
+	viper.SetDefault("rust.api-server.mongo.database", "poundbot")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		log.Panicf("fatal error config file: %s\n", err)
@@ -54,6 +70,7 @@ func main() {
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	tConfig := newTwitterConfig(viper.Sub("twitter"))
 	rConfig := newRustServer(viper.Sub("rust.server"))
+	asConfig := newServerConfig(viper.Sub("rust.api-server"))
 	pDeltaFreq := viper.GetInt("player-delta-frequency")
 
 	rs, err := rust.NewServerInfo(rConfig)
@@ -77,6 +94,9 @@ func main() {
 		log.Println("🤖 Shutting down Discord...")
 		dr.Close()
 	}()
+
+	server := rustconn.NewServer(asConfig, dr.RaidAlertChan)
+	go server.Serve()
 
 	t := twitter.NewTwitter(tConfig, dr.LinkChan)
 	t.Start()
