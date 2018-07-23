@@ -106,6 +106,7 @@ func main() {
 				if downChecks == 3 {
 					fmt.Println("🤖 Server is down!")
 				}
+				time.Sleep(30 * time.Second)
 				continue
 			}
 
