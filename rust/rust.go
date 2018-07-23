@@ -32,7 +32,7 @@ func NewServerInfo(server *Server) (*ServerInfo, error) {
 	var sq = ServerInfo{}
 	rustIP, err := net.ResolveIPAddr("ip", server.Hostname)
 	if err != nil {
-		log.Println(logSymbol+"Could not resolve rust.alittlemercy.com", err)
+		log.Println(logSymbol + err.Error())
 		return nil, err
 	}
 	sq.tcpAddr = net.TCPAddr{IP: rustIP.IP, Port: server.Port}
