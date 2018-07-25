@@ -293,6 +293,8 @@ Interact:
 			da.Ack = func(authed bool) {
 				if authed {
 					s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
+				} else {
+					s.ChannelMessageSend(m.ChannelID, "Invalid PIN. Please try again.")
 				}
 			}
 			d.AuthSuccess <- da
