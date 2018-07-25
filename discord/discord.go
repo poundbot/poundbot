@@ -294,10 +294,12 @@ Interact:
 				if authed {
 					s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
 				} else {
-					s.ChannelMessageSend(m.ChannelID, "Invalid PIN. Please try again.")
+					s.ChannelMessageSend(m.ChannelID, "Internal error. Please try again. If the problem persists, please contact MrPoundsign")
 				}
 			}
 			d.AuthSuccess <- da
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "Invalid pin. Please try again.")
 		}
 	}
 }
