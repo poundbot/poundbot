@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type MongoConfig struct {
@@ -26,6 +27,7 @@ type Server struct {
 	mongoDB         *mgo.Database
 	userColl        *mgo.Collection
 	discordAuthColl *mgo.Collection
+	raidAlertColl   *mgo.Collection
 	RaidNotify      chan RaidNotification
 	DiscordAuth     chan DiscordAuth
 	AuthSuccess     chan DiscordAuth
@@ -47,7 +49,8 @@ func (s *Server) Serve() {
 	}
 	s.mongoDB = session.DB(s.sc.MongoConfig.Database)
 	s.userColl = s.mongoDB.C("users")
-	s.discordAuthColl = s.mongoDB.C("discord_auth")
+	s.discordAuthColl = s.mongoDB.C("discord_auths")
+	s.raidAlertColl = s.mongoDB.C("raid_alerts")
 
 	index := mgo.Index{
 		Key:        []string{"steam_id"},
@@ -62,10 +65,28 @@ func (s *Server) Serve() {
 	// u := User{DiscordInfo: DiscordInfo{DiscordID: "MrPoundsign#2364"}, SteamInfo: SteamInfo{SteamID: 76561197960794006}, CreatedAt: time.Now().UTC()}
 	// s.userColl.Upsert(u.UpsertID(), u)
 	go s.authHandler()
+	go s.raidAlerter()
 	fmt.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 	http.HandleFunc("/entity_death", s.entityDeathHandler)
 	http.HandleFunc("/discord_auth", s.discordAuthHandler)
 	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), nil))
+}
+
+func (s *Server) raidAlerter() {
+	for {
+		time.Sleep(10)
+		var results []RaidNotification
+		err := s.raidAlertColl.Find(bson.M{"alert_at": bson.M{"$lte": time.Now().UTC()}}).All(&results)
+		if err != nil {
+			log.Printf("Error getting raid notifications! %s\n", err)
+		}
+		if len(results) > 0 {
+			for _, result := range results {
+				s.RaidNotify <- result
+				s.raidAlertColl.Remove(result.DiscordInfo)
+			}
+		}
+	}
 }
 
 func (s *Server) authHandler() {
@@ -90,9 +111,20 @@ func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 	for _, steamID := range t.Owners {
 		u, err := s.findUser(steamID)
 		if err == nil {
-			func(rn RaidNotification) {
-				s.RaidNotify <- rn
-			}(RaidNotification{DiscordID: u.DiscordID, Items: []RaidInventory{RaidInventory{Name: t.Name, Count: 1}}})
+			s.raidAlertColl.Upsert(
+				u.DiscordInfo,
+				bson.M{
+					"$setOnInsert": bson.M{
+						"alert_at": time.Now().UTC().Add(5 * time.Minute),
+					},
+					"$inc": bson.M{
+						fmt.Sprintf("items.%s", t.Name): 1,
+					},
+					"$addToSet": bson.M{
+						"grid_positions": t.GridPos,
+					},
+				},
+			)
 		}
 	}
 }
@@ -109,15 +141,12 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	u, err := s.findUser(t.SteamID)
 	if err == nil {
 		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(fmt.Sprintf("{\"error\": \"%s is already linked to the bot.\"}", u.DiscordID)))
-		log.Println("User already exists")
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"%s is already linked to you.\"}", u.DiscordID)))
 		return
 	}
 
-	fmt.Printf("%v", t.UpsertID())
 	_, err = s.discordAuthColl.Upsert(t.UpsertID(), t)
 	if err == nil {
-		fmt.Printf("Sending to channel: %v\n", t)
 		s.DiscordAuth <- t
 	} else {
 		log.Println(err)

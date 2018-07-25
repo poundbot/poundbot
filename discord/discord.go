@@ -113,7 +113,6 @@ func (c *Client) runner() {
 						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
 					}
 				case t := <-c.RaidAlertChan:
-					log.Printf(logRunnerSymbol+" Got raid alert: %v", t)
 					user, err := c.getUser(t.DiscordID)
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error finding user %s: %s\n", t.DiscordID, err)
@@ -124,28 +123,15 @@ func (c *Client) runner() {
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
 					} else {
-						c.session.ChannelMessageSend(channel.ID, fmt.Sprintf("%v", t.Items))
+						c.session.ChannelMessageSend(channel.ID, t.String())
 					}
 				case t := <-c.DiscordAuth:
-					log.Printf(logRunnerSymbol+" Discord Auth: %v", t)
-					user, err := c.getUser(t.DiscordID)
-					if err != nil {
-						log.Printf(logRunnerSymbol+" Error finding user %s: %s\n", t.DiscordID, err)
-						break
-					}
-
-					channel, err := c.session.UserChannelCreate(user.ID)
-					if err != nil {
-						log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
-					} else {
+					_, err := c.sendPrivateMessage(t.DiscordID, `
+					A request has been made for you to authenticate your ALM user.
+					Enter the PIN provided in-game to validate your account.
+					`)
+					if err == nil {
 						c.cacheDiscordAuth(t)
-						c.session.ChannelMessageSend(
-							channel.ID,
-							`
-							A request has been made for you to authenticate your ALM user.
-							Enter the PIN provided in-game to validate your account.
-							`,
-						)
 					}
 				}
 			}
@@ -237,7 +223,6 @@ ChannelSearch:
 			if foundLinkChan && foundStatusChan {
 				break ChannelSearch
 			}
-			// log.Printf("%s, %s", c.Name, c.ID)
 		}
 	}
 
@@ -247,6 +232,26 @@ ChannelSearch:
 		log.Fatalln("Could not find both link and status channels.")
 		os.Exit(3)
 	}
+}
+
+func (c *Client) sendPrivateMessage(discordID, message string) (m *discordgo.Message, err error) {
+	user, err := c.getUser(discordID)
+	if err != nil {
+		log.Printf(logRunnerSymbol+" Error finding user %s: %s\n", discordID, err)
+		return
+	}
+
+	channel, err := c.session.UserChannelCreate(user.ID)
+	if err != nil {
+		log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
+		return
+	} else {
+		return c.session.ChannelMessageSend(
+			channel.ID,
+			message,
+		)
+	}
+
 }
 
 // This function will be called (due to AddHandler above) every time a new
