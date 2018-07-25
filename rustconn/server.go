@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo/bson"
 )
 
 type MongoConfig struct {
