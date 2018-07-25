@@ -289,7 +289,7 @@ Interact:
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
 	} else {
-		if pinString(da.Pin) == m.Content {
+		if pinString(da.Pin) == strings.TrimSpace(m.Content) {
 			da.Ack = func(authed bool) {
 				if authed {
 					s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
