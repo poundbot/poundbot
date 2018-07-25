@@ -85,7 +85,7 @@ func main() {
 	// os.Exit(3)
 
 	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
-	dr := discord.DiscordRunner(dConfig)
+	dr := discord.Runner(dConfig)
 	err = dr.Start()
 	if err != nil {
 		log.Println("🤖⚠️ Could not start Discord")
@@ -95,7 +95,7 @@ func main() {
 		dr.Close()
 	}()
 
-	server := rustconn.NewServer(asConfig, dr.RaidAlertChan)
+	server := rustconn.NewServer(asConfig, dr.RaidAlertChan, dr.DiscordAuth, dr.AuthSuccess)
 	go server.Serve()
 
 	t := twitter.NewTwitter(tConfig, dr.LinkChan)

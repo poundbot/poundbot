@@ -1,9 +1,11 @@
 package discord
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"mrpoundsign.com/poundbot/rustconn"
@@ -21,56 +23,60 @@ type RunnerConfig struct {
 	StatusChan string
 }
 
-type discord struct {
-	session       *discordgo.Session
-	linkChanID    string
-	statusChanID  string
-	token         string
-	status        chan bool
-	userCache     *cache.Cache
-	LinkChan      chan string
-	StatusChan    chan string
-	RaidAlertChan chan rustconn.RaidNotification
-	GetIDChan     chan string
+type Client struct {
+	session          *discordgo.Session
+	linkChanID       string
+	statusChanID     string
+	token            string
+	status           chan bool
+	userCache        *cache.Cache
+	authRequestCache *cache.Cache
+	LinkChan         chan string
+	StatusChan       chan string
+	RaidAlertChan    chan rustconn.RaidNotification
+	DiscordAuth      chan rustconn.DiscordAuth
+	AuthSuccess      chan rustconn.DiscordAuth
 }
 
-func DiscordRunner(rc *RunnerConfig) *discord {
-	return &discord{
-		linkChanID:    rc.LinkChan,
-		statusChanID:  rc.StatusChan,
-		token:         rc.Token,
-		userCache:     cache.New(5*time.Minute, 10*time.Minute),
-		LinkChan:      make(chan string),
-		StatusChan:    make(chan string),
-		RaidAlertChan: make(chan rustconn.RaidNotification),
-		GetIDChan:     make(chan string),
+func Runner(rc *RunnerConfig) *Client {
+	return &Client{
+		linkChanID:       rc.LinkChan,
+		statusChanID:     rc.StatusChan,
+		token:            rc.Token,
+		userCache:        cache.New(5*time.Minute, 10*time.Minute),
+		authRequestCache: cache.New(60*time.Minute, 24*time.Hour),
+		LinkChan:         make(chan string),
+		StatusChan:       make(chan string),
+		DiscordAuth:      make(chan rustconn.DiscordAuth),
+		AuthSuccess:      make(chan rustconn.DiscordAuth),
+		RaidAlertChan:    make(chan rustconn.RaidNotification),
 	}
 }
 
-func (d *discord) Start() error {
-	session, err := discordgo.New("Bot " + d.token)
+func (c *Client) Start() error {
+	session, err := discordgo.New("Bot " + c.token)
 	if err == nil {
-		d.session = session
-		d.session.AddHandler(d.messageCreate)
-		d.session.AddHandler(d.ready)
-		d.session.AddHandler(d.disconnected)
-		d.session.AddHandler(d.resumed)
+		c.session = session
+		c.session.AddHandler(c.messageCreate)
+		c.session.AddHandler(c.ready)
+		c.session.AddHandler(c.disconnected)
+		c.session.AddHandler(c.resumed)
 
-		d.status = make(chan bool)
+		c.status = make(chan bool)
 
-		go d.runner()
+		go c.runner()
 
-		d.connect()
+		c.connect()
 	}
 	return err
 }
 
-func (d *discord) Close() {
+func (c *Client) Close() {
 	log.Println(logSymbol + "🛑 Disconnecting")
-	d.session.Close()
+	c.session.Close()
 }
 
-func (d *discord) runner() {
+func (c *Client) runner() {
 	defer func() {
 		log.Println(logRunnerSymbol + " Runner Exiting")
 	}()
@@ -82,79 +88,86 @@ func (d *discord) runner() {
 		Reading:
 			for {
 				select {
-				case connectedState = <-d.status:
+				case connectedState = <-c.status:
 					if !connectedState {
 						log.Println(logRunnerSymbol + "☎️ Received disconnected message")
 						break Reading
 					} else {
 						log.Println(logRunnerSymbol + "❓ Received unexpected connected message")
 					}
-				case t := <-d.LinkChan:
-					_, err := d.session.ChannelMessageSend(
-						d.linkChanID,
+				case t := <-c.LinkChan:
+					_, err := c.session.ChannelMessageSend(
+						c.linkChanID,
 						fmt.Sprintf("📝 @everyone New Update: %s", t),
 					)
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
 					}
 
-				case t := <-d.StatusChan:
-					_, err := d.session.ChannelMessageSend(
-						d.statusChanID,
+				case t := <-c.StatusChan:
+					_, err := c.session.ChannelMessageSend(
+						c.statusChanID,
 						fmt.Sprintf(logRunnerSymbol+t),
 					)
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
 					}
-				case t := <-d.RaidAlertChan:
+				case t := <-c.RaidAlertChan:
 					log.Printf(logRunnerSymbol+" Got raid alert: %v", t)
-					user, err := d.getUser(t.DiscordID)
+					user, err := c.getUser(t.DiscordID)
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error finding user %s: %s\n", t.DiscordID, err)
 						break
 					}
 
-					// var toChannel discordgo.Channel;
-					// channels, err := d.session.UserChannels()
-					// if err != nil {
-					// 	log.Printf(logRunnerSymbol+" Error loading user channels: %v", err)
-					// 	continue
-					// }
-					// for _, channel := range channels {
-					// 	for _
-					// }
-					channel, err := d.session.UserChannelCreate(user.ID)
+					channel, err := c.session.UserChannelCreate(user.ID)
 					if err != nil {
 						log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
 					} else {
-						d.session.ChannelMessageSend(channel.ID, fmt.Sprintf("%v", t.Items))
+						c.session.ChannelMessageSend(channel.ID, fmt.Sprintf("%v", t.Items))
+					}
+				case t := <-c.DiscordAuth:
+					log.Printf(logRunnerSymbol+" Discord Auth: %v", t)
+					user, err := c.getUser(t.DiscordID)
+					if err != nil {
+						log.Printf(logRunnerSymbol+" Error finding user %s: %s\n", t.DiscordID, err)
+						break
+					}
+
+					channel, err := c.session.UserChannelCreate(user.ID)
+					if err != nil {
+						log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
+					} else {
+						c.cacheDiscordAuth(t)
+						c.session.ChannelMessageSend(
+							channel.ID,
+							`
+							A request has been made for you to authenticate your ALM user.
+							Enter the PIN provided in-game to validate your account.
+							`,
+						)
 					}
 				}
 			}
 		}
-
-		log.Println(logRunnerSymbol + " Waiting for connected state")
-
-		// Wait for connected
 	Connecting:
 		for {
-			select {
-			case connectedState = <-d.status:
-				if connectedState {
-					log.Println(logRunnerSymbol + "📞 Received connected message")
-					break Connecting
-				} else {
-					log.Println(logRunnerSymbol + "☎️ Received disconnected message")
-				}
+			log.Println(logRunnerSymbol + " Waiting for connected state")
+			connectedState = <-c.status
+			if connectedState {
+				log.Println(logRunnerSymbol + "📞 Received connected message")
+				break Connecting
+			} else {
+				log.Println(logRunnerSymbol + "☎️ Received disconnected message")
 			}
-
-			time.Sleep(1 * time.Second)
 		}
 	}
 
+	// Wait for connected
+
 }
 
-func (d *discord) connect() {
+func (d *Client) connect() {
 	log.Println(logSymbol + "☎️ Connecting")
 	for {
 		err := d.session.Open()
@@ -172,19 +185,19 @@ func (d *discord) connect() {
 
 // This function will be called (due to AddHandler above) when the bot receives
 // the "disconnect" event from Discord.
-func (d *discord) disconnected(s *discordgo.Session, event *discordgo.Disconnect) {
+func (d *Client) disconnected(s *discordgo.Session, event *discordgo.Disconnect) {
 	d.status <- false
 	log.Println(logSymbol + "☎️ Disconnected!")
 }
 
-func (d *discord) resumed(s *discordgo.Session, event *discordgo.Resumed) {
+func (d *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 	log.Println(logSymbol + "📞 Resumed!")
 	d.status <- true
 }
 
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
-func (d *discord) ready(s *discordgo.Session, event *discordgo.Ready) {
+func (d *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.Println(logSymbol + "📞 ✔️ Ready!")
 	s.UpdateStatus(0, "I'm a real boy!")
 
@@ -238,7 +251,7 @@ ChannelSearch:
 
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
-func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+func (d *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Ignore all messages created by the bot itself
 	// This isn't required in this specific example but it's a good practice.
@@ -267,26 +280,33 @@ func (d *discord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate
 	return
 
 Interact:
-	s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
+	da, err := d.getDiscordAuth(m.Author.String())
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "I don't do any interactions, yet.")
+	} else {
+		if pinString(da.Pin) == m.Content {
+			d.AuthSuccess <- da
+		}
+	}
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error
-func (d *discord) getUser(id string) (user discordgo.User, err error) {
-	u, found := d.userCache.Get(id)
+func (c *Client) getUser(id string) (user discordgo.User, err error) {
+	u, found := c.userCache.Get(strings.ToLower(id))
 	if found {
 		user = u.(discordgo.User)
 	} else {
-		guilds, err := d.session.UserGuilds(100, "", "")
+		guilds, err := c.session.UserGuilds(100, "", "")
 		if err == nil {
 			for _, guild := range guilds {
-				users, err := d.session.GuildMembers(guild.ID, "", 1000)
+				users, err := c.session.GuildMembers(guild.ID, "", 1000)
 				if err != nil {
 					return user, err
 				}
 
 				for _, user := range users {
-					if user.User.String() == id {
-						d.cacheUser(*user.User)
+					if strings.ToLower(user.User.String()) == strings.ToLower(id) {
+						c.cacheUser(*user.User)
 						return *user.User, nil
 					}
 				}
@@ -296,6 +316,26 @@ func (d *discord) getUser(id string) (user discordgo.User, err error) {
 	return
 }
 
-func (d *discord) cacheUser(u discordgo.User) {
-	d.userCache.Set(u.String(), u, cache.DefaultExpiration)
+func (c *Client) cacheUser(u discordgo.User) {
+	c.userCache.Set(u.String(), u, cache.DefaultExpiration)
+}
+
+func (c *Client) cacheDiscordAuth(da rustconn.DiscordAuth) {
+	cacheID := strings.ToLower(da.DiscordID)
+	log.Printf(logRunnerSymbol+"Caching auth record %v as %s", da, cacheID)
+	c.authRequestCache.Set(strings.ToLower(da.DiscordID), da, cache.DefaultExpiration)
+}
+
+func (c *Client) getDiscordAuth(discordID string) (da rustconn.DiscordAuth, err error) {
+	item, found := c.authRequestCache.Get(strings.ToLower(discordID))
+	if found {
+		log.Printf(logRunnerSymbol+" Found %v", item.(rustconn.DiscordAuth))
+		da = item.(rustconn.DiscordAuth)
+		return
+	}
+	return da, errors.New("no auth record matching pin")
+}
+
+func pinString(pin int) string {
+	return fmt.Sprintf("%04d", pin)
 }

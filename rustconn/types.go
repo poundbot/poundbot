@@ -31,9 +31,12 @@ type User struct {
 	CreatedAt   time.Time `bson:"created_at"`
 }
 
-func (u User) UpsertID() SteamInfo {
-	return SteamInfo{SteamID: u.SteamID}
-	// return &steamInfo{SteamID: u.SteamID}
+func (s SteamInfo) UpsertID() SteamInfo {
+	return s
+}
+
+type RemoveUser struct {
+	SteamInfo `bson:",inline"`
 }
 
 type DiscordAuth struct {
@@ -41,6 +44,7 @@ type DiscordAuth struct {
 	DiscordInfo `bson:",inline"`
 	SteamInfo   `bson:",inline"`
 	Pin         int
+	SentToUser  bool
 }
 
 type RaidNotification struct {
