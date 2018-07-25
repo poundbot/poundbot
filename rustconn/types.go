@@ -8,6 +8,8 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
+type Ack func(bool)
+
 type EntityDeath struct {
 	Name      string
 	GridPos   string
@@ -48,6 +50,7 @@ type DiscordAuth struct {
 	SteamInfo   `bson:",inline"`
 	Pin         int
 	SentToUser  bool
+	Ack         Ack `bson:"-"`
 }
 
 type RaidNotification struct {
@@ -81,11 +84,3 @@ func (rn RaidNotification) String() string {
 	  %s
 	`, strings.Join(rn.GridPositions, ", "), strings.Join(items, ", "))
 }
-
-// func (u User) UpsertData() (*bson.Document, error) {
-// 	tf, err := mongo.TransformDocument(bson.Document{"$set": u})
-// 	if err != nil {
-// 		return tf, err
-// 	}
-// 	return &tf, nil
-// }

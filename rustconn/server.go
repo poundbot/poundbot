@@ -96,6 +96,13 @@ func (s *Server) authHandler() {
 		_, err := s.userColl.Upsert(u.UpsertID(), u)
 		if err == nil {
 			s.discordAuthColl.Remove(as.SteamInfo)
+			if as.Ack != nil {
+				as.Ack(true)
+			}
+		} else {
+			if as.Ack != nil {
+				as.Ack(false)
+			}
 		}
 	}
 }
@@ -141,7 +148,11 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	u, err := s.findUser(t.SteamID)
 	if err == nil {
 		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(fmt.Sprintf("{\"error\": \"%s is already linked to you.\"}", u.DiscordID)))
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"%s is linked to you.\"}", u.DiscordID)))
+		return
+	} else if t.DiscordID == "check" {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("{\"error\": \"Account is not linked to discord.\"}"))
 		return
 	}
 
