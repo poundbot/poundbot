@@ -18,9 +18,10 @@ import (
 
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
 	return &discord.RunnerConfig{
-		Token:      cfg.GetString("token"),
-		LinkChan:   cfg.GetString("channels.link"),
-		StatusChan: cfg.GetString("channels.status"),
+		Token:       cfg.GetString("token"),
+		LinkChan:    cfg.GetString("channels.link"),
+		StatusChan:  cfg.GetString("channels.status"),
+		GeneralChan: cfg.GetString("channels.general"),
 	}
 }
 
@@ -95,7 +96,7 @@ func main() {
 		dr.Close()
 	}()
 
-	server := rustconn.NewServer(asConfig, dr.RaidAlertChan, dr.DiscordAuth, dr.AuthSuccess)
+	server := rustconn.NewServer(asConfig, dr.RaidAlertChan, dr.DiscordAuth, dr.AuthSuccess, dr.GeneralChan, dr.GeneralOutChan)
 	go server.Serve()
 
 	t := twitter.NewTwitter(tConfig, dr.LinkChan)

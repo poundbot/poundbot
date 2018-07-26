@@ -10,6 +10,13 @@ import (
 
 type Ack func(bool)
 
+type ChatMessage struct {
+	SteamInfo `bson:",inline"`
+	Username  string
+	Message   string
+	Source    string
+}
+
 type EntityDeath struct {
 	Name      string
 	GridPos   string

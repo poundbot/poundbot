@@ -18,35 +18,43 @@ const logSymbol = "🏟️ "
 const logRunnerSymbol = logSymbol + "🏃 "
 
 type RunnerConfig struct {
-	Token      string
-	LinkChan   string
-	StatusChan string
+	Token       string
+	LinkChan    string
+	StatusChan  string
+	GeneralChan string
 }
 
 type Client struct {
 	session          *discordgo.Session
 	linkChanID       string
 	statusChanID     string
+	generalChanID    string
 	token            string
 	status           chan bool
 	userCache        *cache.Cache
 	authRequestCache *cache.Cache
 	LinkChan         chan string
 	StatusChan       chan string
+	GeneralChan      chan string
+	GeneralOutChan   chan rustconn.ChatMessage
 	RaidAlertChan    chan rustconn.RaidNotification
 	DiscordAuth      chan rustconn.DiscordAuth
 	AuthSuccess      chan rustconn.DiscordAuth
 }
 
 func Runner(rc *RunnerConfig) *Client {
+	fmt.Println("General Chan is " + rc.GeneralChan)
 	return &Client{
 		linkChanID:       rc.LinkChan,
 		statusChanID:     rc.StatusChan,
+		generalChanID:    rc.GeneralChan,
 		token:            rc.Token,
 		userCache:        cache.New(5*time.Minute, 10*time.Minute),
 		authRequestCache: cache.New(60*time.Minute, 24*time.Hour),
 		LinkChan:         make(chan string),
 		StatusChan:       make(chan string),
+		GeneralChan:      make(chan string),
+		GeneralOutChan:   make(chan rustconn.ChatMessage),
 		DiscordAuth:      make(chan rustconn.DiscordAuth),
 		AuthSuccess:      make(chan rustconn.DiscordAuth),
 		RaidAlertChan:    make(chan rustconn.RaidNotification),
@@ -133,6 +141,11 @@ func (c *Client) runner() {
 					if err == nil {
 						c.cacheDiscordAuth(t)
 					}
+				case t := <-c.GeneralChan:
+					_, err := c.session.ChannelMessageSend(c.generalChanID, t)
+					if err != nil {
+						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
+					}
 				}
 			}
 		}
@@ -194,6 +207,7 @@ func (d *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	}
 	var foundLinkChan = false
 	var foundStatusChan = false
+	var foundGeneralChan = false
 
 ChannelSearch:
 	for _, g := range uguilds {
@@ -220,13 +234,23 @@ ChannelSearch:
 					os.Exit(3)
 				}
 			}
-			if foundLinkChan && foundStatusChan {
+
+			if c.ID == d.generalChanID {
+				log.Printf(logSymbol+"📞 ✔️ Found general channel on server %s, %s: %s\n", g.Name, c.ID, c.Name)
+				foundGeneralChan = true
+				if c.Type != discordgo.ChannelTypeGuildText {
+					log.Fatalf(logSymbol+"📞 🛑 Invalid channel type: %v\n", c.Type)
+					os.Exit(3)
+				}
+			}
+
+			if foundLinkChan && foundStatusChan && foundGeneralChan {
 				break ChannelSearch
 			}
 		}
 	}
 
-	if foundLinkChan && foundStatusChan {
+	if foundLinkChan && foundStatusChan && foundGeneralChan {
 		d.status <- true
 	} else {
 		log.Fatalln("Could not find both link and status channels.")
@@ -266,7 +290,20 @@ func (d *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 	// check if the message is "!test"
 	// if strings.HasPrefix(m.Content, "!test") {
-	log.Printf(logSymbol+" Message (%v) %s from %s %s on %s\n", m.Type, m.Content, m.Author.Username, m.Author.String(), m.ChannelID)
+	// log.Printf(logSymbol+" Message (%v) %s from %s %s on %s\n", m.Type, m.Content, m.Author.Username, m.Author.String(), m.ChannelID)
+	if m.ChannelID == d.generalChanID {
+		go func(ch chan rustconn.ChatMessage, cm rustconn.ChatMessage) {
+			if len(cm.Message) > 128 {
+				cm.Message = truncateString(cm.Message, 128)
+				d.session.ChannelMessageSend(d.generalChanID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
+			}
+			ch <- cm
+		}(d.GeneralOutChan, rustconn.ChatMessage{
+			Username: m.Author.Username,
+			Message:  m.Message.Content,
+			Source:   rustconn.SourceDiscord,
+		})
+	}
 	dChan, err := d.session.Channel(m.ChannelID)
 	if err != nil {
 		log.Printf(logSymbol+"❓ Could not get channel data for %s\n", m.ChannelID)
@@ -352,4 +389,15 @@ func (c *Client) getDiscordAuth(discordID string) (da rustconn.DiscordAuth, err 
 
 func pinString(pin int) string {
 	return fmt.Sprintf("%04d", pin)
+}
+
+func truncateString(str string, num int) string {
+	bnoden := str
+	if len(str) > num {
+		if num > 3 {
+			num -= 3
+		}
+		bnoden = str[0:num] + "..."
+	}
+	return bnoden
 }

@@ -11,6 +11,11 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
+const (
+	SourceRust    = "rust"
+	SourceDiscord = "discord"
+)
+
 type MongoConfig struct {
 	DialAddress string
 	Database    string
@@ -28,17 +33,22 @@ type Server struct {
 	userColl        *mgo.Collection
 	discordAuthColl *mgo.Collection
 	raidAlertColl   *mgo.Collection
+	chatCollection  *mgo.Collection
 	RaidNotify      chan RaidNotification
 	DiscordAuth     chan DiscordAuth
 	AuthSuccess     chan DiscordAuth
+	ChatChan        chan string
+	ChatOutChan     chan ChatMessage
 }
 
-func NewServer(sc *ServerConfig, rch chan RaidNotification, dach chan DiscordAuth, asch chan DiscordAuth) *Server {
+func NewServer(sc *ServerConfig, rch chan RaidNotification, dach, asch chan DiscordAuth, cch chan string, coch chan ChatMessage) *Server {
 	return &Server{
 		sc:          sc,
 		RaidNotify:  rch,
 		DiscordAuth: dach,
 		AuthSuccess: asch,
+		ChatChan:    cch,
+		ChatOutChan: coch,
 	}
 }
 
@@ -51,6 +61,7 @@ func (s *Server) Serve() {
 	s.userColl = s.mongoDB.C("users")
 	s.discordAuthColl = s.mongoDB.C("discord_auths")
 	s.raidAlertColl = s.mongoDB.C("raid_alerts")
+	s.chatCollection = s.mongoDB.C("chats")
 
 	index := mgo.Index{
 		Key:        []string{"steam_id"},
@@ -69,6 +80,7 @@ func (s *Server) Serve() {
 	fmt.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 	http.HandleFunc("/entity_death", s.entityDeathHandler)
 	http.HandleFunc("/discord_auth", s.discordAuthHandler)
+	http.HandleFunc("/chat", s.chatHandler)
 	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), nil))
 }
 
@@ -104,6 +116,43 @@ func (s *Server) authHandler() {
 				as.Ack(false)
 			}
 		}
+	}
+}
+
+func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPut:
+		decoder := json.NewDecoder(r.Body)
+		var t ChatMessage
+		err := decoder.Decode(&t)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		t.Source = SourceRust
+		s.chatCollection.Insert(t)
+		go func(t ChatMessage, c chan string) {
+			c <- fmt.Sprintf("☢️ **%s**: %s", t.Username, t.Message)
+		}(t, s.ChatChan)
+	case http.MethodGet:
+		select {
+		case res := <-s.ChatOutChan:
+			b, err := json.Marshal(res)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			s.chatCollection.Insert(res)
+
+			w.Write(b)
+		case <-time.After(5 * time.Second):
+			w.WriteHeader(http.StatusNoContent)
+		}
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte(fmt.Sprintf("{\"error\": \"Method %s not allowed\"}", r.Method)))
 	}
 }
 
