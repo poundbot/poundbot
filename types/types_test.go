@@ -1,4 +1,4 @@
-package rustconn
+package types
 
 import (
 	"reflect"
