@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"mrpoundsign.com/poundbot/db"
 	"mrpoundsign.com/poundbot/discord"
 	"mrpoundsign.com/poundbot/rust"
 	"mrpoundsign.com/poundbot/rustconn"
@@ -40,10 +41,6 @@ func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),
-		MongoConfig: rustconn.MongoConfig{
-			DialAddress: cfg.GetString("mongo.dial-addr"),
-			Database:    cfg.GetString("mongo.database"),
-		},
 	}
 }
 
@@ -61,12 +58,17 @@ func main() {
 	viper.SetDefault("player-delta-frequency", 30)
 	viper.SetDefault("rust.api-server.bind_addr", "")
 	viper.SetDefault("rust.api-server.port", 9090)
-	viper.SetDefault("rust.api-server.mongo.dial-addr", "mongodb://localhost")
-	viper.SetDefault("rust.api-server.mongo.database", "poundbot")
+	viper.SetDefault("rust.mongo.dial-addr", "mongodb://localhost")
+	viper.SetDefault("rust.mongo.database", "poundbot")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		log.Panicf("fatal error config file: %s\n", err)
 	}
+
+	db.Init(db.MongoConfig{
+		DialAddress: viper.GetString("mongo.dial-addr"),
+		Database:    viper.GetString("mongo.database"),
+	})
 
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	tConfig := newTwitterConfig(viper.Sub("twitter"))
@@ -80,7 +82,7 @@ func main() {
 	}
 	err = rs.Update()
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Println(err.Error())
 	}
 	// log.Printf("%v", rs)
 	// os.Exit(3)
@@ -124,11 +126,16 @@ func main() {
 				playerDelta = 0
 				serverDown = true
 				downChecks++
-				if downChecks == 3 {
+				if downChecks%3 == 0 {
 					fmt.Println("🤖 🏃 Server is down!")
+					time.Sleep(20 * time.Second)
 				}
-				time.Sleep(30 * time.Second)
+				time.Sleep(10 * time.Second)
 				continue
+			}
+
+			if downChecks > 0 {
+				fmt.Println("🤖 🏃 Server is back!")
 			}
 
 			if serverDown {

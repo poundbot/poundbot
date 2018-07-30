@@ -1,4 +1,4 @@
-package rustconn
+package types
 
 import (
 	"fmt"
@@ -7,6 +7,11 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
+)
+
+const (
+	ChatSourceRust    = "rust"
+	ChatSourceDiscord = "discord"
 )
 
 type Ack func(bool)

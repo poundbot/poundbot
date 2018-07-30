@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"mrpoundsign.com/poundbot/rustconn"
+	"mrpoundsign.com/poundbot/types"
 
 	"github.com/bwmarrin/discordgo"
 	cache "github.com/patrickmn/go-cache"
@@ -36,10 +36,10 @@ type Client struct {
 	LinkChan         chan string
 	StatusChan       chan string
 	GeneralChan      chan string
-	GeneralOutChan   chan rustconn.ChatMessage
-	RaidAlertChan    chan rustconn.RaidNotification
-	DiscordAuth      chan rustconn.DiscordAuth
-	AuthSuccess      chan rustconn.DiscordAuth
+	GeneralOutChan   chan types.ChatMessage
+	RaidAlertChan    chan types.RaidNotification
+	DiscordAuth      chan types.DiscordAuth
+	AuthSuccess      chan types.DiscordAuth
 }
 
 func Runner(rc *RunnerConfig) *Client {
@@ -54,10 +54,10 @@ func Runner(rc *RunnerConfig) *Client {
 		LinkChan:         make(chan string),
 		StatusChan:       make(chan string),
 		GeneralChan:      make(chan string),
-		GeneralOutChan:   make(chan rustconn.ChatMessage),
-		DiscordAuth:      make(chan rustconn.DiscordAuth),
-		AuthSuccess:      make(chan rustconn.DiscordAuth),
-		RaidAlertChan:    make(chan rustconn.RaidNotification),
+		GeneralOutChan:   make(chan types.ChatMessage),
+		DiscordAuth:      make(chan types.DiscordAuth),
+		AuthSuccess:      make(chan types.DiscordAuth),
+		RaidAlertChan:    make(chan types.RaidNotification),
 	}
 }
 
@@ -292,16 +292,16 @@ func (d *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// if strings.HasPrefix(m.Content, "!test") {
 	// log.Printf(logSymbol+" Message (%v) %s from %s %s on %s\n", m.Type, m.Content, m.Author.Username, m.Author.String(), m.ChannelID)
 	if m.ChannelID == d.generalChanID {
-		go func(ch chan rustconn.ChatMessage, cm rustconn.ChatMessage) {
+		go func(ch chan types.ChatMessage, cm types.ChatMessage) {
 			if len(cm.Message) > 128 {
 				cm.Message = truncateString(cm.Message, 128)
 				d.session.ChannelMessageSend(d.generalChanID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
 			}
 			ch <- cm
-		}(d.GeneralOutChan, rustconn.ChatMessage{
+		}(d.GeneralOutChan, types.ChatMessage{
 			DisplayName: m.Author.Username,
 			Message:     m.Message.Content,
-			Source:      rustconn.SourceDiscord,
+			Source:      types.ChatSourceDiscord,
 		})
 	}
 	dChan, err := d.session.Channel(m.ChannelID)
@@ -371,17 +371,17 @@ func (c *Client) cacheUser(u discordgo.User) {
 	c.userCache.Set(u.String(), u, cache.DefaultExpiration)
 }
 
-func (c *Client) cacheDiscordAuth(da rustconn.DiscordAuth) {
+func (c *Client) cacheDiscordAuth(da types.DiscordAuth) {
 	cacheID := strings.ToLower(da.DiscordID)
 	log.Printf(logRunnerSymbol+"Caching auth record %v as %s", da, cacheID)
 	c.authRequestCache.Set(strings.ToLower(da.DiscordID), da, cache.DefaultExpiration)
 }
 
-func (c *Client) getDiscordAuth(discordID string) (da rustconn.DiscordAuth, err error) {
+func (c *Client) getDiscordAuth(discordID string) (da types.DiscordAuth, err error) {
 	item, found := c.authRequestCache.Get(strings.ToLower(discordID))
 	if found {
-		log.Printf(logRunnerSymbol+" Found %v", item.(rustconn.DiscordAuth))
-		da = item.(rustconn.DiscordAuth)
+		log.Printf(logRunnerSymbol+" Found %v", item.(types.DiscordAuth))
+		da = item.(types.DiscordAuth)
 		return
 	}
 	return da, errors.New("no auth record matching pin")
