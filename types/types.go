@@ -140,25 +140,31 @@ func ClanFromServerClan(sc ServerClan) (*Clan, error) {
 	if err != nil {
 		return nil, err
 	}
-	clan.Members = nuints
+	clan.Members = *nuints
 
 	nuints, err = convStringAToUnintA(sc.Moderators)
 	if err != nil {
 		return nil, err
 	}
-	clan.Moderators = nuints
+	clan.Moderators = *nuints
 
 	nuints, err = convStringAToUnintA(sc.Invited)
 	if err != nil {
 		return nil, err
 	}
-	clan.Invited = nuints
+	clan.Invited = *nuints
 
 	return &clan, nil
 }
 
-func convStringAToUnintA(in []string) ([]uint64, error) {
-	var out = make([]uint64, len(in))
+func convStringAToUnintA(in []string) (*[]uint64, error) {
+	var out []uint64
+	var l = len(in)
+	if l == 0 {
+		return &out, nil
+	}
+
+	out = make([]uint64, len(in))
 	for i, conv := range in {
 		newuint, err := strconv.ParseUint(conv, 10, 64)
 		if err != nil {
@@ -167,5 +173,5 @@ func convStringAToUnintA(in []string) ([]uint64, error) {
 		out[i] = newuint
 	}
 
-	return out, nil
+	return &out, nil
 }
