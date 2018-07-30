@@ -43,7 +43,6 @@ func NewServerInfo(server *Server) (*ServerInfo, error) {
 func (sq *ServerInfo) Update() error {
 	query, err := valve.NewServerQuerier(sq.tcpAddr.String(), time.Second*3)
 	if err != nil {
-		log.Println(logSymbol + "Could not contact Rust server")
 		sq.PlayerInfo = PlayerInfo{}
 		return err
 	}
@@ -52,7 +51,6 @@ func (sq *ServerInfo) Update() error {
 	info, err := query.QueryInfo()
 	if err != nil {
 		sq.PlayerInfo = PlayerInfo{}
-		log.Printf(logSymbol+"Error connecting to Rust server: %s, %s", sq.tcpAddr.String(), err)
 		return err
 	}
 
