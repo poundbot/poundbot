@@ -9,6 +9,7 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -34,6 +35,7 @@ type Server struct {
 	discordAuthColl *mgo.Collection
 	raidAlertColl   *mgo.Collection
 	chatCollection  *mgo.Collection
+	clanCollection  *mgo.Collection
 	RaidNotify      chan RaidNotification
 	DiscordAuth     chan DiscordAuth
 	AuthSuccess     chan DiscordAuth
@@ -62,6 +64,7 @@ func (s *Server) Serve() {
 	s.discordAuthColl = s.mongoDB.C("discord_auths")
 	s.raidAlertColl = s.mongoDB.C("raid_alerts")
 	s.chatCollection = s.mongoDB.C("chats")
+	s.clanCollection = s.mongoDB.C("clans")
 
 	index := mgo.Index{
 		Key:        []string{"steam_id"},
@@ -73,15 +76,45 @@ func (s *Server) Serve() {
 	s.userColl.EnsureIndex(index)
 	s.discordAuthColl.EnsureIndex(index)
 
-	// u := User{DiscordInfo: DiscordInfo{DiscordID: "MrPoundsign#2364"}, SteamInfo: SteamInfo{SteamID: 76561197960794006}, CreatedAt: time.Now().UTC()}
-	// s.userColl.Upsert(u.UpsertID(), u)
+	index = mgo.Index{
+		Key:        []string{"tag", "players"},
+		Unique:     true,
+		DropDups:   true,
+		Background: false,
+		Sparse:     false,
+	}
+
 	go s.authHandler()
 	go s.raidAlerter()
+
 	fmt.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
-	http.HandleFunc("/entity_death", s.entityDeathHandler)
-	http.HandleFunc("/discord_auth", s.discordAuthHandler)
-	http.HandleFunc("/chat", s.chatHandler)
-	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), nil))
+	r := mux.NewRouter()
+	r.HandleFunc("/entity_death", s.entityDeathHandler)
+	r.HandleFunc("/discord_auth", s.discordAuthHandler)
+	r.HandleFunc("/chat", s.chatHandler)
+	r.HandleFunc("/clans", s.clansHandler).Methods(http.MethodPut)
+	r.HandleFunc("/clans/{tag}", s.clanHandler).Methods(http.MethodDelete, http.MethodPut)
+	http.Handle("/", r)
+	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), r))
+}
+
+func (s Server) upsertClan(c Clan) {
+	_, err := s.clanCollection.Upsert(
+		bson.M{
+			"tag": c.Tag,
+		},
+		bson.M{
+			"$setOnInsert": bson.M{"created_at": time.Now().UTC().Add(5 * time.Minute)},
+			"$set":         c.ClanBase,
+		},
+	)
+	if err != nil {
+		log.Printf("%s", err)
+	}
+	s.userColl.UpdateAll(
+		bson.M{"steam_id": bson.M{"$in": c.Members}},
+		bson.M{"$set": bson.M{"clan_tag": c.Tag}},
+	)
 }
 
 func (s *Server) raidAlerter() {
@@ -104,8 +137,14 @@ func (s *Server) raidAlerter() {
 func (s *Server) authHandler() {
 	for {
 		as := <-s.AuthSuccess
-		u := User{DiscordInfo: as.DiscordInfo, SteamInfo: as.SteamInfo, CreatedAt: time.Now().UTC()}
-		_, err := s.userColl.Upsert(u.UpsertID(), u)
+
+		_, err := s.userColl.Upsert(
+			as.BaseUser.SteamInfo,
+			bson.M{
+				"$setOnInsert": bson.M{"created_at": time.Now().UTC().Add(5 * time.Minute)},
+				"$set":         as.BaseUser,
+			},
+		)
 		if err == nil {
 			s.discordAuthColl.Remove(as.SteamInfo)
 			if as.Ack != nil {
@@ -119,9 +158,81 @@ func (s *Server) authHandler() {
 	}
 }
 
+func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("%v", r.Body)
+	decoder := json.NewDecoder(r.Body)
+	var t []ServerClan
+	err := decoder.Decode(&t)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	clanCount := len(t)
+	clans := make([]Clan, clanCount)
+	tags := make([]string, clanCount)
+	for i, sc := range t {
+		c, err := ClanFromServerClan(sc)
+		if err != nil {
+			log.Printf("%v\n", err)
+			handleError(w, RESTError{
+				StatusCode: http.StatusBadRequest,
+				Error:      "Error processing clan data",
+			})
+			return
+		}
+		tags[i] = c.Tag
+		clans[i] = *c
+	}
+
+	for _, clan := range clans {
+		s.upsertClan(clan)
+
+	}
+
+	s.clanCollection.RemoveAll(bson.M{"tag": bson.M{"$nin": tags}})
+	s.userColl.UpdateAll(
+		bson.M{"clan_tag": bson.M{"$nin": tags}},
+		bson.M{"$unset": bson.M{"clan_tag": 1}},
+	)
+}
+
+func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	tag := vars["tag"]
+	switch r.Method {
+	case http.MethodDelete:
+		s.clanCollection.RemoveAll(bson.M{"tag": tag})
+		s.userColl.UpdateAll(
+			bson.M{"clan_tag": tag},
+			bson.M{"$unset": bson.M{"clan_tag": 1}},
+		)
+		return
+	case http.MethodPut:
+		decoder := json.NewDecoder(r.Body)
+		var t ServerClan
+		err := decoder.Decode(&t)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Printf("%v", t)
+		clan, err := ClanFromServerClan(t)
+		if err != nil {
+			handleError(w, RESTError{
+				StatusCode: http.StatusBadRequest,
+				Error:      "Error processing clan data",
+			})
+			return
+		}
+
+		s.upsertClan(*clan)
+	}
+}
+
 func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodPut:
+	case http.MethodPost:
 		decoder := json.NewDecoder(r.Body)
 		var t ChatMessage
 		err := decoder.Decode(&t)
@@ -133,7 +244,11 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 		t.Source = SourceRust
 		s.chatCollection.Insert(t)
 		go func(t ChatMessage, c chan string) {
-			c <- fmt.Sprintf("☢️ **%s**: %s", t.Username, t.Message)
+			var clan = ""
+			if t.ClanTag != "" {
+				clan = fmt.Sprintf("[%s] ", t.ClanTag)
+			}
+			c <- fmt.Sprintf("☢️ **%s%s**: %s", clan, t.DisplayName, t.Message)
 		}(t, s.ChatChan)
 	case http.MethodGet:
 		select {
@@ -151,8 +266,10 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte(fmt.Sprintf("{\"error\": \"Method %s not allowed\"}", r.Method)))
+		handleError(w, RESTError{
+			StatusCode: http.StatusMethodNotAllowed,
+			Error:      fmt.Sprintf("Method %s not allowed", r.Method),
+		})
 	}
 }
 
@@ -196,16 +313,20 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("User Auth Request: %v from %v\n", t, r.Body)
 	u, err := s.findUser(t.SteamID)
 	if err == nil {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(fmt.Sprintf("{\"error\": \"%s is linked to you.\"}", u.DiscordID)))
+		handleError(w, RESTError{
+			StatusCode: http.StatusMethodNotAllowed,
+			Error:      fmt.Sprintf("%s is linked to you.", u.DiscordID),
+		})
 		return
 	} else if t.DiscordID == "check" {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("{\"error\": \"Account is not linked to discord.\"}"))
+		handleError(w, RESTError{
+			StatusCode: http.StatusNotFound,
+			Error:      "Account is not linked to discord.",
+		})
 		return
 	}
 
-	_, err = s.discordAuthColl.Upsert(t.UpsertID(), t)
+	_, err = s.discordAuthColl.Upsert(t.SteamInfo, t)
 	if err == nil {
 		s.DiscordAuth <- t
 	} else {
@@ -224,4 +345,13 @@ func (s *Server) findUser(steamid uint64) (u *User, err error) {
 func (s *Server) removeUser(steamid uint64) (err error) {
 	err = s.userColl.Remove(SteamInfo{SteamID: steamid})
 	return
+}
+
+func handleError(w http.ResponseWriter, restError RESTError) {
+	w.WriteHeader(restError.StatusCode)
+	err := json.NewEncoder(w).Encode(restError)
+	if err != nil {
+		// panic(err)
+		log.Printf("Error encoding %v, %s\n", restError, err)
+	}
 }

@@ -299,9 +299,9 @@ func (d *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			}
 			ch <- cm
 		}(d.GeneralOutChan, rustconn.ChatMessage{
-			Username: m.Author.Username,
-			Message:  m.Message.Content,
-			Source:   rustconn.SourceDiscord,
+			DisplayName: m.Author.Username,
+			Message:     m.Message.Content,
+			Source:      rustconn.SourceDiscord,
 		})
 	}
 	dChan, err := d.session.Channel(m.ChannelID)

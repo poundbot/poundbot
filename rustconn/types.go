@@ -2,6 +2,7 @@ package rustconn
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,10 +12,11 @@ import (
 type Ack func(bool)
 
 type ChatMessage struct {
-	SteamInfo `bson:",inline"`
-	Username  string
-	Message   string
-	Source    string
+	SteamInfo   `bson:",inline"`
+	ClanTag     string
+	DisplayName string
+	Message     string
+	Source      string
 }
 
 type EntityDeath struct {
@@ -36,28 +38,49 @@ type SteamInfo struct {
 	SteamID uint64 `bson:"steam_id"`
 }
 
-type User struct {
-	MongoID     `bson:",inline"`
-	DiscordInfo `bson:",inline"`
+type BaseUser struct {
 	SteamInfo   `bson:",inline"`
-	CreatedAt   time.Time `bson:"created_at"`
+	DiscordInfo `bson:",inline"`
+	DisplayName string `bson:"display_name"`
+	ClanTag     string `bson:"clan_tag"`
 }
 
-func (s SteamInfo) UpsertID() SteamInfo {
-	return s
+type User struct {
+	MongoID   `bson:",inline"`
+	BaseUser  `bson:",inline"`
+	CreatedAt time.Time `bson:"created_at"`
 }
 
-type RemoveUser struct {
-	SteamInfo `bson:",inline"`
+type ServerClan struct {
+	Tag         string   `json:"tag"`
+	Owner       string   `json:"owner"`
+	Description string   `json:"description"`
+	Members     []string `json:"members"`
+	Moderators  []string `json:"moderators"`
+	Invited     []string `json:"invited"`
+}
+
+type ClanBase struct {
+	Tag         string   `bson:"tag"`
+	OwnerID     uint64   `bson:"owner_id"`
+	Description string   `bson:"description"`
+	Members     []uint64 `bson:"members"`
+	Moderators  []uint64 `bson:"moderators"`
+	Invited     []uint64 `bson:"invited"`
+}
+
+type Clan struct {
+	MongoID   `bson:",inline"`
+	ClanBase  `bson:",inline"`
+	CreatedAt time.Time `bson:"created_at"`
 }
 
 type DiscordAuth struct {
-	MongoID     `bson:",inline"`
-	DiscordInfo `bson:",inline"`
-	SteamInfo   `bson:",inline"`
-	Pin         int
-	SentToUser  bool
-	Ack         Ack `bson:"-"`
+	MongoID    `bson:",inline"`
+	BaseUser   `bson:",inline"`
+	Pin        int
+	SentToUser bool
+	Ack        Ack `bson:"-"`
 }
 
 type RaidNotification struct {
@@ -71,6 +94,11 @@ type RaidNotification struct {
 type RaidInventory struct {
 	Name  string
 	Count int
+}
+
+type RESTError struct {
+	StatusCode int    `json:"status_code"`
+	Error      string `json:"error"`
 }
 
 func (rn RaidNotification) String() string {
@@ -90,4 +118,49 @@ func (rn RaidNotification) String() string {
 	Destroyed:
 	  %s
 	`, strings.Join(rn.GridPositions, ", "), strings.Join(items, ", "))
+}
+
+// ClanFromServerClan Converts strings to uints
+func ClanFromServerClan(sc ServerClan) (*Clan, error) {
+	var clan = Clan{}
+	clan.Tag = sc.Tag
+	clan.Description = sc.Description
+	i, err := strconv.ParseUint(sc.Owner, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	clan.OwnerID = i
+
+	nuints, err := convStringAToUnintA(sc.Members)
+	if err != nil {
+		return nil, err
+	}
+	clan.Members = nuints
+
+	nuints, err = convStringAToUnintA(sc.Moderators)
+	if err != nil {
+		return nil, err
+	}
+	clan.Moderators = nuints
+
+	nuints, err = convStringAToUnintA(sc.Invited)
+	if err != nil {
+		return nil, err
+	}
+	clan.Invited = nuints
+
+	return &clan, nil
+}
+
+func convStringAToUnintA(in []string) ([]uint64, error) {
+	var out = make([]uint64, len(in))
+	for i, conv := range in {
+		newuint, err := strconv.ParseUint(conv, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = newuint
+	}
+
+	return out, nil
 }
