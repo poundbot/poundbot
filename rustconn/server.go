@@ -56,10 +56,6 @@ func (s *Server) Serve() {
 	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), r))
 }
 
-func (s Server) dbHandler(f func(http.ResponseWriter, *http.Request)) {
-
-}
-
 func (s *Server) raidAlerter() {
 	db := s.sc.Database.Copy()
 	defer db.Close()
