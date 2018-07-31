@@ -17,6 +17,7 @@ var logSymbol = "🕸️ "
 type ServerConfig struct {
 	BindAddr string
 	Port     int
+	Database db.DataAccessLayer
 }
 
 type Server struct {
@@ -55,52 +56,39 @@ func (s *Server) Serve() {
 	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), r))
 }
 
-func (s Server) upsertClan(c types.Clan) {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Printf(logSymbol+"Error upserting clan, %s", err)
-		return
-	}
-	defer sess.Close()
+func (s Server) dbHandler(f func(http.ResponseWriter, *http.Request)) {
 
-	db.UpsertClan(sess, c)
 }
 
 func (s *Server) raidAlerter() {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Panicf(logSymbol+"raidAlerter: Lost connection to DB! %s", err)
-	}
-	defer sess.Close()
+	db := s.sc.Database.Copy()
+	defer db.Close()
 
 	for {
 		time.Sleep(10)
 		var results []types.RaidNotification
-		db.FindReadyRaidAlerts(sess, &results)
+		db.RaidAlerts().GetReady(&results)
 
 		if len(results) > 0 {
 			for _, result := range results {
 				s.RaidNotify <- result
-				db.RemoveRaidAlert(sess, result)
+				db.RaidAlerts().Remove(result)
 			}
 		}
 	}
 }
 
 func (s *Server) authHandler() {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Panicf(logSymbol+"authHandler: Lost connection to DB! %s", err)
-	}
-	defer sess.Close()
+	db := s.sc.Database.Copy()
+	defer db.Close()
 
 	for {
 		as := <-s.AuthSuccess
 
-		err := db.BaseUserUpsert(sess, as.BaseUser)
+		err := db.Users().BaseUpsert(as.BaseUser)
 
 		if err == nil {
-			db.RemoveDiscordAuth(sess, as.SteamInfo)
+			db.DiscordAuths().Remove(as.SteamInfo)
 			if as.Ack != nil {
 				as.Ack(true)
 			}
@@ -113,15 +101,9 @@ func (s *Server) authHandler() {
 }
 
 func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Panicf(logSymbol+"clansHandler Error: Lost connection to DB! %s", err)
-	}
-	defer sess.Close()
-
 	decoder := json.NewDecoder(r.Body)
 	var t []types.ServerClan
-	err = decoder.Decode(&t)
+	err := decoder.Decode(&t)
 	if err != nil {
 		log.Println(logSymbol + err.Error())
 		return
@@ -144,20 +126,20 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 		clans[i] = *c
 	}
 
+	db := s.sc.Database.Copy()
+	defer db.Close()
+
 	for _, clan := range clans {
-		s.upsertClan(clan)
+		db.Clans().Upsert(clan)
 	}
 
-	db.RemoveClansNotIn(sess, tags)
-	db.RemoveUsersClansNotIn(sess, tags)
+	db.Clans().RemoveNotIn(tags)
+	db.Users().RemoveClansNotIn(tags)
 }
 
 func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Panicf(logSymbol+"clanHandler Error: Lost connection to DB! %s", err)
-	}
-	defer sess.Close()
+	db := s.sc.Database.Copy()
+	defer db.Close()
 
 	vars := mux.Vars(r)
 	tag := vars["tag"]
@@ -165,8 +147,8 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodDelete:
 		log.Printf(logSymbol+"clanHandler: Removing clan %s\n", tag)
-		db.RemoveClan(sess, tag)
-		db.RemoveUsersClan(sess, tag)
+		db.Clans().Remove(tag)
+		db.Users().RemoveClan(tag)
 		return
 	case http.MethodPut:
 		log.Printf(logSymbol+"clanHandler: Updating clan %s\n", tag)
@@ -187,16 +169,13 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.upsertClan(*clan)
+		db.Clans().Upsert(*clan)
 	}
 }
 
 func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Panicf(logSymbol+"chatHandler: Lost connection to DB! %s", err)
-	}
-	defer sess.Close()
+	db := s.sc.Database.Copy()
+	defer db.Close()
 
 	switch r.Method {
 	case http.MethodPost:
@@ -209,7 +188,7 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		t.Source = types.ChatSourceRust
-		db.LogChat(sess, t)
+		db.Chats().Log(t)
 		go func(t types.ChatMessage, c chan string) {
 			var clan = ""
 			if t.ClanTag != "" {
@@ -225,7 +204,7 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 				log.Println(logSymbol + err.Error())
 				return
 			}
-			db.LogChat(sess, res)
+			db.Chats().Log(res)
 
 			w.Write(b)
 		case <-time.After(5 * time.Second):
@@ -241,39 +220,33 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Panicf(logSymbol+"entityDeathHandler: Lost connection to DB! %s", err)
-	}
-	defer sess.Close()
-
 	decoder := json.NewDecoder(r.Body)
 	var ed types.EntityDeath
-	err = decoder.Decode(&ed)
+	err := decoder.Decode(&ed)
 	if err != nil {
 		log.Println(logSymbol + err.Error())
 		return
 	}
 
-	db.AddRaidAlertInfo(sess, ed)
+	db := s.sc.Database.Copy()
+	defer db.Close()
+	db.RaidAlerts().AddInfo(ed)
 }
 
 func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
-	sess, err := db.NewSession()
-	if err != nil {
-		log.Panicf(logSymbol+"discordAuthHandler: Lost connection to DB! %s", err)
-	}
-	defer sess.Close()
-
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth
-	err = decoder.Decode(&t)
+	err := decoder.Decode(&t)
 	if err != nil {
 		log.Println(logSymbol + err.Error())
 		return
 	}
+
 	log.Printf(logSymbol+"User Auth Request: %v from %v\n", t, r.Body)
-	u, err := db.GetUser(sess, t.SteamInfo)
+	db := s.sc.Database.Copy()
+	defer db.Close()
+
+	u, err := db.Users().Get(t.SteamInfo)
 	if err == nil {
 		handleError(w, types.RESTError{
 			StatusCode: http.StatusMethodNotAllowed,
@@ -288,7 +261,7 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.UpsertDiscordAuth(sess, t)
+	err = db.DiscordAuths().Upsert(t)
 	if err == nil {
 		s.DiscordAuth <- t
 	} else {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/viper"
 	"mrpoundsign.com/poundbot/db"
+	"mrpoundsign.com/poundbot/db/mgo"
 	"mrpoundsign.com/poundbot/discord"
 	"mrpoundsign.com/poundbot/rust"
 	"mrpoundsign.com/poundbot/rustconn"
@@ -37,10 +38,11 @@ func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
 	}
 }
 
-func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
+func newServerConfig(cfg *viper.Viper, dal db.DataAccessLayer) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),
+		Database: dal,
 	}
 }
 
@@ -65,15 +67,16 @@ func main() {
 		log.Panicf("fatal error config file: %s\n", err)
 	}
 
-	db.Init(db.MongoConfig{
+	mgo := mgo.NewMgo(mgo.MongoConfig{
 		DialAddress: viper.GetString("mongo.dial-addr"),
 		Database:    viper.GetString("mongo.database"),
 	})
+	mgo.CreateIndexes()
 
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	tConfig := newTwitterConfig(viper.Sub("twitter"))
 	rConfig := newRustServer(viper.Sub("rust.server"))
-	asConfig := newServerConfig(viper.Sub("rust.api-server"))
+	asConfig := newServerConfig(viper.Sub("rust.api-server"), *mgo)
 	pDeltaFreq := viper.GetInt("player-delta-frequency")
 
 	rs, err := rust.NewServerInfo(rConfig)
