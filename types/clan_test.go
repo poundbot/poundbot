@@ -1,7 +1,6 @@
 package types
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,9 +33,8 @@ func Test_convStringAToUnintA(t *testing.T) {
 				t.Errorf("convStringAToUnintA() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("convStringAToUnintA() = %v, want %v", got, tt.want)
-			}
+
+			assert.Equal(t, got, tt.want, "they should be equal")
 		})
 	}
 }
