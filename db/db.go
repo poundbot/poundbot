@@ -26,7 +26,8 @@ type MongoConfig struct {
 }
 
 type Session struct {
-	session *mgo.Session
+	session  *mgo.Session
+	database string
 }
 
 func Init(mc MongoConfig) {
@@ -36,6 +37,7 @@ func Init(mc MongoConfig) {
 	}
 	session = sess
 	database = mc.Database
+	log.Printf("Session database is %s\n", database)
 	mongoDB := session.DB(database)
 	userColl := mongoDB.C("users")
 	discordAuthColl := mongoDB.C("discord_auths")
@@ -65,7 +67,7 @@ func NewSession() (*Session, error) {
 	if session == nil {
 		return nil, errors.New("Not Connected")
 	}
-	return &Session{session: session.Copy()}, nil
+	return &Session{session: session.Copy(), database: database}, nil
 }
 
 func (s *Session) Close() {
@@ -97,5 +99,6 @@ func (s *Session) ClanCollection() *mgo.Collection {
 }
 
 func (s *Session) collection(collection string) *mgo.Collection {
-	return s.session.DB(database).C(collection)
+	// log.Printf("Database is %s\n", s.database)
+	return s.session.DB(s.database).C(collection)
 }

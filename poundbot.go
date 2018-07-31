@@ -58,8 +58,8 @@ func main() {
 	viper.SetDefault("player-delta-frequency", 30)
 	viper.SetDefault("rust.api-server.bind_addr", "")
 	viper.SetDefault("rust.api-server.port", 9090)
-	viper.SetDefault("rust.mongo.dial-addr", "mongodb://localhost")
-	viper.SetDefault("rust.mongo.database", "poundbot")
+	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
+	viper.SetDefault("mongo.database", "poundbot")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		log.Panicf("fatal error config file: %s\n", err)

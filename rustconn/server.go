@@ -115,11 +115,10 @@ func (s *Server) authHandler() {
 func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf(logSymbol+"clansHandler: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"clansHandler Error: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
-	log.Printf("%v", r.Body)
 	decoder := json.NewDecoder(r.Body)
 	var t []types.ServerClan
 	err = decoder.Decode(&t)
@@ -134,7 +133,7 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 	for i, sc := range t {
 		c, err := types.ClanFromServerClan(sc)
 		if err != nil {
-			log.Printf("%v\n", err)
+			log.Printf(logSymbol+"clansHandler Error: %v\n", err)
 			handleError(w, types.RESTError{
 				StatusCode: http.StatusBadRequest,
 				Error:      "Error processing clan data",
@@ -156,18 +155,21 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf(logSymbol+"clanHandler: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"clanHandler Error: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
 	vars := mux.Vars(r)
 	tag := vars["tag"]
+
 	switch r.Method {
 	case http.MethodDelete:
+		log.Printf(logSymbol+"clanHandler: Removing clan %s\n", tag)
 		db.RemoveClan(sess, tag)
 		db.RemoveUsersClan(sess, tag)
 		return
 	case http.MethodPut:
+		log.Printf(logSymbol+"clanHandler: Updating clan %s\n", tag)
 		decoder := json.NewDecoder(r.Body)
 		var t types.ServerClan
 		err := decoder.Decode(&t)
@@ -175,7 +177,7 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(logSymbol + err.Error())
 			return
 		}
-		log.Printf("%v", t)
+
 		clan, err := types.ClanFromServerClan(t)
 		if err != nil {
 			handleError(w, types.RESTError{
