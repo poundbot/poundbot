@@ -12,6 +12,8 @@ import (
 	"mrpoundsign.com/poundbot/types"
 )
 
+var logSymbol = "🕸️ "
+
 type ServerConfig struct {
 	BindAddr string
 	Port     int
@@ -42,7 +44,7 @@ func (s *Server) Serve() {
 	go s.authHandler()
 	go s.raidAlerter()
 
-	fmt.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+	log.Printf(logSymbol+"Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 	r := mux.NewRouter()
 	r.HandleFunc("/entity_death", s.entityDeathHandler)
 	r.HandleFunc("/discord_auth", s.discordAuthHandler)
@@ -56,7 +58,7 @@ func (s *Server) Serve() {
 func (s Server) upsertClan(c types.Clan) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Printf("Error upserting clan, %s", err)
+		log.Printf(logSymbol+"Error upserting clan, %s", err)
 		return
 	}
 	defer sess.Close()
@@ -67,7 +69,7 @@ func (s Server) upsertClan(c types.Clan) {
 func (s *Server) raidAlerter() {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf("RaidALerter: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"raidAlerter: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
@@ -88,7 +90,7 @@ func (s *Server) raidAlerter() {
 func (s *Server) authHandler() {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf("RaidALerter: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"authHandler: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
@@ -113,7 +115,7 @@ func (s *Server) authHandler() {
 func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf("RaidALerter: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"clansHandler: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
@@ -122,7 +124,7 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 	var t []types.ServerClan
 	err = decoder.Decode(&t)
 	if err != nil {
-		log.Println(err)
+		log.Println(logSymbol + err.Error())
 		return
 	}
 
@@ -154,7 +156,7 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf("RaidALerter: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"clanHandler: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
@@ -170,7 +172,7 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 		var t types.ServerClan
 		err := decoder.Decode(&t)
 		if err != nil {
-			log.Println(err)
+			log.Println(logSymbol + err.Error())
 			return
 		}
 		log.Printf("%v", t)
@@ -190,7 +192,7 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf("RaidALerter: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"chatHandler: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
@@ -200,7 +202,7 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 		var t types.ChatMessage
 		err := decoder.Decode(&t)
 		if err != nil {
-			log.Println(err)
+			log.Println(logSymbol + err.Error())
 			return
 		}
 
@@ -218,7 +220,7 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 		case res := <-s.ChatOutChan:
 			b, err := json.Marshal(res)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(logSymbol + err.Error())
 				return
 			}
 			db.LogChat(sess, res)
@@ -239,7 +241,7 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf("RaidALerter: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"entityDeathHandler: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
@@ -247,7 +249,7 @@ func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 	var ed types.EntityDeath
 	err = decoder.Decode(&ed)
 	if err != nil {
-		log.Println(err)
+		log.Println(logSymbol + err.Error())
 		return
 	}
 
@@ -257,7 +259,7 @@ func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := db.NewSession()
 	if err != nil {
-		log.Panicf("RaidALerter: Lost connection to DB! %s", err)
+		log.Panicf(logSymbol+"discordAuthHandler: Lost connection to DB! %s", err)
 	}
 	defer sess.Close()
 
@@ -265,10 +267,10 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	var t types.DiscordAuth
 	err = decoder.Decode(&t)
 	if err != nil {
-		log.Println(err)
+		log.Println(logSymbol + err.Error())
 		return
 	}
-	fmt.Printf("User Auth Request: %v from %v\n", t, r.Body)
+	log.Printf(logSymbol+"User Auth Request: %v from %v\n", t, r.Body)
 	u, err := db.GetUser(sess, t.SteamInfo)
 	if err == nil {
 		handleError(w, types.RESTError{
@@ -288,7 +290,7 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		s.DiscordAuth <- t
 	} else {
-		log.Println(err)
+		log.Println(logSymbol + err.Error())
 	}
 }
 
@@ -297,6 +299,6 @@ func handleError(w http.ResponseWriter, restError types.RESTError) {
 	err := json.NewEncoder(w).Encode(restError)
 	if err != nil {
 		// panic(err)
-		log.Printf("Error encoding %v, %s\n", restError, err)
+		log.Printf(logSymbol+"Error encoding %v, %s\n", restError, err)
 	}
 }

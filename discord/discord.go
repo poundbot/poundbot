@@ -43,7 +43,6 @@ type Client struct {
 }
 
 func Runner(rc *RunnerConfig) *Client {
-	fmt.Println("General Chan is " + rc.GeneralChan)
 	return &Client{
 		linkChanID:       rc.LinkChan,
 		statusChanID:     rc.StatusChan,
@@ -202,7 +201,7 @@ func (d *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 
 	uguilds, err := s.UserGuilds(100, "", "")
 	if err != nil {
-		log.Println(err)
+		log.Println(logSymbol + err.Error())
 		return
 	}
 	var foundLinkChan = false
@@ -214,7 +213,7 @@ ChannelSearch:
 		// log.Printf(logSymbol + " %s: %s\n", g.ID, g.Name)
 		channels, err := s.GuildChannels(g.ID)
 		if err != nil {
-			log.Println(err)
+			log.Println(logSymbol + err.Error())
 			return
 		}
 		for _, c := range channels {

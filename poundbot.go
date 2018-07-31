@@ -82,16 +82,14 @@ func main() {
 	}
 	err = rs.Update()
 	if err != nil {
-		log.Println(err.Error())
+		log.Println("🤖 ⚠️ Error contacting Rust server: " + err.Error())
 	}
-	// log.Printf("%v", rs)
-	// os.Exit(3)
 
 	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
 	dr := discord.Runner(dConfig)
 	err = dr.Start()
 	if err != nil {
-		log.Println("🤖⚠️ Could not start Discord")
+		log.Println("🤖 ⚠️ Could not start Discord")
 	}
 	defer func() {
 		log.Println("🤖 Shutting down Discord...")
@@ -127,7 +125,7 @@ func main() {
 				serverDown = true
 				downChecks++
 				if downChecks%3 == 0 {
-					fmt.Println("🤖 🏃 Server is down!")
+					log.Println("🤖 🏃 ⚠️ Server is down!")
 					time.Sleep(20 * time.Second)
 				}
 				time.Sleep(10 * time.Second)
@@ -135,7 +133,7 @@ func main() {
 			}
 
 			if downChecks > 0 {
-				fmt.Println("🤖 🏃 Server is back!")
+				log.Println("🤖 🏃 Server is back!")
 			}
 
 			if serverDown {
