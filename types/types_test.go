@@ -54,13 +54,13 @@ func TestClanFromServerClan(t *testing.T) {
 		{
 			"ok",
 			args{ServerClan{Tag: "FOO", Owner: "1001", Description: "Foo Clan"}},
-			&Clan{ClanBase: ClanBase{Tag: "FOO", OwnerID: 1001, Description: "Foo Clan"}},
+			&Clan{BaseClan: BaseClan{Tag: "FOO", OwnerID: 1001, Description: "Foo Clan"}},
 			false,
 		},
 		{
 			"smol",
 			args{ServerClan{Tag: "FOO", Owner: "1001"}},
-			&Clan{ClanBase: ClanBase{Tag: "FOO", OwnerID: 1001}},
+			&Clan{BaseClan: BaseClan{Tag: "FOO", OwnerID: 1001}},
 			false,
 		},
 	}

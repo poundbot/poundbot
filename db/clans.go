@@ -14,7 +14,7 @@ func UpsertClan(s *Session, c types.Clan) error {
 		},
 		bson.M{
 			"$setOnInsert": bson.M{"created_at": time.Now().UTC().Add(5 * time.Minute)},
-			"$set":         c.ClanBase,
+			"$set":         c.BaseClan,
 		},
 	)
 	if err != nil {

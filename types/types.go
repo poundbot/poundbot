@@ -65,7 +65,7 @@ type ServerClan struct {
 	Invited     []string `json:"invited"`
 }
 
-type ClanBase struct {
+type BaseClan struct {
 	Tag         string   `bson:"tag"`
 	OwnerID     uint64   `bson:"owner_id"`
 	Description string   `bson:"description"`
@@ -76,7 +76,7 @@ type ClanBase struct {
 
 type Clan struct {
 	MongoID   `bson:",inline"`
-	ClanBase  `bson:",inline"`
+	BaseClan  `bson:",inline"`
 	CreatedAt time.Time `bson:"created_at"`
 }
 
