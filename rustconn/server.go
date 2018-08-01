@@ -40,10 +40,17 @@ func NewServer(sc *ServerConfig, rch chan types.RaidNotification, dach, asch cha
 	}
 }
 
+// Serve starts the HTTP server
 func (s *Server) Serve() {
+	done := make(chan struct{})
+	defer func() {
+		// One done channel per runner
+		done <- struct{}{}
+		done <- struct{}{}
+	}()
 
-	go s.authHandler()
-	go s.raidAlerter()
+	go s.authHandler(done)
+	go s.raidAlerter(done)
 
 	log.Printf(logSymbol+"Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 	r := mux.NewRouter()
@@ -56,42 +63,52 @@ func (s *Server) Serve() {
 	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), r))
 }
 
-func (s *Server) raidAlerter() {
+func (s *Server) raidAlerter(done chan struct{}) {
 	db := s.sc.Database.Copy()
 	defer db.Close()
 
 	for {
-		time.Sleep(10)
 		var results []types.RaidNotification
 		db.RaidAlerts().GetReady(&results)
 
-		if len(results) > 0 {
-			for _, result := range results {
-				s.RaidNotify <- result
-				db.RaidAlerts().Remove(result)
-			}
+		for _, result := range results {
+			s.RaidNotify <- result
+			db.RaidAlerts().Remove(result)
 		}
+
+	ExitCheck:
+		select {
+		case <-done:
+			return
+		default:
+			break ExitCheck
+		}
+		time.Sleep(1)
 	}
 }
 
-func (s *Server) authHandler() {
+func (s *Server) authHandler(done chan struct{}) {
 	db := s.sc.Database.Copy()
 	defer db.Close()
-
+ExitCheck:
 	for {
-		as := <-s.AuthSuccess
+		select {
+		case as := <-s.AuthSuccess:
 
-		err := db.Users().BaseUpsert(as.BaseUser)
+			err := db.Users().BaseUpsert(as.BaseUser)
 
-		if err == nil {
-			db.DiscordAuths().Remove(as.SteamInfo)
-			if as.Ack != nil {
-				as.Ack(true)
+			if err == nil {
+				db.DiscordAuths().Remove(as.SteamInfo)
+				if as.Ack != nil {
+					as.Ack(true)
+				}
+			} else {
+				if as.Ack != nil {
+					as.Ack(false)
+				}
 			}
-		} else {
-			if as.Ack != nil {
-				as.Ack(false)
-			}
+		case <-done:
+			break ExitCheck
 		}
 	}
 }

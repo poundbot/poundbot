@@ -5,8 +5,19 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"mrpoundsign.com/poundbot/db"
+	"mrpoundsign.com/poundbot/db/mocks"
 	"mrpoundsign.com/poundbot/types"
 )
+
+func MockDAL() *mocks.DataAccessLayer {
+	var mockDAL = mocks.DataAccessLayer{}
+	mockDAL.On("Copy").Return(&mockDAL)
+	mockDAL.On("Close")
+	return &mockDAL
+}
 
 func TestNewServer(t *testing.T) {
 	type args struct {
@@ -48,29 +59,176 @@ func TestServer_Serve(t *testing.T) {
 }
 
 func TestServer_raidAlerter(t *testing.T) {
+	var mockDAL *mocks.DataAccessLayer
+	var mockRA *mocks.RaidAlertsAccessLayer
+	var done chan struct{}
+
+	var rn = types.RaidNotification{
+		DiscordInfo: types.DiscordInfo{
+			DiscordID: "Foo#1234",
+		},
+	}
+	var rnResult types.RaidNotification
+
 	tests := []struct {
 		name string
-		s    *Server
+		s    func() *Server
+		want types.RaidNotification
 	}{
-		// TODO: Add test cases.
+		{
+			name: "With nothing",
+			s: func() *Server {
+				mockDAL = MockDAL()
+				ch := make(chan types.RaidNotification)
+				done = make(chan struct{})
+
+				mockDAL.On("RaidAlerts").Return(func() db.RaidAlertsAccessLayer {
+
+					mockRA = &mocks.RaidAlertsAccessLayer{}
+
+					mockRA.On("GetReady", mock.AnythingOfType("*[]types.RaidNotification")).
+						Return(func(args *[]types.RaidNotification) error {
+							*args = []types.RaidNotification{}
+							go func() { done <- struct{}{} }()
+
+							return nil
+						})
+
+					return mockRA
+				}())
+
+				go func() {
+					rnResult = <-ch
+				}()
+
+				return &Server{sc: &ServerConfig{Database: mockDAL}, RaidNotify: ch}
+			},
+			want: types.RaidNotification{},
+		},
+		{
+			name: "With RaidAlert",
+			s: func() *Server {
+				mockDAL = MockDAL()
+				ch := make(chan types.RaidNotification)
+				done = make(chan struct{})
+				var first = true // Track first run of GetReady
+
+				mockDAL.On("RaidAlerts").Return(func() db.RaidAlertsAccessLayer {
+
+					mockRA = &mocks.RaidAlertsAccessLayer{}
+
+					mockRA.On("GetReady", mock.AnythingOfType("*[]types.RaidNotification")).
+						Return(func(args *[]types.RaidNotification) error {
+							if first {
+								first = false
+								*args = []types.RaidNotification{rn}
+							} else {
+								*args = []types.RaidNotification{}
+								go func() { done <- struct{}{} }()
+							}
+
+							return nil
+						})
+
+					mockRA.On("Remove", rn).Return(nil).Once()
+					return mockRA
+				}())
+
+				go func() {
+					rnResult = <-ch
+				}()
+
+				return &Server{sc: &ServerConfig{Database: mockDAL}, RaidNotify: ch}
+			},
+			want: rn,
+		},
 	}
 	for _, tt := range tests {
+		// Reset rnTesult
+		rnResult = types.RaidNotification{}
+		mockDAL = nil
+		mockRA = nil
+
 		t.Run(tt.name, func(t *testing.T) {
-			tt.s.raidAlerter()
+			tt.s().raidAlerter(done)
+			mockDAL.AssertExpectations(t)
+			mockRA.AssertExpectations(t)
+			assert.Equal(t, tt.want, rnResult, "They should be equal")
 		})
 	}
 }
 
 func TestServer_authHandler(t *testing.T) {
+	var mockDAL *mocks.DataAccessLayer
+	var mockU *mocks.UsersAccessLayer
+	var mockDA *mocks.DiscordAuthsAccessLayer
+	var done chan struct{}
+
 	tests := []struct {
 		name string
-		s    *Server
+		s    func() *Server
+		with *types.DiscordAuth
+		want *types.DiscordAuth
 	}{
+		{
+			name: "With nothing",
+			s: func() *Server {
+				mockDAL = MockDAL()
+				go func() { done <- struct{}{} }()
+				return &Server{sc: &ServerConfig{Database: mockDAL}, AuthSuccess: make(chan types.DiscordAuth)}
+			},
+		},
+		{
+			name: "With AuthSuccess",
+			s: func() *Server {
+				mockDAL = MockDAL()
+				result := types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{SteamID: 1001}}}
+
+				mockDAL.On("Users").Return(func() db.UsersAccessLayer {
+					mockU = &mocks.UsersAccessLayer{}
+					mockU.On("BaseUpsert", result.BaseUser).Return(nil)
+					return mockU
+				}())
+
+				mockDAL.On("DiscordAuths").Return(func() db.DiscordAuthsAccessLayer {
+					mockDA = &mocks.DiscordAuthsAccessLayer{}
+					mockDA.On("Remove", result.SteamInfo).Return(nil)
+					return mockDA
+				}())
+
+				return &Server{sc: &ServerConfig{Database: mockDAL}, AuthSuccess: make(chan types.DiscordAuth)}
+			},
+			with: &types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{SteamID: 1001}}},
+			want: &types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{SteamID: 1001}}},
+		},
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
+
+		mockDAL = nil
+		mockU = nil
+		mockDA = nil
+		done = make(chan struct{})
+
 		t.Run(tt.name, func(t *testing.T) {
-			tt.s.authHandler()
+			var server = tt.s()
+
+			go func() {
+				if tt.with != nil {
+					t.Logf("Auth %v", tt.with)
+					server.AuthSuccess <- *tt.with
+				}
+				done <- struct{}{}
+			}()
+
+			server.authHandler(done)
+			mockDAL.AssertExpectations(t)
+			if mockU != nil {
+				mockU.AssertExpectations(t)
+			}
+			if mockDA != nil {
+				mockDA.AssertExpectations(t)
+			}
 		})
 	}
 }
