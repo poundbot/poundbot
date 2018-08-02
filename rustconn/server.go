@@ -286,7 +286,6 @@ func handleError(w http.ResponseWriter, restError types.RESTError) {
 	w.WriteHeader(restError.StatusCode)
 	err := json.NewEncoder(w).Encode(restError)
 	if err != nil {
-		// panic(err)
 		log.Printf(logSymbol+"Error encoding %v, %s\n", restError, err)
 	}
 }

@@ -136,6 +136,7 @@ func main() {
 			}
 
 			if downChecks > 0 {
+				downChecks = 0
 				log.Println("🤖 🏃 Server is back!")
 			}
 
