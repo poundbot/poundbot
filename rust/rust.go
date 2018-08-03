@@ -10,26 +10,30 @@ import (
 
 const logSymbol = "👁️‍🗨️ "
 
-type Server struct {
+// A ServerConfig is the connection information for a Rust server
+type ServerConfig struct {
 	Hostname string
 	Port     int
 }
 
+// A PlayerInfo contains information about player counts on a Rust server
 type PlayerInfo struct {
 	Players      uint8
 	MaxPlayers   uint8
 	PlayersDelta int8
 }
 
-type ServerInfo struct {
-	Server
+// A Server queries and contains information about a Rust server
+type Server struct {
+	ServerConfig
 	tcpAddr    net.TCPAddr
 	Name       string
 	PlayerInfo PlayerInfo
 }
 
-func NewServerInfo(server *Server) (*ServerInfo, error) {
-	var sq = ServerInfo{}
+// NewServer creats a new Server for observing a Rust server
+func NewServer(server *ServerConfig) (*Server, error) {
+	var sq = Server{}
 	rustIP, err := net.ResolveIPAddr("ip", server.Hostname)
 	if err != nil {
 		log.Println(logSymbol + err.Error())
@@ -40,7 +44,8 @@ func NewServerInfo(server *Server) (*ServerInfo, error) {
 	return &sq, nil
 }
 
-func (sq *ServerInfo) Update() error {
+// Update queries a Rust server and updates Server with it's new information
+func (sq *Server) Update() error {
 	query, err := valve.NewServerQuerier(sq.tcpAddr.String(), time.Second*3)
 	if err != nil {
 		sq.PlayerInfo = PlayerInfo{}

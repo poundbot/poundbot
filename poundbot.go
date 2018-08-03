@@ -46,8 +46,8 @@ func newServerConfig(cfg *viper.Viper, dal db.DataAccessLayer) *rustconn.ServerC
 	}
 }
 
-func newRustServer(cfg *viper.Viper) *rust.Server {
-	return &rust.Server{Hostname: cfg.GetString("hostname"), Port: cfg.GetInt("port")}
+func newRustServerConfig(cfg *viper.Viper) *rust.ServerConfig {
+	return &rust.ServerConfig{Hostname: cfg.GetString("hostname"), Port: cfg.GetInt("port")}
 }
 
 func main() {
@@ -75,11 +75,11 @@ func main() {
 
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	tConfig := newTwitterConfig(viper.Sub("twitter"))
-	rConfig := newRustServer(viper.Sub("rust.server"))
+	rConfig := newRustServerConfig(viper.Sub("rust.server"))
 	asConfig := newServerConfig(viper.Sub("rust.api-server"), *mgo)
 	pDeltaFreq := viper.GetInt("player-delta-frequency")
 
-	rs, err := rust.NewServerInfo(rConfig)
+	rs, err := rust.NewServer(rConfig)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

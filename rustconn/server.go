@@ -14,12 +14,14 @@ import (
 
 var logSymbol = "🕸️ "
 
+// ServerConfig contains the base Server configuration
 type ServerConfig struct {
 	BindAddr string
 	Port     int
 	Database db.DataAccessLayer
 }
 
+// A Server runs the HTTP server, notification channels, and DB writing.
 type Server struct {
 	sc          *ServerConfig
 	RaidNotify  chan types.RaidNotification
@@ -29,6 +31,7 @@ type Server struct {
 	ChatOutChan chan types.ChatMessage
 }
 
+// NewServer creates a Server
 func NewServer(sc *ServerConfig, rch chan types.RaidNotification, dach, asch chan types.DiscordAuth, cch chan string, coch chan types.ChatMessage) *Server {
 	return &Server{
 		sc:          sc,
@@ -40,7 +43,7 @@ func NewServer(sc *ServerConfig, rch chan types.RaidNotification, dach, asch cha
 	}
 }
 
-// Serve starts the HTTP server
+// Serve starts the HTTP server, raid alerter, and Discord auth manager
 func (s *Server) Serve() {
 	done := make(chan struct{})
 	defer func() {
@@ -63,6 +66,8 @@ func (s *Server) Serve() {
 	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), r))
 }
 
+// raidAlerter checks for raids that need to be alerted and sends them
+// out through the RaidNotify channel
 func (s *Server) raidAlerter(done chan struct{}) {
 	db := s.sc.Database.Copy()
 	defer db.Close()
@@ -87,6 +92,7 @@ func (s *Server) raidAlerter(done chan struct{}) {
 	}
 }
 
+// authHandler writes users sent in through the AuthSuccess channel
 func (s *Server) authHandler(done chan struct{}) {
 	db := s.sc.Database.Copy()
 	defer db.Close()
@@ -113,6 +119,8 @@ ExitCheck:
 	}
 }
 
+// clansHandler manages clans sync HTTP requests from the Rust server
+// These requests are a complete refresh of all clans
 func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var t []types.ServerClan
@@ -150,6 +158,7 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 	db.Users().RemoveClansNotIn(tags)
 }
 
+// clanHandler manages individual clan REST requests form the Rust server
 func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 	db := s.sc.Database.Copy()
 	defer db.Close()
@@ -186,6 +195,14 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// chatHandler manages Rust <-> discord chat requests and logging
+// Discord -> Rust is through the ChatOutChan and Rust -> Discord is
+// through ChatChan.
+//
+// HTTP POST requests are sent to ChatChan
+//
+// HTTP GET requests wait for messages and disconnect with http.StatusNoContent
+// after 5 seconds.
 func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 	db := s.sc.Database.Copy()
 	defer db.Close()
@@ -232,6 +249,8 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// entityDeathHandler manages incoming Rust entity death notices and sends them
+// to the RaidAlertsAccessLayer and RaidAlerts channel
 func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var ed types.EntityDeath
@@ -246,6 +265,8 @@ func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 	db.RaidAlerts().AddInfo(ed)
 }
 
+// discordAuthHandler takes Discord verification requests from the Rust server
+// and sends them to the DiscordAuthsAccessLayer and DiscordAuth channel
 func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth
@@ -282,6 +303,7 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleError is a generic JSON HTTP error response
 func handleError(w http.ResponseWriter, restError types.RESTError) {
 	w.WriteHeader(restError.StatusCode)
 	err := json.NewEncoder(w).Encode(restError)
