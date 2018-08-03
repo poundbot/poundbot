@@ -79,7 +79,7 @@ func (t Twitter) handleTweet(tweet *twitter.Tweet) {
 
 func (t Twitter) filterTweet(tweet *twitter.Tweet) bool {
 	if tweet.User.ID == t.UserID {
-		tweetText := strings.ToLower(tweet.Text)
+		tweetText := strings.ToLower(tweet.FullText)
 		for _, f := range t.Filters {
 			if strings.Contains(tweetText, f) {
 				return true
