@@ -18,7 +18,7 @@ var logSymbol = "🕸️ "
 type ServerConfig struct {
 	BindAddr string
 	Port     int
-	Database db.DataAccessLayer
+	Database db.DataStore
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.
@@ -52,8 +52,23 @@ func (s *Server) Serve() {
 		done <- struct{}{}
 	}()
 
-	go s.authHandler(done)
-	go s.raidAlerter(done)
+	// Start the AuthSaver
+	go func() {
+		var newConn = s.sc.Database.Copy()
+		defer newConn.Close()
+
+		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.DiscordAuth, done)
+		as.Run()
+	}()
+
+	// Start the RaidAlerter
+	go func() {
+		var newConn = s.sc.Database.Copy()
+		defer newConn.Close()
+
+		var ra = NewRaidAlerter(newConn.RaidAlerts(), s.RaidNotify, done)
+		ra.Run()
+	}()
 
 	log.Printf(logSymbol+"Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 	r := mux.NewRouter()
@@ -64,59 +79,6 @@ func (s *Server) Serve() {
 	r.HandleFunc("/clans/{tag}", s.clanHandler).Methods(http.MethodDelete, http.MethodPut)
 	http.Handle("/", r)
 	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), r))
-}
-
-// raidAlerter checks for raids that need to be alerted and sends them
-// out through the RaidNotify channel
-func (s *Server) raidAlerter(done chan struct{}) {
-	db := s.sc.Database.Copy()
-	defer db.Close()
-
-	for {
-		var results []types.RaidNotification
-		db.RaidAlerts().GetReady(&results)
-
-		for _, result := range results {
-			s.RaidNotify <- result
-			db.RaidAlerts().Remove(result)
-		}
-
-	ExitCheck:
-		select {
-		case <-done:
-			return
-		default:
-			break ExitCheck
-		}
-		time.Sleep(1)
-	}
-}
-
-// authHandler writes users sent in through the AuthSuccess channel
-func (s *Server) authHandler(done chan struct{}) {
-	db := s.sc.Database.Copy()
-	defer db.Close()
-ExitCheck:
-	for {
-		select {
-		case as := <-s.AuthSuccess:
-
-			err := db.Users().BaseUpsert(as.BaseUser)
-
-			if err == nil {
-				db.DiscordAuths().Remove(as.SteamInfo)
-				if as.Ack != nil {
-					as.Ack(true)
-				}
-			} else {
-				if as.Ack != nil {
-					as.Ack(false)
-				}
-			}
-		case <-done:
-			break ExitCheck
-		}
-	}
 }
 
 // clansHandler manages clans sync HTTP requests from the Rust server
@@ -250,7 +212,7 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // entityDeathHandler manages incoming Rust entity death notices and sends them
-// to the RaidAlertsAccessLayer and RaidAlerts channel
+// to the RaidAlertsStore and RaidAlerts channel
 func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var ed types.EntityDeath
@@ -266,7 +228,7 @@ func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // discordAuthHandler takes Discord verification requests from the Rust server
-// and sends them to the DiscordAuthsAccessLayer and DiscordAuth channel
+// and sends them to the DiscordAuthsStore and DiscordAuth channel
 func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth

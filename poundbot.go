@@ -38,7 +38,7 @@ func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
 	}
 }
 
-func newServerConfig(cfg *viper.Viper, dal db.DataAccessLayer) *rustconn.ServerConfig {
+func newServerConfig(cfg *viper.Viper, dal db.DataStore) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),

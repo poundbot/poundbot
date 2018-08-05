@@ -2,11 +2,11 @@ package db
 
 import "mrpoundsign.com/poundbot/types"
 
-// UsersAccessLayer is for accessing the user store.
+// UsersStore is for accessing the user store.
 //
 // Get gets a user from store.
 //
-// BaseUpsert updates or creats a user in the store
+// UpsertBase updates or creats a user in the store
 //
 // RemoveClan removes a clan tag from all users e.g. when a clan is removed.
 //
@@ -14,26 +14,26 @@ import "mrpoundsign.com/poundbot/types"
 // list from all users in the data store.
 //
 // SetClanIn sets the clan tag on all users who have the provided steam IDs.
-type UsersAccessLayer interface {
+type UsersStore interface {
 	Get(types.SteamInfo) (*types.User, error)
-	BaseUpsert(types.BaseUser) error
+	UpsertBase(types.BaseUser) error
 	RemoveClan(tag string) error
 	RemoveClansNotIn(tags []string) error
 	SetClanIn(tag string, steamIds []uint64) error
 }
 
-// DiscordAuthsAccessLayer is for accessing the discord -> user authentications
+// DiscordAuthsStore is for accessing the discord -> user authentications
 // in the store.
 //
 // Upsert created or updates a discord auth
 //
 // Remove removes a discord auth
-type DiscordAuthsAccessLayer interface {
+type DiscordAuthsStore interface {
 	Upsert(types.DiscordAuth) error
 	Remove(types.SteamInfo) error
 }
 
-// RaidAlertsAccessLayer is for accessing raid information. The raid information
+// RaidAlertsStore is for accessing raid information. The raid information
 // comes in as types.EntityDeath and comes out as types.RaidNotification
 //
 // GetReady gets raid alerts that are ready to alert
@@ -41,25 +41,25 @@ type DiscordAuthsAccessLayer interface {
 // AddInfo adds or updated raid information to a raid alert
 //
 // Remove deletes a raid alert
-type RaidAlertsAccessLayer interface {
+type RaidAlertsStore interface {
 	GetReady(*[]types.RaidNotification) error
 	AddInfo(types.EntityDeath) error
 	Remove(types.RaidNotification) error
 }
 
-// ClansAccessLayer is for accessing clans data in the store
-type ClansAccessLayer interface {
+// ClansStore is for accessing clans data in the store
+type ClansStore interface {
 	Upsert(types.Clan) error
 	Remove(tag string) error
 	RemoveNotIn(tags []string) error
 }
 
-// ChatsAccessLayer is for logging chat
-type ChatsAccessLayer interface {
+// ChatsStore is for logging chat
+type ChatsStore interface {
 	Log(types.ChatMessage) error
 }
 
-// DataAccessLayer is a complete implementation of the data store for users,
+// DataStore is a complete implementation of the data store for users,
 // clans, discord auth requests, raid alerts, and chats.
 //
 // Copy creates a new DB connection. Should always close the connection when
@@ -69,13 +69,13 @@ type ChatsAccessLayer interface {
 //
 // CreateIndexes creates indexes, and should always be called when Poundbot
 // first starts
-type DataAccessLayer interface {
-	Copy() DataAccessLayer
+type DataStore interface {
+	Copy() DataStore
 	Close()
 	CreateIndexes()
-	Users() UsersAccessLayer
-	Chats() ChatsAccessLayer
-	DiscordAuths() DiscordAuthsAccessLayer
-	RaidAlerts() RaidAlertsAccessLayer
-	Clans() ClansAccessLayer
+	Users() UsersStore
+	Chats() ChatsStore
+	DiscordAuths() DiscordAuthsStore
+	RaidAlerts() RaidAlertsStore
+	Clans() ClansStore
 }

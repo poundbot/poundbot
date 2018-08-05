@@ -30,54 +30,54 @@ func NewMgo(mc MongoConfig) *Mgo {
 	return &Mgo{session: sess, dbname: mc.Database}
 }
 
-// An Mgo implements db.DataAccessLayer in MongoDB using Mgo
+// An Mgo implements db.DataStore in MongoDB using Mgo
 type Mgo struct {
 	dbname  string
 	session *mgo.Session
 }
 
-// Copy implements db.DataAccessLayer.Copy
-func (m Mgo) Copy() db.DataAccessLayer {
+// Copy implements db.DataStore.Copy
+func (m Mgo) Copy() db.DataStore {
 	return Mgo{session: m.session.Copy()}
 }
 
-// Close implements db.DataAccessLayer.Close
+// Close implements db.DataStore.Close
 func (m Mgo) Close() {
 	m.session.Close()
 }
 
-// Users implements db.DataAccessLayer.Users
-func (m Mgo) Users() db.UsersAccessLayer {
+// Users implements db.DataStore.Users
+func (m Mgo) Users() db.UsersStore {
 	return Users{collection: m.session.DB(m.dbname).C(usersCollection)}
 }
 
-// DiscordAuths implements db.DataAccessLayer.DiscordAuths
-func (m Mgo) DiscordAuths() db.DiscordAuthsAccessLayer {
+// DiscordAuths implements db.DataStore.DiscordAuths
+func (m Mgo) DiscordAuths() db.DiscordAuthsStore {
 	return DiscordAuths{collection: m.session.DB(m.dbname).C(discordAuthsCollection)}
 }
 
-// RaidAlerts implements db.DataAccessLayer.RaidAlerts
-func (m Mgo) RaidAlerts() db.RaidAlertsAccessLayer {
-	return db.RaidAlertsAccessLayer(RaidAlerts{
+// RaidAlerts implements db.DataStore.RaidAlerts
+func (m Mgo) RaidAlerts() db.RaidAlertsStore {
+	return db.RaidAlertsStore(RaidAlerts{
 		collection: m.session.DB(m.dbname).C(raidAlertsCollection),
 		users:      m.Users(),
 	})
 }
 
-// Clans implements db.DataAccessLayer.Clans
-func (m Mgo) Clans() db.ClansAccessLayer {
+// Clans implements db.DataStore.Clans
+func (m Mgo) Clans() db.ClansStore {
 	return Clans{
 		collection: m.session.DB(m.dbname).C(clansCollection),
 		users:      m.Users(),
 	}
 }
 
-// Chats implements db.DataAccessLayer.Chats
-func (m Mgo) Chats() db.ChatsAccessLayer {
+// Chats implements db.DataStore.Chats
+func (m Mgo) Chats() db.ChatsStore {
 	return Chats{collection: m.session.DB(m.dbname).C(chatsCollection)}
 }
 
-// CreateIndexes implements db.DataAccessLayer.CreateIndexes
+// CreateIndexes implements db.DataStore.CreateIndexes
 func (m Mgo) CreateIndexes() {
 	log.Printf("Session database is %s\n", m.dbname)
 	mongoDB := m.session.DB(m.dbname)

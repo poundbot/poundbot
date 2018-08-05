@@ -11,13 +11,13 @@ import (
 	"mrpoundsign.com/poundbot/types"
 )
 
-// A RaidAlerts implements db.RaidAlertsAccessLayer
+// A RaidAlerts implements db.RaidAlertsStore
 type RaidAlerts struct {
 	collection *mgo.Collection
-	users      db.UsersAccessLayer
+	users      db.UsersStore
 }
 
-// AddInfo implements db.RaidAlertsAccessLayer.AddInfo
+// AddInfo implements db.RaidAlertsStore.AddInfo
 func (r RaidAlerts) AddInfo(ed types.EntityDeath) error {
 	for _, steamID := range ed.Owners {
 		u, err := r.users.Get(types.SteamInfo{SteamID: steamID})
@@ -45,7 +45,7 @@ func (r RaidAlerts) AddInfo(ed types.EntityDeath) error {
 	return nil
 }
 
-// GetReady implements db.RaidAlertsAccessLayer.GetReady
+// GetReady implements db.RaidAlertsStore.GetReady
 func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
 	err := r.collection.Find(
 		bson.M{
@@ -57,7 +57,7 @@ func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
 	return err
 }
 
-// Remove implements db.RaidAlertsAccessLayer.Remove
+// Remove implements db.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidNotification) error {
 	return r.collection.Remove(alert.DiscordInfo)
 }

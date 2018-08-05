@@ -10,13 +10,13 @@ import (
 	"mrpoundsign.com/poundbot/types"
 )
 
-// A Clans implements db.ClansAccessLayer
+// A Clans implements db.ClansStore
 type Clans struct {
-	collection *mgo.Collection     // the clans collection
-	users      db.UsersAccessLayer // users collection accessor
+	collection *mgo.Collection // the clans collection
+	users      db.UsersStore   // users collection accessor
 }
 
-// Upsert implements github.com/mrpoundsign/poundbot/db.ClansAccessLayer.Upsert
+// Upsert implements github.com/mrpoundsign/poundbot/db.ClansStore.Upsert
 //
 // Note: it also uses Users to handle clan importing
 func (c Clans) Upsert(cl types.Clan) error {
@@ -36,13 +36,13 @@ func (c Clans) Upsert(cl types.Clan) error {
 	return c.users.SetClanIn(cl.Tag, cl.Members)
 }
 
-// Remove implements db.ClansAccessLayer.Remove
+// Remove implements db.ClansStore.Remove
 func (c Clans) Remove(tag string) error {
 	_, err := c.collection.RemoveAll(bson.M{"tag": tag})
 	return err
 }
 
-// RemoveNotIn implements db.ClansAccessLayer.RemoveNotIn
+// RemoveNotIn implements db.ClansStore.RemoveNotIn
 func (c Clans) RemoveNotIn(tags []string) error {
 	_, err := c.collection.RemoveAll(
 		bson.M{"tag": bson.M{"$nin": tags}},
