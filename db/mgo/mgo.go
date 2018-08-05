@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/globalsign/mgo"
-	"mrpoundsign.com/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/db"
 )
 
 const (

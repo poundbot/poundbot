@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"mrpoundsign.com/poundbot/db/mocks"
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/db/mocks"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 func TestRaidAlerter_Run(t *testing.T) {

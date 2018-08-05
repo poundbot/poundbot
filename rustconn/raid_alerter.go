@@ -3,8 +3,8 @@ package rustconn
 import (
 	"time"
 
-	"mrpoundsign.com/poundbot/db"
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // A RaidAlerter sends notifications on raids

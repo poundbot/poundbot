@@ -1,6 +1,6 @@
 package db
 
-import "mrpoundsign.com/poundbot/types"
+import "bitbucket.org/mrpoundsign/poundbot/types"
 
 // UsersStore is for accessing the user store.
 //

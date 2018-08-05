@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // func MockDAL() *mocks.DataStore {

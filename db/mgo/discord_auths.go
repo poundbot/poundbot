@@ -2,7 +2,7 @@ package mgo
 
 import (
 	"github.com/globalsign/mgo"
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // A DiscordAuths implements db.DiscordAuthsStore

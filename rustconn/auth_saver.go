@@ -1,8 +1,8 @@
 package rustconn
 
 import (
-	"mrpoundsign.com/poundbot/db"
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // An AuthSaver saves Discord -> Rust user authentications

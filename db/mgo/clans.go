@@ -3,11 +3,11 @@ package mgo
 import (
 	"time"
 
-	"mrpoundsign.com/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/db"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // A Clans implements db.ClansStore
