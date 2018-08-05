@@ -3,8 +3,8 @@ package mgo
 import (
 	"log"
 
-	"github.com/globalsign/mgo"
 	"bitbucket.org/mrpoundsign/poundbot/db"
+	"github.com/globalsign/mgo"
 )
 
 const (
@@ -22,12 +22,13 @@ type MongoConfig struct {
 }
 
 // NewMgo returns a connected Mgo
-func NewMgo(mc MongoConfig) *Mgo {
+func NewMgo(mc MongoConfig) (*Mgo, error) {
 	sess, err := mgo.Dial(mc.DialAddress)
 	if err != nil {
-		log.Fatal(err)
+		sess.Close()
+		return nil, err
 	}
-	return &Mgo{session: sess, dbname: mc.Database}
+	return &Mgo{session: sess, dbname: mc.Database}, nil
 }
 
 // An Mgo implements db.DataStore in MongoDB using Mgo
@@ -79,7 +80,7 @@ func (m Mgo) Chats() db.ChatsStore {
 
 // CreateIndexes implements db.DataStore.CreateIndexes
 func (m Mgo) CreateIndexes() {
-	log.Printf("Session database is %s\n", m.dbname)
+	log.Printf("Database is %s\n", m.dbname)
 	mongoDB := m.session.DB(m.dbname)
 	userColl := mongoDB.C(usersCollection)
 	discordAuthColl := mongoDB.C(discordAuthsCollection)

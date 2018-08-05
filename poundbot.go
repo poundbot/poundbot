@@ -9,13 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/spf13/viper"
-	"bitbucket.org/mrpoundsign/poundbot/db"
 	"bitbucket.org/mrpoundsign/poundbot/db/mgo"
 	"bitbucket.org/mrpoundsign/poundbot/discord"
 	"bitbucket.org/mrpoundsign/poundbot/rust"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
 	"bitbucket.org/mrpoundsign/poundbot/twitter"
+	"github.com/spf13/viper"
 )
 
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
@@ -38,11 +37,10 @@ func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
 	}
 }
 
-func newServerConfig(cfg *viper.Viper, dal db.DataStore) *rustconn.ServerConfig {
+func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),
-		Database: dal,
 	}
 }
 
@@ -53,8 +51,6 @@ func newRustServerConfig(cfg *viper.Viper) *rust.ServerConfig {
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	viper.AddConfigPath("/etc/poundbot/")
-	viper.AddConfigPath("$HOME/.poundbot")
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
 	viper.SetDefault("player-delta-frequency", 30)
@@ -67,17 +63,22 @@ func main() {
 		log.Panicf("fatal error config file: %s\n", err)
 	}
 
-	mgo := mgo.NewMgo(mgo.MongoConfig{
-		DialAddress: viper.GetString("mongo.dial-addr"),
-		Database:    viper.GetString("mongo.database"),
-	})
-	mgo.CreateIndexes()
-
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	tConfig := newTwitterConfig(viper.Sub("twitter"))
 	rConfig := newRustServerConfig(viper.Sub("rust.server"))
-	asConfig := newServerConfig(viper.Sub("rust.api-server"), *mgo)
 	pDeltaFreq := viper.GetInt("player-delta-frequency")
+	asConfig := newServerConfig(viper.Sub("rust.api-server"))
+
+	mgo, err := mgo.NewMgo(mgo.MongoConfig{
+		DialAddress: viper.GetString("mongo.dial-addr"),
+		Database:    viper.GetString("mongo.database"),
+	})
+	if err != nil {
+		log.Panicf("Could not connect to DB: %v\n", err)
+	}
+	mgo.CreateIndexes()
+
+	asConfig.Database = *mgo
 
 	rs, err := rust.NewServer(rConfig)
 	if err != nil {
