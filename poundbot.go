@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"mrpoundsign.com/poundbot/db"
-	"mrpoundsign.com/poundbot/db/mgo"
-	"mrpoundsign.com/poundbot/discord"
-	"mrpoundsign.com/poundbot/rust"
-	"mrpoundsign.com/poundbot/rustconn"
-	"mrpoundsign.com/poundbot/twitter"
+	"bitbucket.org/mrpoundsign/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/db/mgo"
+	"bitbucket.org/mrpoundsign/poundbot/discord"
+	"bitbucket.org/mrpoundsign/poundbot/rust"
+	"bitbucket.org/mrpoundsign/poundbot/rustconn"
+	"bitbucket.org/mrpoundsign/poundbot/twitter"
 )
 
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"mrpoundsign.com/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/db"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // A RaidAlerts implements db.RaidAlertsStore

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"mrpoundsign.com/poundbot/types"
+	"bitbucket.org/mrpoundsign/poundbot/types"
 
 	"github.com/bwmarrin/discordgo"
 	cache "github.com/patrickmn/go-cache"
