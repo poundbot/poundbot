@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 
@@ -49,6 +50,8 @@ func newRustServerConfig(cfg *viper.Viper) *rust.ServerConfig {
 }
 
 func main() {
+	var wg sync.WaitGroup
+	killChan := make(chan struct{})
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.AddConfigPath(".")
@@ -91,29 +94,40 @@ func main() {
 
 	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
 	dr := discord.Runner(dConfig)
+	wg.Add(1)
 	err = dr.Start()
 	if err != nil {
 		log.Println("🤖 ⚠️ Could not start Discord")
 	}
-	defer func() {
+	go func() {
+		<-killChan
 		log.Println("🤖 Shutting down Discord...")
 		dr.Close()
+		wg.Done()
 	}()
 
 	server := rustconn.NewServer(asConfig, dr.RaidAlertChan, dr.DiscordAuth, dr.AuthSuccess, dr.GeneralChan, dr.GeneralOutChan)
-	go server.Serve()
+	server.Serve()
+	wg.Add(1)
+	go func() {
+		<-killChan
+		log.Println("🤖 Shutting down HTTP Server...")
+		server.Stop()
+		wg.Done()
+	}()
 
 	t := twitter.NewTwitter(tConfig, dr.LinkChan)
 	t.Start()
-	defer func() {
+	wg.Add(1)
+	go func() {
+		<-killChan
 		log.Println("🤖 Shutting down Twitter...")
 		t.Stop()
+		wg.Done()
 	}()
 
-	go func(statusChan *chan string) {
-		defer func() {
-			log.Println("🤖 Shutting down Rust Monitor")
-		}()
+	go func(statusChan chan string) {
+		defer wg.Done()
 		var lastCheck = time.Now().UTC()
 
 		var serverDown = true
@@ -121,6 +135,17 @@ func main() {
 		var playerDelta int8
 
 		var lowestPlayers uint8
+
+		var waitOrKill = func(t time.Duration) (kill bool) {
+			select {
+			case <-killChan:
+				log.Println("🤖 Shutting down Rust Monitor")
+				kill = true
+			case <-time.After(t):
+				kill = false
+			}
+			return
+		}
 
 		for {
 			err := rs.Update()
@@ -130,48 +155,54 @@ func main() {
 				downChecks++
 				if downChecks%3 == 0 {
 					log.Println("🤖 🏃 ⚠️ Server is down!")
-					time.Sleep(20 * time.Second)
-				}
-				time.Sleep(10 * time.Second)
-				continue
-			}
-
-			if downChecks > 0 {
-				downChecks = 0
-				log.Println("🤖 🏃 Server is back!")
-			}
-
-			if serverDown {
-				lastCheck = time.Now().UTC()
-				playerDelta = 0
-				lowestPlayers = rs.PlayerInfo.Players
-			}
-			serverDown = false
-			playerDelta += rs.PlayerInfo.PlayersDelta
-			if playerDelta < 0 && rs.PlayerInfo.Players < lowestPlayers {
-				playerDelta = 0
-				lowestPlayers = rs.PlayerInfo.Players
-			}
-			// lastUp = time.Now().UTC()
-			var now = time.Now().UTC()
-			var duration = int(now.Sub(lastCheck).Minutes())
-			if playerDelta > 3 || duration >= pDeltaFreq {
-				lastCheck = time.Now().UTC()
-				if playerDelta > 0 {
-					lowestPlayers = rs.PlayerInfo.Players
-					var playerString = "player has"
-					if playerDelta > 1 {
-						playerString = "players have"
+					if waitOrKill(20 * time.Second) {
+						return
 					}
-					message := fmt.Sprintf("@here %d new %s connected, %d of %d playing now!", playerDelta, playerString, rs.PlayerInfo.Players, rs.PlayerInfo.MaxPlayers)
-					log.Printf("🤖 🏃 Sending notice of %d new players\n", playerDelta)
-					*statusChan <- message
+				}
+				if waitOrKill(5 * time.Second) {
+					return
+				}
+			} else {
+				if downChecks > 0 {
+					downChecks = 0
+					log.Println("🤖 🏃 Server is back!")
+				}
+
+				if serverDown {
+					lastCheck = time.Now().UTC()
 					playerDelta = 0
+					lowestPlayers = rs.PlayerInfo.Players
+				}
+				serverDown = false
+				playerDelta += rs.PlayerInfo.PlayersDelta
+				if playerDelta < 0 && rs.PlayerInfo.Players < lowestPlayers {
+					playerDelta = 0
+					lowestPlayers = rs.PlayerInfo.Players
+				}
+				// lastUp = time.Now().UTC()
+				var now = time.Now().UTC()
+				var duration = int(now.Sub(lastCheck).Minutes())
+				if playerDelta > 3 || duration >= pDeltaFreq {
+					lastCheck = time.Now().UTC()
+					if playerDelta > 0 {
+						lowestPlayers = rs.PlayerInfo.Players
+						var playerString = "player has"
+						if playerDelta > 1 {
+							playerString = "players have"
+						}
+						message := fmt.Sprintf("@here %d new %s connected, %d of %d playing now!", playerDelta, playerString, rs.PlayerInfo.Players, rs.PlayerInfo.MaxPlayers)
+						log.Printf("🤖 🏃 Sending notice of %d new players\n", playerDelta)
+						statusChan <- message
+						playerDelta = 0
+					}
 				}
 			}
-			time.Sleep(30 * time.Second)
+
+			if waitOrKill(30 * time.Second) {
+				return
+			}
 		}
-	}(&dr.StatusChan)
+	}(dr.StatusChan)
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(
@@ -187,6 +218,12 @@ func main() {
 	<-sc
 
 	log.Println("🤖 Stopping...")
+	killChan <- struct{}{} // HTTP Server
+	killChan <- struct{}{} // Twitter
+	killChan <- struct{}{} // Discord
+	killChan <- struct{}{} // Rust server monitor
+
+	wg.Wait()
 
 	if err != nil {
 		panic(err)

@@ -10,7 +10,7 @@ import (
 func TestAuthSaver_Run(t *testing.T) {
 	var mockU *mocks.UsersStore
 	var mockDA *mocks.DiscordAuthsStore
-	var done chan struct{}
+	done := make(chan struct{})
 
 	tests := []struct {
 		name string
@@ -45,17 +45,19 @@ func TestAuthSaver_Run(t *testing.T) {
 	for _, tt := range tests {
 		mockU = nil
 		mockDA = nil
-		done = make(chan struct{})
+		for len(done) > 0 {
+			<-done
+		}
 
 		t.Run(tt.name, func(t *testing.T) {
 			var server = tt.a()
 
 			go func() {
+				defer func() { done <- struct{}{} }()
 				if tt.with != nil {
 					t.Logf("Auth %v", tt.with)
 					server.AuthSuccess <- *tt.with
 				}
-				done <- struct{}{}
 			}()
 
 			server.Run()

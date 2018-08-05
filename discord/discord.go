@@ -40,6 +40,7 @@ type Client struct {
 	RaidAlertChan    chan types.RaidNotification
 	DiscordAuth      chan types.DiscordAuth
 	AuthSuccess      chan types.DiscordAuth
+	shutdown         bool
 }
 
 func Runner(rc *RunnerConfig) *Client {
@@ -80,6 +81,7 @@ func (c *Client) Start() error {
 
 func (c *Client) Close() {
 	log.Println(logSymbol + "🛑 Disconnecting")
+	c.shutdown = true
 	c.session.Close()
 }
 
@@ -98,6 +100,9 @@ func (c *Client) runner() {
 				case connectedState = <-c.status:
 					if !connectedState {
 						log.Println(logRunnerSymbol + "☎️ Received disconnected message")
+						if c.shutdown {
+							return
+						}
 						break Reading
 					} else {
 						log.Println(logRunnerSymbol + "❓ Received unexpected connected message")

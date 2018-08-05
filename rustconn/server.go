@@ -1,15 +1,17 @@
 package rustconn
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
-	"github.com/gorilla/mux"
 	"bitbucket.org/mrpoundsign/poundbot/db"
 	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/gorilla/mux"
 )
 
 var logSymbol = "🕸️ "
@@ -23,17 +25,22 @@ type ServerConfig struct {
 
 // A Server runs the HTTP server, notification channels, and DB writing.
 type Server struct {
-	sc          *ServerConfig
-	RaidNotify  chan types.RaidNotification
-	DiscordAuth chan types.DiscordAuth
-	AuthSuccess chan types.DiscordAuth
-	ChatChan    chan string
-	ChatOutChan chan types.ChatMessage
+	http.Server
+	sc              *ServerConfig
+	RaidNotify      chan types.RaidNotification
+	DiscordAuth     chan types.DiscordAuth
+	AuthSuccess     chan types.DiscordAuth
+	ChatChan        chan string
+	ChatOutChan     chan types.ChatMessage
+	shutdownRequest chan struct{}
 }
 
 // NewServer creates a Server
 func NewServer(sc *ServerConfig, rch chan types.RaidNotification, dach, asch chan types.DiscordAuth, cch chan string, coch chan types.ChatMessage) *Server {
-	return &Server{
+	s := Server{
+		Server: http.Server{
+			Addr: fmt.Sprintf("%s:%d", sc.BindAddr, sc.Port),
+		},
 		sc:          sc,
 		RaidNotify:  rch,
 		DiscordAuth: dach,
@@ -41,23 +48,28 @@ func NewServer(sc *ServerConfig, rch chan types.RaidNotification, dach, asch cha
 		ChatChan:    cch,
 		ChatOutChan: coch,
 	}
+
+	r := mux.NewRouter()
+	r.HandleFunc("/entity_death", s.entityDeathHandler)
+	r.HandleFunc("/discord_auth", s.discordAuthHandler)
+	r.HandleFunc("/chat", s.chatHandler)
+	r.HandleFunc("/clans", s.clansHandler).Methods(http.MethodPut)
+	r.HandleFunc("/clans/{tag}", s.clanHandler).Methods(http.MethodDelete, http.MethodPut)
+	s.Handler = r
+
+	s.shutdownRequest = make(chan struct{})
+
+	return &s
 }
 
 // Serve starts the HTTP server, raid alerter, and Discord auth manager
 func (s *Server) Serve() {
-	done := make(chan struct{})
-	defer func() {
-		// One done channel per runner
-		done <- struct{}{}
-		done <- struct{}{}
-	}()
-
 	// Start the AuthSaver
 	go func() {
 		var newConn = s.sc.Database.Copy()
 		defer newConn.Close()
 
-		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.DiscordAuth, done)
+		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.DiscordAuth, s.shutdownRequest)
 		as.Run()
 	}()
 
@@ -66,19 +78,40 @@ func (s *Server) Serve() {
 		var newConn = s.sc.Database.Copy()
 		defer newConn.Close()
 
-		var ra = NewRaidAlerter(newConn.RaidAlerts(), s.RaidNotify, done)
+		var ra = NewRaidAlerter(newConn.RaidAlerts(), s.RaidNotify, s.shutdownRequest)
 		ra.Run()
 	}()
 
-	log.Printf(logSymbol+"Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
-	r := mux.NewRouter()
-	r.HandleFunc("/entity_death", s.entityDeathHandler)
-	r.HandleFunc("/discord_auth", s.discordAuthHandler)
-	r.HandleFunc("/chat", s.chatHandler)
-	r.HandleFunc("/clans", s.clansHandler).Methods(http.MethodPut)
-	r.HandleFunc("/clans/{tag}", s.clanHandler).Methods(http.MethodDelete, http.MethodPut)
-	http.Handle("/", r)
-	go log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%d", s.sc.BindAddr, s.sc.Port), r))
+	go func() {
+		log.Printf(logSymbol+"Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+		if err := s.ListenAndServe(); err != nil {
+			log.Printf(logSymbol+"HTTP server died with error %v\n", err)
+		} else {
+			log.Printf(logSymbol+"HTTP server graceful shutdown\n", err)
+		}
+	}()
+}
+
+func (s *Server) Stop() {
+	log.Printf(logSymbol + "Stoping http server ...")
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() { //Create shutdown context with 10 second timeout
+		defer wg.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		//shutdown the server
+		err := s.Shutdown(ctx)
+		if err != nil {
+			log.Printf(logSymbol+"Shutdown request error: %v", err)
+		}
+	}()
+	s.shutdownRequest <- struct{}{} // AuthSaver
+	s.shutdownRequest <- struct{}{} // RaidAlerter
+	wg.Wait()
 }
 
 // clansHandler manages clans sync HTTP requests from the Rust server
