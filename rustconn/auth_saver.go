@@ -1,6 +1,8 @@
 package rustconn
 
 import (
+	"log"
+
 	"bitbucket.org/mrpoundsign/poundbot/db"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
@@ -25,7 +27,6 @@ func NewAuthSaver(da db.DiscordAuthsStore, u db.UsersStore, as chan types.Discor
 
 // Run writes users sent in through the AuthSuccess channel
 func (a *AuthSaver) Run() {
-ExitCheck:
 	for {
 		select {
 		case as := <-a.AuthSuccess:
@@ -43,7 +44,8 @@ ExitCheck:
 				}
 			}
 		case <-a.done:
-			break ExitCheck
+			log.Println(logSymbol + "AuthServer shutting down")
+			return
 		}
 	}
 }

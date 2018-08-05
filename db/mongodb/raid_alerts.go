@@ -1,4 +1,4 @@
-package mgo
+package mongodb
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 
 	"bitbucket.org/mrpoundsign/poundbot/db"
 
+	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // A RaidAlerts implements db.RaidAlertsStore

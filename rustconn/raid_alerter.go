@@ -1,6 +1,7 @@
 package rustconn
 
 import (
+	"log"
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/db"
@@ -11,6 +12,7 @@ import (
 type RaidAlerter struct {
 	RaidStore  db.RaidAlertsStore
 	RaidNotify chan types.RaidNotification
+	SleepTime  time.Duration
 	done       chan struct{}
 }
 
@@ -20,6 +22,7 @@ func NewRaidAlerter(ral db.RaidAlertsStore, rnc chan types.RaidNotification, don
 		RaidStore:  ral,
 		RaidNotify: rnc,
 		done:       done,
+		SleepTime:  1 * time.Second,
 	}
 }
 
@@ -27,21 +30,18 @@ func NewRaidAlerter(ral db.RaidAlertsStore, rnc chan types.RaidNotification, don
 // out through the RaidNotify channel. It runs in a loop.
 func (r *RaidAlerter) Run() {
 	for {
-		var results []types.RaidNotification
-		r.RaidStore.GetReady(&results)
-
-		for _, result := range results {
-			r.RaidNotify <- result
-			r.RaidStore.Remove(result)
-		}
-
-	ExitCheck:
 		select {
 		case <-r.done:
+			log.Println(logSymbol + "Shutting down RaidAlerter")
 			return
-		default:
-			break ExitCheck
+		case <-time.After(r.SleepTime):
+			var results []types.RaidNotification
+			r.RaidStore.GetReady(&results)
+
+			for _, result := range results {
+				r.RaidNotify <- result
+				r.RaidStore.Remove(result)
+			}
 		}
-		time.Sleep(1)
 	}
 }

@@ -1,4 +1,4 @@
-package mgo
+package mongodb
 
 import (
 	"log"

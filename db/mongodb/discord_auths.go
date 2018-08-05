@@ -1,8 +1,8 @@
-package mgo
+package mongodb
 
 import (
-	"github.com/globalsign/mgo"
 	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/globalsign/mgo"
 )
 
 // A DiscordAuths implements db.DiscordAuthsStore

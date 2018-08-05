@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/db/mgo"
+	"bitbucket.org/mrpoundsign/poundbot/db/mongodb"
 	"bitbucket.org/mrpoundsign/poundbot/discord"
 	"bitbucket.org/mrpoundsign/poundbot/rust"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
@@ -72,16 +72,16 @@ func main() {
 	pDeltaFreq := viper.GetInt("player-delta-frequency")
 	asConfig := newServerConfig(viper.Sub("rust.api-server"))
 
-	mgo, err := mgo.NewMgo(mgo.MongoConfig{
+	datastore, err := mongodb.NewMgo(mongodb.MongoConfig{
 		DialAddress: viper.GetString("mongo.dial-addr"),
 		Database:    viper.GetString("mongo.database"),
 	})
 	if err != nil {
 		log.Panicf("Could not connect to DB: %v\n", err)
 	}
-	mgo.CreateIndexes()
+	datastore.CreateIndexes()
 
-	asConfig.Database = *mgo
+	asConfig.Datastore = *datastore
 
 	rs, err := rust.NewServer(rConfig)
 	if err != nil {

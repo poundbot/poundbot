@@ -2,16 +2,16 @@ package rustconn
 
 import (
 	"testing"
+	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"bitbucket.org/mrpoundsign/poundbot/db/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestRaidAlerter_Run(t *testing.T) {
 	var mockRA *mocks.RaidAlertsStore
-	var done chan struct{}
 
 	var rn = types.RaidNotification{
 		DiscordInfo: types.DiscordInfo{
@@ -29,20 +29,12 @@ func TestRaidAlerter_Run(t *testing.T) {
 			name: "With nothing",
 			r: func() *RaidAlerter {
 				ch := make(chan types.RaidNotification)
-				done = make(chan struct{})
+				done := make(chan struct{})
 
 				mockRA = &mocks.RaidAlertsStore{}
 
-				mockRA.On("GetReady", mock.AnythingOfType("*[]types.RaidNotification")).
-					Return(func(args *[]types.RaidNotification) error {
-						*args = []types.RaidNotification{}
-						go func() { done <- struct{}{} }()
-
-						return nil
-					})
-
 				go func() {
-					rnResult = <-ch
+					done <- struct{}{}
 				}()
 
 				return NewRaidAlerter(mockRA, ch, done)
@@ -53,8 +45,8 @@ func TestRaidAlerter_Run(t *testing.T) {
 			name: "With RaidAlert",
 			r: func() *RaidAlerter {
 				ch := make(chan types.RaidNotification)
-				done = make(chan struct{})
-				var first = true // Track first run of GetReady
+				first := true // Track first run of GetReady
+				done := make(chan struct{})
 
 				mockRA = &mocks.RaidAlertsStore{}
 
@@ -65,7 +57,6 @@ func TestRaidAlerter_Run(t *testing.T) {
 							*args = []types.RaidNotification{rn}
 						} else {
 							*args = []types.RaidNotification{}
-							go func() { done <- struct{}{} }()
 						}
 
 						return nil
@@ -75,9 +66,12 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 				go func() {
 					rnResult = <-ch
+					done <- struct{}{}
 				}()
 
-				return NewRaidAlerter(mockRA, ch, done)
+				r := NewRaidAlerter(mockRA, ch, done)
+				r.SleepTime = 1 * time.Microsecond
+				return r
 			},
 			want: rn,
 		},

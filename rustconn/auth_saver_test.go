@@ -21,7 +21,6 @@ func TestAuthSaver_Run(t *testing.T) {
 		{
 			name: "With nothing",
 			a: func() *AuthSaver {
-				go func() { done <- struct{}{} }()
 				return NewAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
 			},
 		},

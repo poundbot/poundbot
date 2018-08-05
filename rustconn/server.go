@@ -18,9 +18,9 @@ var logSymbol = "🕸️ "
 
 // ServerConfig contains the base Server configuration
 type ServerConfig struct {
-	BindAddr string
-	Port     int
-	Database db.DataStore
+	BindAddr  string
+	Port      int
+	Datastore db.DataStore
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.
@@ -66,7 +66,7 @@ func NewServer(sc *ServerConfig, rch chan types.RaidNotification, dach, asch cha
 func (s *Server) Serve() {
 	// Start the AuthSaver
 	go func() {
-		var newConn = s.sc.Database.Copy()
+		var newConn = s.sc.Datastore.Copy()
 		defer newConn.Close()
 
 		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.DiscordAuth, s.shutdownRequest)
@@ -75,7 +75,7 @@ func (s *Server) Serve() {
 
 	// Start the RaidAlerter
 	go func() {
-		var newConn = s.sc.Database.Copy()
+		var newConn = s.sc.Datastore.Copy()
 		defer newConn.Close()
 
 		var ra = NewRaidAlerter(newConn.RaidAlerts(), s.RaidNotify, s.shutdownRequest)
@@ -142,7 +142,7 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 		clans[i] = *c
 	}
 
-	db := s.sc.Database.Copy()
+	db := s.sc.Datastore.Copy()
 	defer db.Close()
 
 	for _, clan := range clans {
@@ -155,7 +155,7 @@ func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
 
 // clanHandler manages individual clan REST requests form the Rust server
 func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
-	db := s.sc.Database.Copy()
+	db := s.sc.Datastore.Copy()
 	defer db.Close()
 
 	vars := mux.Vars(r)
@@ -199,7 +199,7 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 // HTTP GET requests wait for messages and disconnect with http.StatusNoContent
 // after 5 seconds.
 func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
-	db := s.sc.Database.Copy()
+	db := s.sc.Datastore.Copy()
 	defer db.Close()
 
 	switch r.Method {
@@ -255,7 +255,7 @@ func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := s.sc.Database.Copy()
+	db := s.sc.Datastore.Copy()
 	defer db.Close()
 	db.RaidAlerts().AddInfo(ed)
 }
@@ -272,7 +272,7 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf(logSymbol+"User Auth Request: %v from %v\n", t, r.Body)
-	db := s.sc.Database.Copy()
+	db := s.sc.Datastore.Copy()
 	defer db.Close()
 
 	u, err := db.Users().Get(t.SteamInfo)

@@ -1,11 +1,11 @@
-package mgo
+package mongodb
 
 import (
 	"time"
 
+	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // A Users implements db.UsersStore
