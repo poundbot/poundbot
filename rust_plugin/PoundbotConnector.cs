@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("PoundbotConnector", "MrPoundsign", "0.1.1")]
+    [Info("PoundbotConnector", "MrPoundsign", "0.0.1")]
     [Description("Communicate with Poundbot")]
 
     class PoundbotConnector : RustPlugin
