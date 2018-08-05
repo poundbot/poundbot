@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -16,6 +17,13 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
 	"bitbucket.org/mrpoundsign/poundbot/twitter"
 	"github.com/spf13/viper"
+)
+
+var (
+	version     = "DEVEL"
+	buildstamp  = "NOWISH, I GUESS"
+	githash     = "GIT HASHY WITH IT"
+	versionFlag = flag.Bool("v", false, "Displays the version and then quits.")
 )
 
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
@@ -50,6 +58,12 @@ func newRustServerConfig(cfg *viper.Viper) *rust.ServerConfig {
 }
 
 func main() {
+	flag.Parse()
+	// If the version flag is set, print the version and quit.
+	if *versionFlag {
+		fmt.Printf("PoundBot %s (%s @ %s)\n", version, buildstamp, githash)
+		return
+	}
 	var wg sync.WaitGroup
 	killChan := make(chan struct{})
 	runtime.GOMAXPROCS(runtime.NumCPU())
