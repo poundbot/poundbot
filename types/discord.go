@@ -7,7 +7,6 @@ type DiscordInfo struct {
 type Ack func(bool)
 
 type DiscordAuth struct {
-	MongoID    `bson:",inline"`
 	BaseUser   `bson:",inline"`
 	Pin        int
 	SentToUser bool

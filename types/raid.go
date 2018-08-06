@@ -19,7 +19,6 @@ type RaidInventory struct {
 }
 
 type RaidNotification struct {
-	MongoID       `bson:",inline"`
 	DiscordInfo   `bson:",inline"`
 	GridPositions []string       `bson:"grid_positions"`
 	Items         map[string]int `bson:"items"`

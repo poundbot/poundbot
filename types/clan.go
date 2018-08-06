@@ -24,7 +24,6 @@ type BaseClan struct {
 }
 
 type Clan struct {
-	MongoID   `bson:",inline"`
 	BaseClan  `bson:",inline"`
 	CreatedAt time.Time `bson:"created_at"`
 }

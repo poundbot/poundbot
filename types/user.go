@@ -18,7 +18,6 @@ type BaseUser struct {
 
 // User full user model
 type User struct {
-	MongoID   `bson:",inline"`
 	BaseUser  `bson:",inline"`
 	CreatedAt time.Time `bson:"created_at"`
 }
