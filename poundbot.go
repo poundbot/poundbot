@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"syscall"
@@ -19,10 +20,13 @@ import (
 )
 
 var (
-	version     = "DEVEL"
-	buildstamp  = "NOWISH, I GUESS"
-	githash     = "GIT HASHY WITH IT"
-	versionFlag = flag.Bool("v", false, "Displays the version and then quits.")
+	version          = "DEVEL"
+	buildstamp       = "NOWISH, I GUESS"
+	githash          = "GIT HASHY WITH IT"
+	versionFlag      = flag.Bool("v", false, "Displays the version and then quits")
+	configLocation   = flag.String("c", ".", "The config.json location")
+	writeConfig      = flag.Bool("w", false, "Writes a config and exits")
+	writeConfigForce = flag.Bool("init", false, "Forces writing of config and exits\nWARNING! This will destroy your config file")
 )
 
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
@@ -63,27 +67,75 @@ func main() {
 		fmt.Printf("PoundBot %s (%s @ %s)\n", version, buildstamp, githash)
 		return
 	}
+
+	servicesCount := 2 // ALways at least 1 for discord, but should always be >1
+
+	// var thingsToKill = 0
 	var wg sync.WaitGroup
+
 	killChan := make(chan struct{})
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	viper.AddConfigPath(".")
-	viper.SetConfigName("config")
-	viper.SetDefault("player-delta-frequency", 30)
-	viper.SetDefault("rust.api-server.bind_addr", "")
-	viper.SetDefault("rust.api-server.port", 9090)
+	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
-		log.Panicf("fatal error config file: %s\n", err)
+	viper.SetDefault("features.twitter", false)
+	viper.SetDefault("features.players-joined", false)
+	viper.SetDefault("features.raid-alerts", true)
+	viper.SetDefault("features.chat-relay", true)
+	viper.SetDefault("players-joined-frequency", 30)
+	viper.SetDefault("http.bind_addr", "")
+	viper.SetDefault("http.port", 9090)
+	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
+	viper.SetDefault("discord.channels.link", "CHANNEL ID FOR TWITTER LINKS")
+	viper.SetDefault("discord.channels.status", "CHANNEL ID FOR SERVER STATUS (players joined)")
+	viper.SetDefault("discord.channels.general", "CHANNEL ID FOR CHAT RELAY")
+	viper.SetDefault("twitter.consumer.key", "CONSUMER KEY")
+	viper.SetDefault("twitter.consumer.secret", "SECRET KEY")
+	viper.SetDefault("twitter.access.token", "ACCESS TOKEN")
+	viper.SetDefault("twitter.access.secret", "ACCESS SECRET")
+	viper.SetDefault("twitter.userid", int64(0))
+	viper.SetDefault("twitter.filters", "#ServerUpdate")
+
+	var loaded = false
+
+	if *writeConfigForce {
+		*writeConfig = true
+	} else {
+		err := viper.ReadInConfig() // Find and read the config file
+		if err != nil {
+			log.Println(err)
+			flag.Usage()
+			os.Exit(1)
+		}
+		loaded = true
+	}
+
+	if loaded {
+		if viper.IsSet("rust.api-server") {
+			log.Println("Deprecated config option: /rust.api-server. Please remove.")
+			log.Println("  copying to /http")
+			viper.RegisterAlias("http", "rust.api-server")
+		}
+
+		if viper.IsSet("player-delta-frequency") {
+			log.Println("Deprecated config option: /player-delta-frequency. Please remove.")
+			log.Println("  copying to /players-joined-frequency")
+			viper.RegisterAlias("players-joined-frequency", "player-delta-frequency")
+		}
+	}
+
+	if *writeConfig {
+		err := viper.WriteConfig()
+		if err != nil {
+			log.Fatalf("Could not write config: %s", err)
+		}
+		log.Printf("Wrote new config file to %s\n", viper.ConfigFileUsed())
+		os.Exit(0)
 	}
 
 	dConfig := newDiscordConfig(viper.Sub("discord"))
-	tConfig := newTwitterConfig(viper.Sub("twitter"))
-	rConfig := newRustServerConfig(viper.Sub("rust.server"))
-	pDeltaFreq := viper.GetInt("player-delta-frequency")
-	asConfig := newServerConfig(viper.Sub("rust.api-server"))
+	asConfig := newServerConfig(viper.Sub("http"))
 
 	datastore, err := mongodb.NewMgo(mongodb.MongoConfig{
 		DialAddress: viper.GetString("mongo.dial-addr"),
@@ -96,6 +148,7 @@ func main() {
 
 	asConfig.Datastore = *datastore
 
+	// Discoed server
 	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
 	dr := discord.Runner(dConfig)
 	wg.Add(1)
@@ -110,7 +163,20 @@ func main() {
 		wg.Done()
 	}()
 
-	server := rustconn.NewServer(asConfig, dr.RaidAlertChan, dr.DiscordAuth, dr.AuthSuccess, dr.GeneralChan, dr.GeneralOutChan)
+	// HTTP API server
+	server := rustconn.NewServer(asConfig,
+		rustconn.ServerChannels{
+			RaidNotify:  dr.RaidAlertChan,
+			DiscordAuth: dr.DiscordAuth,
+			AuthSuccess: dr.AuthSuccess,
+			ChatChan:    dr.GeneralChan,
+			ChatOutChan: dr.GeneralOutChan,
+		},
+		rustconn.ServerOptions{
+			RaidAlerts: viper.GetBool("features.raid-alerts"),
+			ChatRelay:  viper.GetBool("features.chat-relay"),
+		},
+	)
 	server.Serve()
 	wg.Add(1)
 	go func() {
@@ -120,28 +186,38 @@ func main() {
 		wg.Done()
 	}()
 
-	t := twitter.NewTwitter(tConfig, dr.LinkChan)
-	t.Start()
-	wg.Add(1)
-	go func() {
-		<-killChan
-		log.Println("🤖 Shutting down Twitter...")
-		t.Stop()
-		wg.Done()
-	}()
-
-	rs, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
-	if err != nil {
-		log.Fatalf("Can't start rust watcher, %v\n", err)
+	if viper.GetBool("features.twitter") {
+		servicesCount++
+		tConfig := newTwitterConfig(viper.Sub("twitter"))
+		t := twitter.NewTwitter(tConfig, dr.LinkChan)
+		t.Start()
+		wg.Add(1)
+		go func() {
+			<-killChan
+			log.Println("🤖 Shutting down Twitter...")
+			t.Stop()
+			wg.Done()
+		}()
 	}
-	rs.Start()
-	wg.Add(1)
-	go func() {
-		<-killChan
-		log.Println("🤖 Shutting down Rust Watcher...")
-		rs.Stop()
-		wg.Done()
-	}()
+
+	// Rust Server Watcher
+	if viper.GetBool("features.players-joined") {
+		servicesCount++
+		rConfig := newRustServerConfig(viper.Sub("rust.server"))
+		pDeltaFreq := viper.GetInt("players-joined-frequency")
+		rs, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
+		if err != nil {
+			log.Fatalf("Can't start rust watcher, %v\n", err)
+		}
+		rs.Start()
+		wg.Add(1)
+		go func() {
+			<-killChan
+			log.Println("🤖 Shutting down Rust Watcher...")
+			rs.Stop()
+			wg.Done()
+		}()
+	}
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(
@@ -157,10 +233,9 @@ func main() {
 	<-sc
 
 	log.Println("🤖 Stopping...")
-	killChan <- struct{}{} // HTTP Server
-	killChan <- struct{}{} // Twitter
-	killChan <- struct{}{} // Discord
-	killChan <- struct{}{} // Rust server monitor
+	for i := 0; i < servicesCount; i++ {
+		killChan <- struct{}{}
+	}
 
 	wg.Wait()
 

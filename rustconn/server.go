@@ -23,30 +23,37 @@ type ServerConfig struct {
 	Datastore db.DataStore
 }
 
+type ServerChannels struct {
+	RaidNotify  chan types.RaidNotification
+	DiscordAuth chan types.DiscordAuth
+	AuthSuccess chan types.DiscordAuth
+	ChatChan    chan string
+	ChatOutChan chan types.ChatMessage
+}
+
+type ServerOptions struct {
+	RaidAlerts bool
+	ChatRelay  bool
+}
+
 // A Server runs the HTTP server, notification channels, and DB writing.
 type Server struct {
 	http.Server
 	sc              *ServerConfig
-	RaidNotify      chan types.RaidNotification
-	DiscordAuth     chan types.DiscordAuth
-	AuthSuccess     chan types.DiscordAuth
-	ChatChan        chan string
-	ChatOutChan     chan types.ChatMessage
+	channels        ServerChannels
+	options         ServerOptions
 	shutdownRequest chan struct{}
 }
 
 // NewServer creates a Server
-func NewServer(sc *ServerConfig, rch chan types.RaidNotification, dach, asch chan types.DiscordAuth, cch chan string, coch chan types.ChatMessage) *Server {
+func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions) *Server {
 	s := Server{
 		Server: http.Server{
 			Addr: fmt.Sprintf("%s:%d", sc.BindAddr, sc.Port),
 		},
-		sc:          sc,
-		RaidNotify:  rch,
-		DiscordAuth: dach,
-		AuthSuccess: asch,
-		ChatChan:    cch,
-		ChatOutChan: coch,
+		sc:       sc,
+		channels: channels,
+		options:  options,
 	}
 
 	r := mux.NewRouter()
@@ -69,18 +76,20 @@ func (s *Server) Serve() {
 		var newConn = s.sc.Datastore.Copy()
 		defer newConn.Close()
 
-		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.DiscordAuth, s.shutdownRequest)
+		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.channels.DiscordAuth, s.shutdownRequest)
 		as.Run()
 	}()
 
-	// Start the RaidAlerter
-	go func() {
-		var newConn = s.sc.Datastore.Copy()
-		defer newConn.Close()
+	if s.options.RaidAlerts {
+		// Start the RaidAlerter
+		go func() {
+			var newConn = s.sc.Datastore.Copy()
+			defer newConn.Close()
 
-		var ra = NewRaidAlerter(newConn.RaidAlerts(), s.RaidNotify, s.shutdownRequest)
-		ra.Run()
-	}()
+			var ra = NewRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)
+			ra.Run()
+		}()
+	}
 
 	go func() {
 		log.Printf(logSymbol+"Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
@@ -90,6 +99,7 @@ func (s *Server) Serve() {
 			log.Printf(logSymbol+"HTTP server graceful shutdown\n", err)
 		}
 	}()
+
 }
 
 func (s *Server) Stop() {
@@ -110,7 +120,9 @@ func (s *Server) Stop() {
 		}
 	}()
 	s.shutdownRequest <- struct{}{} // AuthSaver
-	s.shutdownRequest <- struct{}{} // RaidAlerter
+	if s.options.RaidAlerts {
+		s.shutdownRequest <- struct{}{} // RaidAlerter
+	}
 	wg.Wait()
 }
 
@@ -199,6 +211,18 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 // HTTP GET requests wait for messages and disconnect with http.StatusNoContent
 // after 5 seconds.
 func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: Make this less awful. Plugin must be updated to be smarter.
+	if !s.options.ChatRelay {
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusOK)
+		case http.MethodGet:
+			time.Sleep(10 * time.Second)
+			w.WriteHeader(http.StatusNoContent)
+		}
+		return
+	}
+
 	db := s.sc.Datastore.Copy()
 	defer db.Close()
 
@@ -220,10 +244,10 @@ func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
 				clan = fmt.Sprintf("[%s] ", t.ClanTag)
 			}
 			c <- fmt.Sprintf("☢️ **%s%s**: %s", clan, t.DisplayName, t.Message)
-		}(t, s.ChatChan)
+		}(t, s.channels.ChatChan)
 	case http.MethodGet:
 		select {
-		case res := <-s.ChatOutChan:
+		case res := <-s.channels.ChatOutChan:
 			b, err := json.Marshal(res)
 			if err != nil {
 				log.Println(logSymbol + err.Error())
@@ -292,7 +316,7 @@ func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = db.DiscordAuths().Upsert(t)
 	if err == nil {
-		s.DiscordAuth <- t
+		s.channels.DiscordAuth <- t
 	} else {
 		log.Println(logSymbol + err.Error())
 	}
