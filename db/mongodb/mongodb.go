@@ -78,8 +78,8 @@ func (m Mgo) Chats() db.ChatsStore {
 	return Chats{collection: m.session.DB(m.dbname).C(chatsCollection)}
 }
 
-// CreateIndexes implements db.DataStore.CreateIndexes
-func (m Mgo) CreateIndexes() {
+// Init implements db.DataStore.Init
+func (m Mgo) Init() {
 	log.Printf("Database is %s\n", m.dbname)
 	mongoDB := m.session.DB(m.dbname)
 	userColl := mongoDB.C(usersCollection)

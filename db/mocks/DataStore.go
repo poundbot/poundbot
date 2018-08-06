@@ -62,8 +62,8 @@ func (_m *DataStore) Copy() db.DataStore {
 	return r0
 }
 
-// CreateIndexes provides a mock function with given fields:
-func (_m *DataStore) CreateIndexes() {
+// Init provides a mock function with given fields:
+func (_m *DataStore) Init() {
 	_m.Called()
 }
 

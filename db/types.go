@@ -67,12 +67,12 @@ type ChatsStore interface {
 //
 // Close closes the session
 //
-// CreateIndexes creates indexes, and should always be called when Poundbot
+// Init creates indexes, and should always be called when Poundbot
 // first starts
 type DataStore interface {
 	Copy() DataStore
 	Close()
-	CreateIndexes()
+	Init()
 	Users() UsersStore
 	Chats() ChatsStore
 	DiscordAuths() DiscordAuthsStore
