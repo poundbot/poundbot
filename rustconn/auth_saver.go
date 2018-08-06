@@ -30,7 +30,6 @@ func (a *AuthSaver) Run() {
 	for {
 		select {
 		case as := <-a.AuthSuccess:
-
 			err := a.Users.UpsertBase(as.BaseUser)
 
 			if err == nil {

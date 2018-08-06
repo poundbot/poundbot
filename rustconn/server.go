@@ -76,7 +76,7 @@ func (s *Server) Serve() {
 		var newConn = s.sc.Datastore.Copy()
 		defer newConn.Close()
 
-		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.channels.DiscordAuth, s.shutdownRequest)
+		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.channels.AuthSuccess, s.shutdownRequest)
 		as.Run()
 	}()
 

@@ -15,50 +15,50 @@ const (
 	clansCollection        = "clans"
 )
 
-// A MongoConfig is exactly what it sounds like.
-type MongoConfig struct {
+// A Config is exactly what it sounds like.
+type Config struct {
 	DialAddress string // the mgo.Dial address
 	Database    string // the database name
 }
 
-// NewMgo returns a connected Mgo
-func NewMgo(mc MongoConfig) (*Mgo, error) {
+// NewMongoDB returns a connected Mgo
+func NewMongoDB(mc Config) (*MongoDb, error) {
 	sess, err := mgo.Dial(mc.DialAddress)
 	if err != nil {
 		sess.Close()
 		return nil, err
 	}
-	return &Mgo{session: sess, dbname: mc.Database}, nil
+	return &MongoDb{session: sess, dbname: mc.Database}, nil
 }
 
-// An Mgo implements db.DataStore in MongoDB using Mgo
-type Mgo struct {
+// An MongoDb implements db.DataStore for MongoDB
+type MongoDb struct {
 	dbname  string
 	session *mgo.Session
 }
 
 // Copy implements db.DataStore.Copy
-func (m Mgo) Copy() db.DataStore {
-	return Mgo{session: m.session.Copy()}
+func (m MongoDb) Copy() db.DataStore {
+	return MongoDb{session: m.session.Copy()}
 }
 
 // Close implements db.DataStore.Close
-func (m Mgo) Close() {
+func (m MongoDb) Close() {
 	m.session.Close()
 }
 
 // Users implements db.DataStore.Users
-func (m Mgo) Users() db.UsersStore {
+func (m MongoDb) Users() db.UsersStore {
 	return Users{collection: m.session.DB(m.dbname).C(usersCollection)}
 }
 
 // DiscordAuths implements db.DataStore.DiscordAuths
-func (m Mgo) DiscordAuths() db.DiscordAuthsStore {
+func (m MongoDb) DiscordAuths() db.DiscordAuthsStore {
 	return DiscordAuths{collection: m.session.DB(m.dbname).C(discordAuthsCollection)}
 }
 
 // RaidAlerts implements db.DataStore.RaidAlerts
-func (m Mgo) RaidAlerts() db.RaidAlertsStore {
+func (m MongoDb) RaidAlerts() db.RaidAlertsStore {
 	return db.RaidAlertsStore(RaidAlerts{
 		collection: m.session.DB(m.dbname).C(raidAlertsCollection),
 		users:      m.Users(),
@@ -66,7 +66,7 @@ func (m Mgo) RaidAlerts() db.RaidAlertsStore {
 }
 
 // Clans implements db.DataStore.Clans
-func (m Mgo) Clans() db.ClansStore {
+func (m MongoDb) Clans() db.ClansStore {
 	return Clans{
 		collection: m.session.DB(m.dbname).C(clansCollection),
 		users:      m.Users(),
@@ -74,12 +74,12 @@ func (m Mgo) Clans() db.ClansStore {
 }
 
 // Chats implements db.DataStore.Chats
-func (m Mgo) Chats() db.ChatsStore {
+func (m MongoDb) Chats() db.ChatsStore {
 	return Chats{collection: m.session.DB(m.dbname).C(chatsCollection)}
 }
 
 // Init implements db.DataStore.Init
-func (m Mgo) Init() {
+func (m MongoDb) Init() {
 	log.Printf("Database is %s\n", m.dbname)
 	mongoDB := m.session.DB(m.dbname)
 	userColl := mongoDB.C(usersCollection)

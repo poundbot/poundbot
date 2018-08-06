@@ -131,6 +131,14 @@
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
+  branch = "master"
+  digest = "1:89df516e4ec36be36c4ccc661f2e9007ccb13d4e970e3b7e9c96e87fe4ceb5ba"
+  name = "github.com/jcelliott/lumber"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "dd349441af25132d146d7095c6693a15431fc9b1"
+
+[[projects]]
   digest = "1:c568d7727aa262c32bdf8a3f7db83614f7af0ed661474b24588de635c20024c7"
   name = "github.com/magiconair/properties"
   packages = ["."]
@@ -145,6 +153,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
+
+[[projects]]
+  branch = "master"
+  digest = "1:4085fab6ad148702fb359c14d5602201d6bd9c3b8dd4162a2fd15a4e9dab3ad1"
+  name = "github.com/nanobox-io/golang-scribble"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "336beac0a992ed9abaf4ef8e7042ba7fe3335c06"
 
 [[projects]]
   digest = "1:808cdddf087fb64baeae67b8dfaee2069034d9704923a3cb8bd96a995421a625"
@@ -295,6 +311,7 @@
     "github.com/globalsign/mgo",
     "github.com/globalsign/mgo/bson",
     "github.com/gorilla/mux",
+    "github.com/nanobox-io/golang-scribble",
     "github.com/patrickmn/go-cache",
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",

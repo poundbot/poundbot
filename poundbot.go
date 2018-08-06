@@ -11,6 +11,9 @@ import (
 	"sync"
 	"syscall"
 
+	"bitbucket.org/mrpoundsign/poundbot/db"
+
+	"bitbucket.org/mrpoundsign/poundbot/db/jsonstore"
 	"bitbucket.org/mrpoundsign/poundbot/db/mongodb"
 	"bitbucket.org/mrpoundsign/poundbot/discord"
 	"bitbucket.org/mrpoundsign/poundbot/rust"
@@ -77,6 +80,8 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
+	viper.SetDefault("datastore", "json")
+	viper.SetDefault("json-store.path", "./json-store")
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
 	viper.SetDefault("features.twitter", false)
@@ -137,22 +142,33 @@ func main() {
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	asConfig := newServerConfig(viper.Sub("http"))
 
-	datastore, err := mongodb.NewMgo(mongodb.MongoConfig{
-		DialAddress: viper.GetString("mongo.dial-addr"),
-		Database:    viper.GetString("mongo.database"),
-	})
-	if err != nil {
-		log.Panicf("Could not connect to DB: %v\n", err)
-	}
-	datastore.CreateIndexes()
+	var datastore db.DataStore
 
-	asConfig.Datastore = *datastore
+	switch viper.GetString("datastore") {
+	case "mongodb":
+		mongo, err := mongodb.NewMongoDB(mongodb.Config{
+			DialAddress: viper.GetString("mongo.dial-addr"),
+			Database:    viper.GetString("mongo.database"),
+		})
+		if err != nil {
+			log.Panicf("Could not connect to DB: %v\n", err)
+		}
+		datastore = mongo
+	case "json":
+		path := filepath.Clean(viper.GetString("json-store.path"))
+		os.MkdirAll(path, os.ModePerm)
+		datastore = jsonstore.NewJson(path)
+	}
+
+	datastore.Init()
+
+	asConfig.Datastore = datastore
 
 	// Discoed server
 	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
 	dr := discord.Runner(dConfig)
 	wg.Add(1)
-	err = dr.Start()
+	err := dr.Start()
 	if err != nil {
 		log.Println("🤖 ⚠️ Could not start Discord")
 	}

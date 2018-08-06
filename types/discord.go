@@ -10,5 +10,5 @@ type DiscordAuth struct {
 	BaseUser   `bson:",inline"`
 	Pin        int
 	SentToUser bool
-	Ack        Ack `bson:"-"`
+	Ack        Ack `bson:"-" json:"-"`
 }

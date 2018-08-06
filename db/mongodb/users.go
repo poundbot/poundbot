@@ -25,7 +25,7 @@ func (u Users) UpsertBase(user types.BaseUser) error {
 	_, err := u.collection.Upsert(
 		user.SteamInfo,
 		bson.M{
-			"$setOnInsert": bson.M{"created_at": time.Now().UTC().Add(5 * time.Minute)},
+			"$setOnInsert": bson.M{"created_at": time.Now().UTC()},
 			"$set":         user,
 		},
 	)

@@ -368,7 +368,8 @@ func (c *Client) getUser(id string) (user discordgo.User, err error) {
 			}
 		}
 	}
-	return
+	err = errors.New(fmt.Sprintf("discord user not found %s", id))
+	return discordgo.User{}, err
 }
 
 func (c *Client) cacheUser(u discordgo.User) {

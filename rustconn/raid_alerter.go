@@ -36,7 +36,10 @@ func (r *RaidAlerter) Run() {
 			return
 		case <-time.After(r.SleepTime):
 			var results []types.RaidNotification
-			r.RaidStore.GetReady(&results)
+			err := r.RaidStore.GetReady(&results)
+			if err != nil {
+				log.Println(err)
+			}
 
 			for _, result := range results {
 				r.RaidNotify <- result
