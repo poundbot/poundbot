@@ -8,7 +8,7 @@ import (
 	"github.com/alliedmodders/blaster/valve"
 )
 
-const logSymbol = "👁️‍🗨️ "
+const logSymbol = "☢️ "
 
 // A ServerConfig is the connection information for a Rust server
 type ServerConfig struct {
@@ -16,7 +16,8 @@ type ServerConfig struct {
 	Port     int
 }
 
-// A PlayerInfo contains information about player counts on a Rust server
+// A PlayerInfo contains information about player counts on a Rust server and
+// methods to read it's state
 type PlayerInfo struct {
 	Players      uint8
 	MaxPlayers   uint8
@@ -32,7 +33,7 @@ type Server struct {
 }
 
 // NewServer creats a new Server for observing a Rust server
-func NewServer(server *ServerConfig) (*Server, error) {
+func NewServer(server ServerConfig) (*Server, error) {
 	var sq = Server{}
 	rustIP, err := net.ResolveIPAddr("ip", server.Hostname)
 	if err != nil {

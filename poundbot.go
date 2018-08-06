@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
-	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/db/mongodb"
 	"bitbucket.org/mrpoundsign/poundbot/discord"
@@ -97,15 +96,6 @@ func main() {
 
 	asConfig.Datastore = *datastore
 
-	rs, err := rust.NewServer(rConfig)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-	err = rs.Update()
-	if err != nil {
-		log.Println("🤖 ⚠️ Error contacting Rust server: " + err.Error())
-	}
-
 	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
 	dr := discord.Runner(dConfig)
 	wg.Add(1)
@@ -140,83 +130,18 @@ func main() {
 		wg.Done()
 	}()
 
-	go func(statusChan chan string) {
-		defer wg.Done()
-		var lastCheck = time.Now().UTC()
-
-		var serverDown = true
-		var downChecks uint
-		var playerDelta int8
-
-		var lowestPlayers uint8
-
-		var waitOrKill = func(t time.Duration) (kill bool) {
-			select {
-			case <-killChan:
-				log.Println("🤖 Shutting down Rust Monitor")
-				kill = true
-			case <-time.After(t):
-				kill = false
-			}
-			return
-		}
-
-		for {
-			err := rs.Update()
-			if err != nil {
-				playerDelta = 0
-				serverDown = true
-				downChecks++
-				if downChecks%3 == 0 {
-					log.Println("🤖 🏃 ⚠️ Server is down!")
-					if waitOrKill(20 * time.Second) {
-						return
-					}
-				}
-				if waitOrKill(5 * time.Second) {
-					return
-				}
-			} else {
-				if downChecks > 0 {
-					downChecks = 0
-					log.Println("🤖 🏃 Server is back!")
-				}
-
-				if serverDown {
-					lastCheck = time.Now().UTC()
-					playerDelta = 0
-					lowestPlayers = rs.PlayerInfo.Players
-				}
-				serverDown = false
-				playerDelta += rs.PlayerInfo.PlayersDelta
-				if playerDelta < 0 && rs.PlayerInfo.Players < lowestPlayers {
-					playerDelta = 0
-					lowestPlayers = rs.PlayerInfo.Players
-				}
-				// lastUp = time.Now().UTC()
-				var now = time.Now().UTC()
-				var duration = int(now.Sub(lastCheck).Minutes())
-				if playerDelta > 3 || duration >= pDeltaFreq {
-					lastCheck = time.Now().UTC()
-					if playerDelta > 0 {
-						lowestPlayers = rs.PlayerInfo.Players
-						var playerString = "player has"
-						if playerDelta > 1 {
-							playerString = "players have"
-						}
-						message := fmt.Sprintf("@here %d new %s connected, %d of %d playing now!", playerDelta, playerString, rs.PlayerInfo.Players, rs.PlayerInfo.MaxPlayers)
-						log.Printf("🤖 🏃 Sending notice of %d new players\n", playerDelta)
-						statusChan <- message
-						playerDelta = 0
-					}
-				}
-			}
-
-			if waitOrKill(30 * time.Second) {
-				return
-			}
-		}
-	}(dr.StatusChan)
+	rs, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
+	if err != nil {
+		log.Fatalf("Can't start rust watcher, %v\n", err)
+	}
+	rs.Start()
+	wg.Add(1)
+	go func() {
+		<-killChan
+		log.Println("🤖 Shutting down Rust Watcher...")
+		rs.Stop()
+		wg.Done()
+	}()
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(
