@@ -6,24 +6,26 @@ import (
 	"time"
 )
 
+const wLogSymbol = "📶 "
+
 type Watcher struct {
-	server     Server
+	querier    Querier
 	statusChan chan string
 	deltaFreq  int
 	done       chan struct{}
 }
 
 func NewWatcher(config ServerConfig, pDeltaFreq int, statusChan chan string) (*Watcher, error) {
-	rs, err := NewServer(config)
+	rq, err := NewQuerier(config)
 	if err != nil {
 		return nil, err
 	}
-	err = rs.Update()
+	err = rq.Update()
 	if err != nil {
-		log.Println(logSymbol + " ⚠️ Error contacting Rust server: " + err.Error())
+		log.Println(wLogSymbol + " ⚠️ Error contacting Rust server: " + err.Error())
 	}
 	return &Watcher{
-		server:     *rs,
+		querier:    *rq,
 		statusChan: statusChan,
 		deltaFreq:  pDeltaFreq,
 	}, nil
@@ -31,7 +33,7 @@ func NewWatcher(config ServerConfig, pDeltaFreq int, statusChan chan string) (*W
 
 func (w *Watcher) Start() {
 	w.done = make(chan struct{})
-	log.Println(logSymbol + " Starting Rust Watcher")
+	log.Println(wLogSymbol + " Starting Rust Watcher")
 
 	go func() {
 
@@ -46,7 +48,7 @@ func (w *Watcher) Start() {
 		var waitOrKill = func(t time.Duration) (kill bool) {
 			select {
 			case <-w.done:
-				log.Println(logSymbol + " Shutting down Rust Watcher")
+				log.Println(wLogSymbol + " Shutting down Rust Watcher")
 				kill = true
 			case <-time.After(t):
 				kill = false
@@ -55,13 +57,13 @@ func (w *Watcher) Start() {
 		}
 
 		for {
-			err := w.server.Update()
+			err := w.querier.Update()
 			if err != nil {
 				playerDelta = 0
 				serverDown = true
 				downChecks++
 				if downChecks%3 == 0 {
-					log.Println(logSymbol + " 🏃 ⚠️ Server is down!")
+					log.Println(wLogSymbol + " 🏃 ⚠️ Server is down!")
 					if waitOrKill(20 * time.Second) {
 						return
 					}
@@ -72,19 +74,19 @@ func (w *Watcher) Start() {
 			} else {
 				if downChecks > 0 {
 					downChecks = 0
-					log.Println(logSymbol + " 🏃 Server is back!")
+					log.Println(wLogSymbol + " 🏃 Server is back!")
 				}
 
 				if serverDown {
 					lastCheck = time.Now().UTC()
 					playerDelta = 0
-					lowestPlayers = w.server.PlayerInfo.Players
+					lowestPlayers = w.querier.PlayerInfo.Players
 				}
 				serverDown = false
-				playerDelta += w.server.PlayerInfo.PlayersDelta
-				if playerDelta < 0 && w.server.PlayerInfo.Players < lowestPlayers {
+				playerDelta += w.querier.PlayerInfo.PlayersDelta
+				if playerDelta < 0 && w.querier.PlayerInfo.Players < lowestPlayers {
 					playerDelta = 0
-					lowestPlayers = w.server.PlayerInfo.Players
+					lowestPlayers = w.querier.PlayerInfo.Players
 				}
 				// lastUp = time.Now().UTC()
 				var now = time.Now().UTC()
@@ -92,7 +94,7 @@ func (w *Watcher) Start() {
 				if playerDelta > 3 || duration >= w.deltaFreq {
 					lastCheck = time.Now().UTC()
 					if playerDelta > 0 {
-						lowestPlayers = w.server.PlayerInfo.Players
+						lowestPlayers = w.querier.PlayerInfo.Players
 						var playerString = "player has"
 						if playerDelta > 1 {
 							playerString = "players have"
@@ -101,10 +103,10 @@ func (w *Watcher) Start() {
 							"@here %d new %s connected, %d of %d playing now!",
 							playerDelta,
 							playerString,
-							w.server.PlayerInfo.Players,
-							w.server.PlayerInfo.MaxPlayers,
+							w.querier.PlayerInfo.Players,
+							w.querier.PlayerInfo.MaxPlayers,
 						)
-						log.Printf(logSymbol+" 🏃 Sending notice of %d new players\n", playerDelta)
+						log.Printf(wLogSymbol+" 🏃 Sending notice of %d new players\n", playerDelta)
 						w.statusChan <- message
 						playerDelta = 0
 					}

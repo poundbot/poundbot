@@ -3,20 +3,29 @@ package rustconn
 import (
 	"log"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
+const asLogSymbol = "🆔 "
+
+type DiscordAuthsStore interface {
+	Remove(types.SteamInfo) error
+}
+
+type UsersStore interface {
+	UpsertBase(types.BaseUser) error
+}
+
 // An AuthSaver saves Discord -> Rust user authentications
 type AuthSaver struct {
-	DiscordAuths db.DiscordAuthsStore
-	Users        db.UsersStore
+	DiscordAuths DiscordAuthsStore
+	Users        UsersStore
 	AuthSuccess  chan types.DiscordAuth
 	done         chan struct{}
 }
 
 // NewAuthSaver creates a new AuthSaver
-func NewAuthSaver(da db.DiscordAuthsStore, u db.UsersStore, as chan types.DiscordAuth, done chan struct{}) *AuthSaver {
+func NewAuthSaver(da DiscordAuthsStore, u UsersStore, as chan types.DiscordAuth, done chan struct{}) *AuthSaver {
 	return &AuthSaver{
 		DiscordAuths: da,
 		Users:        u,
@@ -27,6 +36,7 @@ func NewAuthSaver(da db.DiscordAuthsStore, u db.UsersStore, as chan types.Discor
 
 // Run writes users sent in through the AuthSuccess channel
 func (a *AuthSaver) Run() {
+	log.Println(asLogSymbol + "Starting AuthServer")
 	for {
 		select {
 		case as := <-a.AuthSuccess:
@@ -43,7 +53,7 @@ func (a *AuthSaver) Run() {
 				}
 			}
 		case <-a.done:
-			log.Println(logSymbol + "AuthServer shutting down")
+			log.Println(asLogSymbol + "Shutting Down AuthServer...")
 			return
 		}
 	}

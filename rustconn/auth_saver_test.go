@@ -8,6 +8,8 @@ import (
 )
 
 func TestAuthSaver_Run(t *testing.T) {
+	t.Parallel()
+
 	var mockU *mocks.UsersStore
 	var mockDA *mocks.DiscordAuthsStore
 	done := make(chan struct{})

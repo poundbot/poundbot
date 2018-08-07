@@ -11,6 +11,8 @@ import (
 )
 
 func TestRaidAlerter_Run(t *testing.T) {
+	t.Parallel()
+
 	var mockRA *mocks.RaidAlertsStore
 
 	var rn = types.RaidNotification{
@@ -33,9 +35,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 				mockRA = &mocks.RaidAlertsStore{}
 
-				go func() {
-					done <- struct{}{}
-				}()
+				go func() { done <- struct{}{} }()
 
 				return NewRaidAlerter(mockRA, ch, done)
 			},

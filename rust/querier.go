@@ -8,36 +8,22 @@ import (
 	"github.com/alliedmodders/blaster/valve"
 )
 
-const logSymbol = "☢️ "
+const qLogSymbol = "☢️ "
 
-// A ServerConfig is the connection information for a Rust server
-type ServerConfig struct {
-	Hostname string
-	Port     int
-}
-
-// A PlayerInfo contains information about player counts on a Rust server and
-// methods to read it's state
-type PlayerInfo struct {
-	Players      uint8
-	MaxPlayers   uint8
-	PlayersDelta int8
-}
-
-// A Server queries and contains information about a Rust server
-type Server struct {
+// A Querier queries and contains information about a Rust server
+type Querier struct {
 	ServerConfig
 	tcpAddr    net.TCPAddr
 	Name       string
 	PlayerInfo PlayerInfo
 }
 
-// NewServer creats a new Server for observing a Rust server
-func NewServer(server ServerConfig) (*Server, error) {
-	var sq = Server{}
+// NewQuerier creats a new Server for observing a Rust server
+func NewQuerier(server ServerConfig) (*Querier, error) {
+	var sq = Querier{}
 	rustIP, err := net.ResolveIPAddr("ip", server.Hostname)
 	if err != nil {
-		log.Println(logSymbol + err.Error())
+		log.Println(qLogSymbol + err.Error())
 		return nil, err
 	}
 	sq.tcpAddr = net.TCPAddr{IP: rustIP.IP, Port: server.Port}
@@ -46,7 +32,7 @@ func NewServer(server ServerConfig) (*Server, error) {
 }
 
 // Update queries a Rust server and updates Server with it's new information
-func (sq *Server) Update() error {
+func (sq *Querier) Update() error {
 	query, err := valve.NewServerQuerier(sq.tcpAddr.String(), time.Second*3)
 	if err != nil {
 		sq.PlayerInfo = PlayerInfo{}

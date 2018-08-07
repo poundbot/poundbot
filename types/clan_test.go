@@ -7,6 +7,8 @@ import (
 )
 
 func Test_convStringAToUnintA(t *testing.T) {
+	t.Parallel()
+
 	// Helper function to return empty array of uints
 	empty := func() *[]uint64 { var e []uint64; return &e }
 
@@ -24,7 +26,6 @@ func Test_convStringAToUnintA(t *testing.T) {
 		{"empty array", args{in: []string{}}, empty(), false},
 		{"negatives", args{in: []string{"1001", "-2801"}}, nil, true},
 		{"empty strings", args{in: []string{"", "2801"}}, nil, true},
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

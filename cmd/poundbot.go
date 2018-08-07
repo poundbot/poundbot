@@ -174,7 +174,7 @@ func main() {
 	}
 	go func() {
 		<-killChan
-		log.Println("🤖 Shutting down Discord...")
+		log.Println("🤖 Requesting Discord shitdown...")
 		dr.Close()
 		wg.Done()
 	}()
@@ -197,7 +197,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		<-killChan
-		log.Println("🤖 Shutting down HTTP Server...")
+		log.Println("🤖 Requesting HTTP Server termination")
 		server.Stop()
 		wg.Done()
 	}()
@@ -210,7 +210,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			<-killChan
-			log.Println("🤖 Shutting down Twitter...")
+			log.Println("🤖 Requesting Twitter termination")
 			t.Stop()
 			wg.Done()
 		}()
@@ -229,7 +229,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			<-killChan
-			log.Println("🤖 Shutting down Rust Watcher...")
+			log.Println("🤖 Requesting RustWatcher termination")
 			rs.Stop()
 			wg.Done()
 		}()
@@ -250,7 +250,7 @@ func main() {
 
 	log.Println("🤖 Stopping...")
 	for i := 0; i < servicesCount; i++ {
-		killChan <- struct{}{}
+		go func() { killChan <- struct{}{} }()
 	}
 
 	wg.Wait()
