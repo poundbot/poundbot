@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/rustconn/handler"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/gorilla/mux"
 )
@@ -59,7 +60,10 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 	r := mux.NewRouter()
 	r.HandleFunc("/entity_death", s.entityDeathHandler)
 	r.HandleFunc("/discord_auth", s.discordAuthHandler)
-	r.HandleFunc("/chat", s.chatHandler)
+	r.HandleFunc(
+		"/chat",
+		handler.NewChat(s.options.ChatRelay, logSymbol, sc.Datastore.Chats(), channels.ChatChan, channels.ChatOutChan),
+	)
 	r.HandleFunc("/clans", s.clansHandler).Methods(http.MethodPut)
 	r.HandleFunc("/clans/{tag}", s.clanHandler).Methods(http.MethodDelete, http.MethodPut)
 	s.Handler = r
@@ -200,72 +204,6 @@ func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		db.Clans().Upsert(*clan)
-	}
-}
-
-// chatHandler manages Rust <-> discord chat requests and logging
-// Discord -> Rust is through the ChatOutChan and Rust -> Discord is
-// through ChatChan.
-//
-// HTTP POST requests are sent to ChatChan
-//
-// HTTP GET requests wait for messages and disconnect with http.StatusNoContent
-// after 5 seconds.
-func (s *Server) chatHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Make this less awful. Plugin must be updated to be smarter.
-	if !s.options.ChatRelay {
-		switch r.Method {
-		case http.MethodPost:
-			w.WriteHeader(http.StatusOK)
-		case http.MethodGet:
-			time.Sleep(10 * time.Second)
-			w.WriteHeader(http.StatusNoContent)
-		}
-		return
-	}
-
-	db := s.sc.Datastore.Copy()
-	defer db.Close()
-
-	switch r.Method {
-	case http.MethodPost:
-		decoder := json.NewDecoder(r.Body)
-		var t types.ChatMessage
-		err := decoder.Decode(&t)
-		if err != nil {
-			log.Println(logSymbol + err.Error())
-			return
-		}
-
-		t.Source = types.ChatSourceRust
-		db.Chats().Log(t)
-		go func(t types.ChatMessage, c chan string) {
-			var clan = ""
-			if t.ClanTag != "" {
-				clan = fmt.Sprintf("[%s] ", t.ClanTag)
-			}
-			c <- fmt.Sprintf("☢️ **%s%s**: %s", clan, t.DisplayName, t.Message)
-		}(t, s.channels.ChatChan)
-	case http.MethodGet:
-		select {
-		case res := <-s.channels.ChatOutChan:
-			b, err := json.Marshal(res)
-			if err != nil {
-				log.Println(logSymbol + err.Error())
-				return
-			}
-			db.Chats().Log(res)
-
-			w.Write(b)
-		case <-time.After(5 * time.Second):
-			w.WriteHeader(http.StatusNoContent)
-		}
-
-	default:
-		handleError(w, types.RESTError{
-			StatusCode: http.StatusMethodNotAllowed,
-			Error:      fmt.Sprintf("Method %s not allowed", r.Method),
-		})
 	}
 }
 
