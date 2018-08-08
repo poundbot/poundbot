@@ -43,7 +43,7 @@ func (t Twitter) Start() error {
 	demux.Tweet = t.handleTweet
 	demux.Event = t.handleEvent
 
-	log.Println("🐔 Starting Stream...")
+	log.Println("🐔 🛫 Starting Stream...")
 
 	// FILTER
 	filterParams := &twitter.StreamFilterParams{

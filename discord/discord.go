@@ -79,7 +79,7 @@ func (c *Client) Start() error {
 	return err
 }
 
-func (c *Client) Close() {
+func (c *Client) Stop() {
 	log.Println(logSymbol + "🛑 Disconnecting")
 	c.shutdown = true
 	c.session.Close()

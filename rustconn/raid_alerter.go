@@ -36,11 +36,11 @@ func NewRaidAlerter(ral RaidStore, rnc chan types.RaidNotification, done chan st
 // Run checks for raids that need to be alerted and sends them
 // out through the RaidNotify channel. It runs in a loop.
 func (r *RaidAlerter) Run() {
-	log.Println(raLogSymbol + "Starting RaidAlerter")
+	log.Println(raLogSymbol + "🛫 Starting RaidAlerter")
 	for {
 		select {
 		case <-r.done:
-			log.Println(raLogSymbol + "Shutting down RaidAlerter")
+			log.Println(raLogSymbol + "🛑 Shutting down RaidAlerter")
 			return
 		case <-time.After(r.SleepTime):
 			var results []types.RaidNotification

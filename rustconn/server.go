@@ -70,7 +70,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 }
 
 // Serve starts the HTTP server, raid alerter, and Discord auth manager
-func (s *Server) Serve() {
+func (s *Server) Start() error {
 	// Start the AuthSaver
 	go func() {
 		var newConn = s.sc.Datastore.Copy()
@@ -92,7 +92,7 @@ func (s *Server) Serve() {
 	}
 
 	go func() {
-		log.Printf(logSymbol+"Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+		log.Printf(logSymbol+"🛫 Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 		if err := s.ListenAndServe(); err != nil {
 			log.Printf(logSymbol+"HTTP server died with error %v\n", err)
 		} else {
@@ -100,10 +100,11 @@ func (s *Server) Serve() {
 		}
 	}()
 
+	return nil
 }
 
 func (s *Server) Stop() {
-	log.Printf(logSymbol + "Stoping http server ...")
+	log.Printf(logSymbol + "🛑 Shutting down HTTP server ...")
 
 	var wg sync.WaitGroup
 	wg.Add(1)

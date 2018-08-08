@@ -22,7 +22,7 @@ func NewWatcher(config ServerConfig, pDeltaFreq int, statusChan chan string) (*W
 	}
 	err = rq.Update()
 	if err != nil {
-		log.Println(wLogSymbol + " ⚠️ Error contacting Rust server: " + err.Error())
+		log.Println(wLogSymbol + "⚠️ Error contacting Rust server: " + err.Error())
 	}
 	return &Watcher{
 		querier:    *rq,
@@ -31,9 +31,9 @@ func NewWatcher(config ServerConfig, pDeltaFreq int, statusChan chan string) (*W
 	}, nil
 }
 
-func (w *Watcher) Start() {
+func (w *Watcher) Start() error {
 	w.done = make(chan struct{})
-	log.Println(wLogSymbol + " Starting Rust Watcher")
+	log.Println(wLogSymbol + "🛫 Starting Rust Watcher")
 
 	go func() {
 
@@ -48,7 +48,7 @@ func (w *Watcher) Start() {
 		var waitOrKill = func(t time.Duration) (kill bool) {
 			select {
 			case <-w.done:
-				log.Println(wLogSymbol + " Shutting down Rust Watcher")
+				log.Println(wLogSymbol + "🛑 Shutting down RustWatcher")
 				kill = true
 			case <-time.After(t):
 				kill = false
@@ -63,7 +63,7 @@ func (w *Watcher) Start() {
 				serverDown = true
 				downChecks++
 				if downChecks%3 == 0 {
-					log.Println(wLogSymbol + " 🏃 ⚠️ Server is down!")
+					log.Printf(wLogSymbol+" 🏃 ⚠️ Server is down! %s", err)
 					if waitOrKill(20 * time.Second) {
 						return
 					}
@@ -118,6 +118,8 @@ func (w *Watcher) Start() {
 			}
 		}
 	}()
+
+	return nil
 }
 
 func (w *Watcher) Stop() {

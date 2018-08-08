@@ -30,7 +30,14 @@ var (
 	configLocation   = flag.String("c", ".", "The config.json location")
 	writeConfig      = flag.Bool("w", false, "Writes a config and exits")
 	writeConfigForce = flag.Bool("init", false, "Forces writing of config and exits\nWARNING! This will destroy your config file")
+	wg               sync.WaitGroup
+	killChan         = make(chan struct{})
 )
+
+type service interface {
+	Start() error
+	Stop()
+}
 
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
 	return &discord.RunnerConfig{
@@ -63,6 +70,23 @@ func newRustServerConfig(cfg *viper.Viper) *rust.ServerConfig {
 	return &rust.ServerConfig{Hostname: cfg.GetString("hostname"), Port: cfg.GetInt("port")}
 }
 
+func start(s service, name string) error {
+	if err := s.Start(); err != nil {
+		log.Printf("🤖 ⚠️ Failed to start %s: %s\n", name, err)
+		return err
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-killChan
+		log.Printf("🤖 Requesting %s shutdown...\n", name)
+		s.Stop()
+	}()
+
+	return nil
+}
+
 func main() {
 	flag.Parse()
 	// If the version flag is set, print the version and quit.
@@ -74,9 +98,6 @@ func main() {
 	servicesCount := 2 // ALways at least 1 for discord, but should always be >1
 
 	// var thingsToKill = 0
-	var wg sync.WaitGroup
-
-	killChan := make(chan struct{})
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
@@ -165,19 +186,10 @@ func main() {
 	asConfig.Datastore = datastore
 
 	// Discoed server
-	log.Printf("🤖 Starting discord, linkChan %s, statusChan %s", dConfig.LinkChan, dConfig.StatusChan)
 	dr := discord.Runner(dConfig)
-	wg.Add(1)
-	err := dr.Start()
-	if err != nil {
-		log.Println("🤖 ⚠️ Could not start Discord")
+	if err := start(dr, "Discord"); err != nil {
+		log.Fatalf("Could not start Discord, %v\n", err)
 	}
-	go func() {
-		<-killChan
-		log.Println("🤖 Requesting Discord shitdown...")
-		dr.Close()
-		wg.Done()
-	}()
 
 	// HTTP API server
 	server := rustconn.NewServer(asConfig,
@@ -193,27 +205,16 @@ func main() {
 			ChatRelay:  viper.GetBool("features.chat-relay"),
 		},
 	)
-	server.Serve()
-	wg.Add(1)
-	go func() {
-		<-killChan
-		log.Println("🤖 Requesting HTTP Server termination")
-		server.Stop()
-		wg.Done()
-	}()
+
+	if err := start(server, "HTTP Server"); err != nil {
+		log.Fatalf("Could not start HTTP server, %v\n", err)
+	}
 
 	if viper.GetBool("features.twitter") {
 		servicesCount++
 		tConfig := newTwitterConfig(viper.Sub("twitter"))
 		t := twitter.NewTwitter(tConfig, dr.LinkChan)
-		t.Start()
-		wg.Add(1)
-		go func() {
-			<-killChan
-			log.Println("🤖 Requesting Twitter termination")
-			t.Stop()
-			wg.Done()
-		}()
+		start(t, "Twitter")
 	}
 
 	// Rust Server Watcher
@@ -221,18 +222,11 @@ func main() {
 		servicesCount++
 		rConfig := newRustServerConfig(viper.Sub("rust.server"))
 		pDeltaFreq := viper.GetInt("players-joined-frequency")
-		rs, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
+		rw, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
 		if err != nil {
 			log.Fatalf("Can't start rust watcher, %v\n", err)
 		}
-		rs.Start()
-		wg.Add(1)
-		go func() {
-			<-killChan
-			log.Println("🤖 Requesting RustWatcher termination")
-			rs.Stop()
-			wg.Done()
-		}()
+		start(rw, "RustWatcher")
 	}
 
 	sc := make(chan os.Signal, 1)
@@ -254,8 +248,4 @@ func main() {
 	}
 
 	wg.Wait()
-
-	if err != nil {
-		panic(err)
-	}
 }
