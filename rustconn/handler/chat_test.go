@@ -15,17 +15,9 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
-type DummyLog struct {
-	logged *types.ChatMessage
-}
-
-func (d DummyLog) Log(m types.ChatMessage) error {
-	d.logged = &m
-	return nil
-}
-
 func TestChat_Handle(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name   string
 		method string

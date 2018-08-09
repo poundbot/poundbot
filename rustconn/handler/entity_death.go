@@ -27,6 +27,10 @@ func (e *EntityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&ed)
 	if err != nil {
 		log.Println(e.ls + err.Error())
+		handleError(w, e.ls, types.RESTError{
+			Error:      "Invalid request",
+			StatusCode: http.StatusBadRequest,
+		})
 		return
 	}
 	e.ras.AddInfo(ed)
