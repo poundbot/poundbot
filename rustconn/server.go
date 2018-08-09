@@ -2,7 +2,6 @@ package rustconn
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -58,14 +57,26 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/entity_death", s.entityDeathHandler)
-	r.HandleFunc("/discord_auth", s.discordAuthHandler)
+	r.HandleFunc(
+		"/entity_death",
+		handler.NewEntityDeath(logSymbol, sc.Datastore.RaidAlerts()),
+	)
+	r.HandleFunc(
+		"/discord_auth",
+		handler.NewDiscordAuth(logSymbol, sc.Datastore.DiscordAuths(), sc.Datastore.Users(), channels.DiscordAuth),
+	)
 	r.HandleFunc(
 		"/chat",
 		handler.NewChat(s.options.ChatRelay, logSymbol, sc.Datastore.Chats(), channels.ChatChan, channels.ChatOutChan),
 	)
-	r.HandleFunc("/clans", s.clansHandler).Methods(http.MethodPut)
-	r.HandleFunc("/clans/{tag}", s.clanHandler).Methods(http.MethodDelete, http.MethodPut)
+	r.HandleFunc(
+		"/clans",
+		handler.NewClans(logSymbol, sc.Datastore.Clans(), sc.Datastore.Users()),
+	).Methods(http.MethodPut)
+	r.HandleFunc(
+		"/clans/{tag}",
+		handler.NewClan(logSymbol, sc.Datastore.Clans(), sc.Datastore.Users()),
+	).Methods(http.MethodDelete, http.MethodPut)
 	s.Handler = r
 
 	s.shutdownRequest = make(chan struct{})
@@ -129,143 +140,4 @@ func (s *Server) Stop() {
 		s.shutdownRequest <- struct{}{} // RaidAlerter
 	}
 	wg.Wait()
-}
-
-// clansHandler manages clans sync HTTP requests from the Rust server
-// These requests are a complete refresh of all clans
-func (s *Server) clansHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var t []types.ServerClan
-	err := decoder.Decode(&t)
-	if err != nil {
-		log.Println(logSymbol + err.Error())
-		return
-	}
-
-	clanCount := len(t)
-	clans := make([]types.Clan, clanCount)
-	tags := make([]string, clanCount)
-	for i, sc := range t {
-		c, err := types.ClanFromServerClan(sc)
-		if err != nil {
-			log.Printf(logSymbol+"clansHandler Error: %v\n", err)
-			handleError(w, types.RESTError{
-				StatusCode: http.StatusBadRequest,
-				Error:      "Error processing clan data",
-			})
-			return
-		}
-		tags[i] = c.Tag
-		clans[i] = *c
-	}
-
-	db := s.sc.Datastore.Copy()
-	defer db.Close()
-
-	for _, clan := range clans {
-		db.Clans().Upsert(clan)
-	}
-
-	db.Clans().RemoveNotIn(tags)
-	db.Users().RemoveClansNotIn(tags)
-}
-
-// clanHandler manages individual clan REST requests form the Rust server
-func (s *Server) clanHandler(w http.ResponseWriter, r *http.Request) {
-	db := s.sc.Datastore.Copy()
-	defer db.Close()
-
-	vars := mux.Vars(r)
-	tag := vars["tag"]
-
-	switch r.Method {
-	case http.MethodDelete:
-		log.Printf(logSymbol+"clanHandler: Removing clan %s\n", tag)
-		db.Clans().Remove(tag)
-		db.Users().RemoveClan(tag)
-		return
-	case http.MethodPut:
-		log.Printf(logSymbol+"clanHandler: Updating clan %s\n", tag)
-		decoder := json.NewDecoder(r.Body)
-		var t types.ServerClan
-		err := decoder.Decode(&t)
-		if err != nil {
-			log.Println(logSymbol + err.Error())
-			return
-		}
-
-		clan, err := types.ClanFromServerClan(t)
-		if err != nil {
-			handleError(w, types.RESTError{
-				StatusCode: http.StatusBadRequest,
-				Error:      "Error processing clan data",
-			})
-			return
-		}
-
-		db.Clans().Upsert(*clan)
-	}
-}
-
-// entityDeathHandler manages incoming Rust entity death notices and sends them
-// to the RaidAlertsStore and RaidAlerts channel
-func (s *Server) entityDeathHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var ed types.EntityDeath
-	err := decoder.Decode(&ed)
-	if err != nil {
-		log.Println(logSymbol + err.Error())
-		return
-	}
-
-	db := s.sc.Datastore.Copy()
-	defer db.Close()
-	db.RaidAlerts().AddInfo(ed)
-}
-
-// discordAuthHandler takes Discord verification requests from the Rust server
-// and sends them to the DiscordAuthsStore and DiscordAuth channel
-func (s *Server) discordAuthHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var t types.DiscordAuth
-	err := decoder.Decode(&t)
-	if err != nil {
-		log.Println(logSymbol + err.Error())
-		return
-	}
-
-	log.Printf(logSymbol+"User Auth Request: %v from %v\n", t, r.Body)
-	db := s.sc.Datastore.Copy()
-	defer db.Close()
-
-	u, err := db.Users().Get(t.SteamInfo)
-	if err == nil {
-		handleError(w, types.RESTError{
-			StatusCode: http.StatusMethodNotAllowed,
-			Error:      fmt.Sprintf("%s is linked to you.", u.DiscordID),
-		})
-		return
-	} else if t.DiscordID == "check" {
-		handleError(w, types.RESTError{
-			StatusCode: http.StatusNotFound,
-			Error:      "Account is not linked to discord.",
-		})
-		return
-	}
-
-	err = db.DiscordAuths().Upsert(t)
-	if err == nil {
-		s.channels.DiscordAuth <- t
-	} else {
-		log.Println(logSymbol + err.Error())
-	}
-}
-
-// handleError is a generic JSON HTTP error response
-func handleError(w http.ResponseWriter, restError types.RESTError) {
-	w.WriteHeader(restError.StatusCode)
-	err := json.NewEncoder(w).Encode(restError)
-	if err != nil {
-		log.Printf(logSymbol+"Error encoding %v, %s\n", restError, err)
-	}
 }

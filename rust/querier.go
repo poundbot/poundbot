@@ -10,6 +10,11 @@ import (
 
 const qLogSymbol = "☢️ "
 
+type QueryResult struct {
+	Online    bool
+	Timestamp time.Time
+	PlayerInfo
+}
 type QueryProvider interface {
 	QueryInfo() (*valve.ServerInfo, error)
 	Close()
@@ -28,6 +33,7 @@ type Querier struct {
 	Name       string
 	PlayerInfo PlayerInfo
 	provider   QueryProvider
+	listeners  []chan QueryResult
 }
 
 // NewQuerier creats a new Server for observing a Rust server
@@ -53,21 +59,39 @@ func NewQuerier(server ServerConfig) (*Querier, error) {
 
 // Update queries a Rust server and updates Server with it's new information
 func (sq *Querier) Update() error {
+	qr := QueryResult{}
+
 	info, err := sq.provider.QueryInfo()
 	if err != nil {
 		sq.PlayerInfo = PlayerInfo{}
-		return err
-	}
+	} else {
+		sq.Name = info.Name
+		sq.PlayerInfo.PlayersDelta = (int8)(info.Players - sq.PlayerInfo.Players)
+		sq.PlayerInfo.MaxPlayers = info.MaxPlayers
+		sq.PlayerInfo.Players = info.Players
 
-	sq.Name = info.Name
-	sq.PlayerInfo.PlayersDelta = (int8)(info.Players - sq.PlayerInfo.Players)
-	sq.PlayerInfo.MaxPlayers = info.MaxPlayers
-	sq.PlayerInfo.Players = info.Players
+		qr.PlayerInfo = sq.PlayerInfo
+		qr.Timestamp = time.Now().UTC()
+
+		notifyListeners(sq.listeners, qr)
+	}
 	return nil
+}
+
+func (sq *Querier) AddListener(l chan QueryResult) {
+	sq.listeners = append(sq.listeners, l)
 }
 
 func (sq *Querier) Close() {
 	if sq.provider != nil {
 		sq.provider.Close()
+	}
+}
+
+func notifyListeners(ls []chan QueryResult, qr QueryResult) {
+	for _, l := range ls {
+		go func(l chan QueryResult) {
+			l <- qr
+		}(l)
 	}
 }
