@@ -3,7 +3,7 @@ package rustconn
 import (
 	"testing"
 
-	"bitbucket.org/mrpoundsign/poundbot/db/mocks"
+	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 

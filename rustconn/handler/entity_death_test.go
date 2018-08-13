@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"bitbucket.org/mrpoundsign/poundbot/db/mocks"
+	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,7 +48,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 				Name:      "foo",
 				GridPos:   "A10",
 				Owners:    []uint64{1, 2, 3},
-				CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC),
+				Timestamp: types.Timestamp{CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)},
 			},
 		},
 	}

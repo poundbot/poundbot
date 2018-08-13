@@ -45,10 +45,12 @@ func (r *RaidAlerter) Run() {
 		case <-time.After(r.SleepTime):
 			var results []types.RaidNotification
 			err := r.RaidStore.GetReady(&results)
-			if err != nil {
-				log.Println(err)
+			if err != nil && err.Error() != "not found" {
+				log.Printf("Get Raid Alerts Error: %s\n", err)
 				continue
 			}
+
+			// fmt.Println(len(results))
 
 			for _, result := range results {
 				r.RaidNotify <- result

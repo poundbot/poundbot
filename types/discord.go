@@ -1,7 +1,8 @@
 package types
 
 type DiscordInfo struct {
-	DiscordID string `bson:"discord_id"`
+	DiscordName string
+	Snowflake   string
 }
 
 type Ack func(bool)

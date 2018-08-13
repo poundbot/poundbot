@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	scribble "github.com/nanobox-io/golang-scribble"
 )
@@ -32,7 +32,7 @@ type usersStore struct {
 
 type raidAlertsStore struct {
 	s
-	d map[string]types.RaidNotification
+	d map[uint64]types.RaidNotification
 }
 
 var (
@@ -53,7 +53,7 @@ var (
 		s: s{
 			collection: "raid_alerts",
 		},
-		d: map[string]types.RaidNotification{},
+		d: map[uint64]types.RaidNotification{},
 	}
 )
 
@@ -118,35 +118,35 @@ func (j *Json) Init() {
 			if err := json.Unmarshal([]byte(f), &foundRa); err != nil {
 				fmt.Println("Error", err)
 			}
-			raidAlerts.d[foundRa.DiscordID] = foundRa
+			raidAlerts.d[foundRa.SteamID] = foundRa
 		}
 	}
 }
 
 // Copy returns itself
-func (j *Json) Copy() db.DataStore {
+func (j *Json) Copy() storage.Storage {
 	return j
 }
 
 // Chats creates a dummy Chats
-func (j *Json) Chats() db.ChatsStore {
+func (j *Json) Chats() storage.ChatsStore {
 	return Chats{}
 }
 
-func (j *Json) Clans() db.ClansStore {
-	return Clans{}
-}
-
-func (j *Json) DiscordAuths() db.DiscordAuthsStore {
+func (j *Json) DiscordAuths() storage.DiscordAuthsStore {
 	return DiscordAuths{}
 }
 
-func (j *Json) RaidAlerts() db.RaidAlertsStore {
+func (j *Json) RaidAlerts() storage.RaidAlertsStore {
 	return RaidAlerts{users: j.Users()}
 }
 
-func (j *Json) Users() db.UsersStore {
+func (j *Json) Users() storage.UsersStore {
 	return Users{}
+}
+
+func (j *Json) Accounts() storage.AccountsStore {
+	return Accounts{}
 }
 
 // Close does nothing

@@ -4,30 +4,29 @@ import (
 	"fmt"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
-
+	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
 
-// A RaidAlerts implements db.RaidAlertsStore
+// A RaidAlerts implements storage.RaidAlertsStore
 type RaidAlerts struct {
 	collection *mgo.Collection
-	users      db.UsersStore
+	users      storage.UsersStore
 }
 
-// AddInfo implements db.RaidAlertsStore.AddInfo
-func (r RaidAlerts) AddInfo(ed types.EntityDeath) error {
+// AddInfo implements storage.RaidAlertsStore.AddInfo
+func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
+	var u types.User
 	for _, steamID := range ed.Owners {
-		u, err := r.users.Get(types.SteamInfo{SteamID: steamID})
+		err := r.users.Get(steamID, &u)
 		if err == nil {
 			_, err := r.collection.Upsert(
-				u.DiscordInfo,
+				u.SteamInfo,
 				bson.M{
-
 					"$setOnInsert": bson.M{
-						"alert_at": time.Now().UTC().Add(5 * time.Minute),
+						"alertat": time.Now().UTC().Add(alertIn),
 					},
 					"$inc": bson.M{
 						fmt.Sprintf("items.%s", ed.Name): 1,
@@ -45,11 +44,12 @@ func (r RaidAlerts) AddInfo(ed types.EntityDeath) error {
 	return nil
 }
 
-// GetReady implements db.RaidAlertsStore.GetReady
+// GetReady implements storage.RaidAlertsStore.GetReady
 func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
+	// change := mgo.Change{Remove: true}
 	err := r.collection.Find(
 		bson.M{
-			"alert_at": bson.M{
+			"alertat": bson.M{
 				"$lte": time.Now().UTC(),
 			},
 		},
@@ -57,7 +57,7 @@ func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
 	return err
 }
 
-// Remove implements db.RaidAlertsStore.Remove
+// Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidNotification) error {
-	return r.collection.Remove(alert.DiscordInfo)
+	return r.collection.Remove(alert.SteamInfo)
 }

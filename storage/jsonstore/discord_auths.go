@@ -9,6 +9,13 @@ import (
 // A DiscordAuths implements db.DiscordAuthsStore
 type DiscordAuths struct{}
 
+func (d DiscordAuths) Get(discordName string, da *types.DiscordAuth) error {
+	return nil
+}
+func (d DiscordAuths) GetSnowflake(snowflake string, da *types.DiscordAuth) error {
+	return nil
+}
+
 // Remove implements db.DiscordAuthsStore.Remove
 func (d DiscordAuths) Remove(si types.SteamInfo) error {
 	discordAuths.mux.Lock()

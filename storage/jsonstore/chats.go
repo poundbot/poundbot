@@ -9,3 +9,7 @@ type Chats struct{}
 func (c Chats) Log(cm types.ChatMessage) error {
 	return nil
 }
+
+func (c Chats) GetNext(serverKey string, chatMessage *types.ChatMessage) error {
+	return nil
+}

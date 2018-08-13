@@ -68,3 +68,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/nanobox-io/golang-scribble"
+
+[[constraint]]
+  name = "github.com/gorilla/context"
+  version = "1.1.1"

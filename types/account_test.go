@@ -41,6 +41,7 @@ func Test_convStringAToUnintA(t *testing.T) {
 }
 
 func TestClanFromServerClan(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		sc ServerClan
 	}
@@ -53,13 +54,13 @@ func TestClanFromServerClan(t *testing.T) {
 		{
 			"ok",
 			args{ServerClan{Tag: "FOO", Owner: "1001", Description: "Foo Clan"}},
-			&Clan{BaseClan: BaseClan{Tag: "FOO", OwnerID: 1001, Description: "Foo Clan"}},
+			&Clan{Tag: "FOO", OwnerID: 1001, Description: "Foo Clan"},
 			false,
 		},
 		{
 			"smol",
 			args{ServerClan{Tag: "FOO", Owner: "1001"}},
-			&Clan{BaseClan: BaseClan{Tag: "FOO", OwnerID: 1001}},
+			&Clan{Tag: "FOO", OwnerID: 1001},
 			false,
 		},
 	}
@@ -72,9 +73,6 @@ func TestClanFromServerClan(t *testing.T) {
 			}
 
 			assert.Equal(t, got, tt.want, "they should be equal")
-			// if !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("ClanFromServerClan() = \n%v\n, want \n%v", got, tt.want)
-			// }
 		})
 	}
 }

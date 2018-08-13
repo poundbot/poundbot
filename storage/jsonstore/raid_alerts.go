@@ -1,21 +1,22 @@
 package jsonstore
 
 import (
+	"fmt"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
-// A RaidAlerts implements db.RaidAlertsStore
+// A RaidAlerts implements storage.RaidAlertsStore
 type RaidAlerts struct {
-	users db.UsersStore
+	users storage.UsersStore
 }
 
-func (r RaidAlerts) get(discordID string) (types.RaidNotification, error) {
-	ra, found := raidAlerts.d[discordID]
+func (r RaidAlerts) get(steamID uint64) (types.RaidNotification, error) {
+	ra, found := raidAlerts.d[steamID]
 	if !found {
-		err := raidAlerts.driver.Read(raidAlerts.collection, discordID, &ra)
+		err := raidAlerts.driver.Read(raidAlerts.collection, fmt.Sprintf("%d", steamID), &ra)
 		if err != nil {
 			return types.RaidNotification{}, err
 		}
@@ -23,17 +24,18 @@ func (r RaidAlerts) get(discordID string) (types.RaidNotification, error) {
 	return ra, nil
 }
 
-// AddInfo implements db.RaidAlertsStore.AddInfo
-func (r RaidAlerts) AddInfo(ed types.EntityDeath) error {
+// AddInfo implements storage.RaidAlertsStore.AddInfo
+func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 	for _, steamID := range ed.Owners {
-		u, err := r.users.Get(types.SteamInfo{SteamID: steamID})
+		var u types.User
+		err := r.users.Get(steamID, &u)
 		if err == nil {
-			ra, err := r.get(u.DiscordID)
+			ra, err := r.get(u.SteamID)
 			if err != nil {
 				ra.GridPositions = []string{}
-				ra.DiscordID = u.DiscordID
+				ra.SteamID = u.SteamID
 				ra.Items = map[string]int{}
-				ra.AlertAt = time.Now().UTC().Add(10 * time.Second)
+				ra.AlertAt = time.Now().UTC().Add(alertIn)
 			}
 
 			items := ra.Items[ed.Name]
@@ -52,8 +54,8 @@ func (r RaidAlerts) AddInfo(ed types.EntityDeath) error {
 				}
 				return ps
 			}(ra.GridPositions)
-			err = raidAlerts.driver.Write(raidAlerts.collection, u.DiscordID, &ra)
-			raidAlerts.d[u.DiscordID] = ra
+			err = raidAlerts.driver.Write(raidAlerts.collection, fmt.Sprintf("%d", u.SteamID), &ra)
+			raidAlerts.d[u.SteamID] = ra
 			if err != nil {
 				return err
 			}
@@ -62,7 +64,7 @@ func (r RaidAlerts) AddInfo(ed types.EntityDeath) error {
 	return nil
 }
 
-// GetReady implements db.RaidAlertsStore.GetReady
+// GetReady implements storage.RaidAlertsStore.GetReady
 func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
 	for _, v := range raidAlerts.d {
 		// fmt.Printf("%d, %s\n", time.Now().UTC().Sub(v.AlertAt).Seconds(), v.DiscordID)
@@ -77,12 +79,12 @@ func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
 	return nil
 }
 
-// Remove implements db.RaidAlertsStore.Remove
+// Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidNotification) error {
-	err := raidAlerts.driver.Delete(raidAlerts.collection, alert.DiscordID)
+	err := raidAlerts.driver.Delete(raidAlerts.collection, fmt.Sprintf("%d", alert.SteamID))
 	if err != nil {
 		return err
 	}
-	delete(raidAlerts.d, alert.DiscordID)
+	delete(raidAlerts.d, alert.SteamID)
 	return nil
 }

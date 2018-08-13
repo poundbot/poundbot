@@ -310,6 +310,7 @@
     "github.com/dghubble/oauth1",
     "github.com/globalsign/mgo",
     "github.com/globalsign/mgo/bson",
+    "github.com/gorilla/context",
     "github.com/gorilla/mux",
     "github.com/nanobox-io/golang-scribble",
     "github.com/patrickmn/go-cache",

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/db/mocks"
+	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -17,7 +17,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 	var rn = types.RaidNotification{
 		DiscordInfo: types.DiscordInfo{
-			DiscordID: "Foo#1234",
+			KnownName: "Foo#1234",
 		},
 	}
 	var rnResult types.RaidNotification

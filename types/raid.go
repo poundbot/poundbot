@@ -7,10 +7,11 @@ import (
 )
 
 type EntityDeath struct {
+	ServerKey string
 	Name      string
 	GridPos   string
 	Owners    []uint64
-	CreatedAt time.Time
+	Timestamp `bson:",inline" json:",inline"`
 }
 
 type RaidInventory struct {
@@ -19,10 +20,11 @@ type RaidInventory struct {
 }
 
 type RaidNotification struct {
-	DiscordInfo   `bson:",inline"`
-	GridPositions []string       `bson:"grid_positions"`
-	Items         map[string]int `bson:"items"`
-	AlertAt       time.Time      `bson:"alert_at"`
+	SteamInfo     `bson:",inline"`
+	ServerName    string
+	GridPositions []string
+	Items         map[string]int
+	AlertAt       time.Time
 }
 
 func (rn RaidNotification) String() string {
@@ -34,12 +36,12 @@ func (rn RaidNotification) String() string {
 	}
 
 	return fmt.Sprintf(`
-	RAID ALERT! You are being raided!
+	%s RAID ALERT! You are being raided!
 	
 	Locations: 
 	  %s
 	
 	Destroyed:
 	  %s
-	`, strings.Join(rn.GridPositions, ", "), strings.Join(items, ", "))
+	`, rn.ServerName, strings.Join(rn.GridPositions, ", "), strings.Join(items, ", "))
 }

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn/handler"
+	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/gorilla/mux"
 )
@@ -18,17 +18,17 @@ var logSymbol = "🕸️ "
 
 // ServerConfig contains the base Server configuration
 type ServerConfig struct {
-	BindAddr  string
-	Port      int
-	Datastore db.DataStore
+	BindAddr string
+	Port     int
+	Storage  storage.Storage
 }
 
 type ServerChannels struct {
 	RaidNotify  chan types.RaidNotification
 	DiscordAuth chan types.DiscordAuth
 	AuthSuccess chan types.DiscordAuth
-	ChatChan    chan string
-	ChatOutChan chan types.ChatMessage
+	ChatChan    chan types.ChatMessage
+	// ChatOutChan chan types.ChatMessage
 }
 
 type ServerOptions struct {
@@ -56,27 +56,29 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 		options:  options,
 	}
 
+	serverAuth := ServerAuth{as: sc.Storage.Accounts()}
 	r := mux.NewRouter()
 	r.HandleFunc(
 		"/entity_death",
-		handler.NewEntityDeath(logSymbol, sc.Datastore.RaidAlerts()),
+		handler.NewEntityDeath(logSymbol, sc.Storage.RaidAlerts()),
 	)
 	r.HandleFunc(
 		"/discord_auth",
-		handler.NewDiscordAuth(logSymbol, sc.Datastore.DiscordAuths(), sc.Datastore.Users(), channels.DiscordAuth),
+		handler.NewDiscordAuth(logSymbol, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
 	r.HandleFunc(
 		"/chat",
-		handler.NewChat(s.options.ChatRelay, logSymbol, sc.Datastore.Chats(), channels.ChatChan, channels.ChatOutChan),
+		handler.NewChat(s.options.ChatRelay, logSymbol, sc.Storage.Chats(), channels.ChatChan),
 	)
 	r.HandleFunc(
 		"/clans",
-		handler.NewClans(logSymbol, sc.Datastore.Clans(), sc.Datastore.Users()),
+		handler.NewClans(logSymbol, sc.Storage.Accounts()),
 	).Methods(http.MethodPut)
 	r.HandleFunc(
 		"/clans/{tag}",
-		handler.NewClan(logSymbol, sc.Datastore.Clans(), sc.Datastore.Users()),
+		handler.NewClan(logSymbol, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
+	r.Use(serverAuth.Handle)
 	s.Handler = r
 
 	s.shutdownRequest = make(chan struct{})
@@ -88,7 +90,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 func (s *Server) Start() error {
 	// Start the AuthSaver
 	go func() {
-		var newConn = s.sc.Datastore.Copy()
+		var newConn = s.sc.Storage.Copy()
 		defer newConn.Close()
 
 		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.channels.AuthSuccess, s.shutdownRequest)
@@ -98,7 +100,7 @@ func (s *Server) Start() error {
 	if s.options.RaidAlerts {
 		// Start the RaidAlerter
 		go func() {
-			var newConn = s.sc.Datastore.Copy()
+			var newConn = s.sc.Storage.Copy()
 			defer newConn.Close()
 
 			var ra = NewRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)

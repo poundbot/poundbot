@@ -1,6 +1,10 @@
-package db
+package storage
 
-import "bitbucket.org/mrpoundsign/poundbot/types"
+import (
+	"time"
+
+	"bitbucket.org/mrpoundsign/poundbot/types"
+)
 
 // UsersStore is for accessing the user store.
 //
@@ -15,11 +19,11 @@ import "bitbucket.org/mrpoundsign/poundbot/types"
 //
 // SetClanIn sets the clan tag on all users who have the provided steam IDs.
 type UsersStore interface {
-	Get(types.SteamInfo) (*types.User, error)
-	UpsertBase(types.BaseUser) error
-	RemoveClan(tag string) error
-	RemoveClansNotIn(tags []string) error
-	SetClanIn(tag string, steamIds []uint64) error
+	Get(steamID uint64, u *types.User) error
+	UpsertBase(baseUser types.BaseUser) error
+	RemoveClan(serverKey, tag string) error
+	RemoveClansNotIn(serverKey string, tags []string) error
+	SetClanIn(serverKey, tag string, steamIds []uint64) error
 }
 
 // DiscordAuthsStore is for accessing the discord -> user authentications
@@ -29,6 +33,8 @@ type UsersStore interface {
 //
 // Remove removes a discord auth
 type DiscordAuthsStore interface {
+	Get(discordName string, da *types.DiscordAuth) error
+	GetSnowflake(snowflake string, da *types.DiscordAuth) error
 	Upsert(types.DiscordAuth) error
 	Remove(types.SteamInfo) error
 }
@@ -43,23 +49,29 @@ type DiscordAuthsStore interface {
 // Remove deletes a raid alert
 type RaidAlertsStore interface {
 	GetReady(*[]types.RaidNotification) error
-	AddInfo(types.EntityDeath) error
+	AddInfo(alertIn time.Duration, ed types.EntityDeath) error
 	Remove(types.RaidNotification) error
-}
-
-// ClansStore is for accessing clans data in the store
-type ClansStore interface {
-	Upsert(types.Clan) error
-	Remove(tag string) error
-	RemoveNotIn(tags []string) error
 }
 
 // ChatsStore is for logging chat
 type ChatsStore interface {
 	Log(types.ChatMessage) error
+	GetNext(serverKey string, ChatMessage *types.ChatMessage) error
 }
 
-// DataStore is a complete implementation of the data store for users,
+// AccountsStore is for accounts storage
+type AccountsStore interface {
+	All(*[]types.Account) error
+	GetByDiscordGuild(key string, account *types.Account) error
+	GetByServerKey(key string, account *types.Account) error
+	UpsertBase(types.BaseAccount) error
+	Remove(key string) error
+	AddClan(key string, clan types.Clan) error
+	RemoveClan(key, clanTag string) error
+	SetClans(key string, clans []types.Clan) error
+}
+
+// Storage is a complete implementation of the data store for users,
 // clans, discord auth requests, raid alerts, and chats.
 //
 // Copy creates a new DB connection. Should always close the connection when
@@ -69,13 +81,13 @@ type ChatsStore interface {
 //
 // Init creates indexes, and should always be called when Poundbot
 // first starts
-type DataStore interface {
-	Copy() DataStore
+type Storage interface {
+	Copy() Storage
 	Close()
 	Init()
+	Accounts() AccountsStore
 	Users() UsersStore
 	Chats() ChatsStore
 	DiscordAuths() DiscordAuthsStore
 	RaidAlerts() RaidAlertsStore
-	Clans() ClansStore
 }

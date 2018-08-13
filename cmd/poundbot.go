@@ -11,14 +11,12 @@ import (
 	"sync"
 	"syscall"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
-
-	"bitbucket.org/mrpoundsign/poundbot/db/jsonstore"
-	"bitbucket.org/mrpoundsign/poundbot/db/mongodb"
 	"bitbucket.org/mrpoundsign/poundbot/discord"
 	"bitbucket.org/mrpoundsign/poundbot/rust"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
-	"bitbucket.org/mrpoundsign/poundbot/twitter"
+	"bitbucket.org/mrpoundsign/poundbot/storage"
+	"bitbucket.org/mrpoundsign/poundbot/storage/jsonstore"
+	"bitbucket.org/mrpoundsign/poundbot/storage/mongodb"
 	"github.com/spf13/viper"
 )
 
@@ -41,23 +39,23 @@ type service interface {
 
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
 	return &discord.RunnerConfig{
-		Token:       cfg.GetString("token"),
-		LinkChan:    cfg.GetString("channels.link"),
-		StatusChan:  cfg.GetString("channels.status"),
-		GeneralChan: cfg.GetString("channels.general"),
+		Token: cfg.GetString("token"),
+		// LinkChan:    cfg.GetString("channels.link"),
+		// StatusChan:  cfg.GetString("channels.status"),
+		// GeneralChan: cfg.GetString("channels.general"),
 	}
 }
 
-func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
-	return &twitter.Config{
-		ConsumerKey:    cfg.GetString("consumer.key"),
-		ConsumerSecret: cfg.GetString("consumer.secret"),
-		AccessToken:    cfg.GetString("access.token"),
-		AccessSecret:   cfg.GetString("access.secret"),
-		UserID:         cfg.GetInt64("userid"),
-		Filters:        cfg.GetStringSlice("filters"),
-	}
-}
+// func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
+// 	return &twitter.Config{
+// 		ConsumerKey:    cfg.GetString("consumer.key"),
+// 		ConsumerSecret: cfg.GetString("consumer.secret"),
+// 		AccessToken:    cfg.GetString("access.token"),
+// 		AccessSecret:   cfg.GetString("access.secret"),
+// 		UserID:         cfg.GetInt64("userid"),
+// 		Filters:        cfg.GetStringSlice("filters"),
+// 	}
+// }
 
 func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
@@ -101,11 +99,11 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
-	viper.SetDefault("datastore", "json")
+	viper.SetDefault("storage", "mongodb")
 	viper.SetDefault("json-store.path", "./json-store")
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
-	viper.SetDefault("features.twitter", false)
+	// viper.SetDefault("features.twitter", false)
 	viper.SetDefault("features.players-joined", false)
 	viper.SetDefault("features.raid-alerts", true)
 	viper.SetDefault("features.chat-relay", true)
@@ -113,15 +111,15 @@ func main() {
 	viper.SetDefault("http.bind_addr", "")
 	viper.SetDefault("http.port", 9090)
 	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
-	viper.SetDefault("discord.channels.link", "CHANNEL ID FOR TWITTER LINKS")
+	// viper.SetDefault("discord.channels.link", "CHANNEL ID FOR TWITTER LINKS")
 	viper.SetDefault("discord.channels.status", "CHANNEL ID FOR SERVER STATUS (players joined)")
 	viper.SetDefault("discord.channels.general", "CHANNEL ID FOR CHAT RELAY")
-	viper.SetDefault("twitter.consumer.key", "CONSUMER KEY")
-	viper.SetDefault("twitter.consumer.secret", "SECRET KEY")
-	viper.SetDefault("twitter.access.token", "ACCESS TOKEN")
-	viper.SetDefault("twitter.access.secret", "ACCESS SECRET")
-	viper.SetDefault("twitter.userid", int64(0))
-	viper.SetDefault("twitter.filters", "#ServerUpdate")
+	// viper.SetDefault("twitter.consumer.key", "CONSUMER KEY")
+	// viper.SetDefault("twitter.consumer.secret", "SECRET KEY")
+	// viper.SetDefault("twitter.access.token", "ACCESS TOKEN")
+	// viper.SetDefault("twitter.access.secret", "ACCESS SECRET")
+	// viper.SetDefault("twitter.userid", int64(0))
+	// viper.SetDefault("twitter.filters", "#ServerUpdate")
 
 	var loaded = false
 
@@ -163,9 +161,9 @@ func main() {
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	asConfig := newServerConfig(viper.Sub("http"))
 
-	var datastore db.DataStore
+	var store storage.Storage
 
-	switch viper.GetString("datastore") {
+	switch viper.GetString("storage") {
 	case "mongodb":
 		mongo, err := mongodb.NewMongoDB(mongodb.Config{
 			DialAddress: viper.GetString("mongo.dial-addr"),
@@ -174,19 +172,21 @@ func main() {
 		if err != nil {
 			log.Panicf("Could not connect to DB: %v\n", err)
 		}
-		datastore = mongo
+		store = mongo
 	case "json":
 		path := filepath.Clean(viper.GetString("json-store.path"))
 		os.MkdirAll(path, os.ModePerm)
-		datastore = jsonstore.NewJson(path)
+		store = jsonstore.NewJson(path)
 	}
 
-	datastore.Init()
+	store.Init()
 
-	asConfig.Datastore = datastore
+	asConfig.Storage = store
 
 	// Discoed server
-	dr := discord.Runner(dConfig)
+	// dConfig.as = asConfig.Storage.Accounts()
+	// dConfig.cs = asConfig.Storage.Chats()
+	dr := discord.Runner(dConfig.Token, store.Accounts(), store.Chats(), store.DiscordAuths(), store.Users())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)
 	}
@@ -198,11 +198,10 @@ func main() {
 			DiscordAuth: dr.DiscordAuth,
 			AuthSuccess: dr.AuthSuccess,
 			ChatChan:    dr.GeneralChan,
-			ChatOutChan: dr.GeneralOutChan,
 		},
 		rustconn.ServerOptions{
 			RaidAlerts: viper.GetBool("features.raid-alerts"),
-			ChatRelay:  viper.GetBool("features.chat-relay"),
+			ChatRelay:  !viper.GetBool("features.chat-relay"),
 		},
 	)
 
@@ -210,24 +209,24 @@ func main() {
 		log.Fatalf("Could not start HTTP server, %v\n", err)
 	}
 
-	if viper.GetBool("features.twitter") {
-		servicesCount++
-		tConfig := newTwitterConfig(viper.Sub("twitter"))
-		t := twitter.NewTwitter(tConfig, dr.LinkChan)
-		start(t, "Twitter")
-	}
+	// if viper.GetBool("features.twitter") {
+	// 	servicesCount++
+	// 	tConfig := newTwitterConfig(viper.Sub("twitter"))
+	// 	t := twitter.NewTwitter(tConfig, dr.LinkChan)
+	// 	start(t, "Twitter")
+	// }
 
 	// Rust Server Watcher
-	if viper.GetBool("features.players-joined") {
-		servicesCount++
-		rConfig := newRustServerConfig(viper.Sub("rust.server"))
-		pDeltaFreq := viper.GetInt("players-joined-frequency")
-		rw, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
-		if err != nil {
-			log.Fatalf("Can't start rust watcher, %v\n", err)
-		}
-		start(rw, "RustWatcher")
-	}
+	// if viper.GetBool("features.players-joined") {
+	// 	servicesCount++
+	// 	rConfig := newRustServerConfig(viper.Sub("rust.server"))
+	// 	pDeltaFreq := viper.GetInt("players-joined-frequency")
+	// 	rw, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
+	// 	if err != nil {
+	// 		log.Fatalf("Can't start rust watcher, %v\n", err)
+	// 	}
+	// 	start(rw, "RustWatcher")
+	// }
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(
