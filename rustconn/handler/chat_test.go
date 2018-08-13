@@ -27,7 +27,6 @@ func TestChat_Handle(t *testing.T) {
 		rBody  string
 		status int
 		in     *types.ChatMessage
-		logged *types.ChatMessage
 		out    *types.ChatMessage
 	}{
 		{
@@ -54,15 +53,9 @@ func TestChat_Handle(t *testing.T) {
 				DisplayName: "player",
 				Message:     "hello there!",
 				Source:      "discord",
+				Timestamp:   types.Timestamp{CreatedAt: time.Time{}},
 			},
-			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\"}",
-			logged: &types.ChatMessage{
-				SteamInfo:   types.SteamInfo{SteamID: 1234},
-				ClanTag:     "FoO",
-				DisplayName: "player",
-				Message:     "hello there!",
-				Source:      "discord",
-			},
+			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\",\"CreatedAt\":\"0001-01-01T00:00:00Z\"}",
 		},
 		{
 			name:   "chat enabled POST",
@@ -77,14 +70,6 @@ func TestChat_Handle(t *testing.T) {
 				"Message":"hello there!"
 			}
 			`,
-			logged: &types.ChatMessage{
-				SteamInfo:   types.SteamInfo{SteamID: 1234},
-				ChannelID:   "1234",
-				ClanTag:     "FoO",
-				DisplayName: "player",
-				Message:     "hello there!",
-				Source:      "rust",
-			},
 			in: &types.ChatMessage{
 				SteamInfo:   types.SteamInfo{SteamID: 1234},
 				ClanTag:     "FoO",
@@ -101,17 +86,25 @@ func TestChat_Handle(t *testing.T) {
 			var in *types.ChatMessage
 
 			tt.s.in = make(chan types.ChatMessage)
-			tt.s.out = make(chan types.ChatMessage)
 
 			cs := mocks.ChatsStore{}
 			tt.s.cs = &cs
-			var log *types.ChatMessage
 
-			cs.On("Log", mock.AnythingOfType("types.ChatMessage")).
-				Return(func(m types.ChatMessage) error {
-					log = &m
-					return nil
-				})
+			if tt.out != nil {
+				cs.On("GetNext", "bloop", mock.AnythingOfType("*types.ChatMessage")).
+					Return(func(serverKey string, m *types.ChatMessage) error {
+						tmp := *tt.out
+						*m = tmp
+						return nil
+					})
+			}
+			// var log *types.ChatMessage
+
+			// cs.On("Log", mock.AnythingOfType("types.ChatMessage")).
+			// 	Return(func(m types.ChatMessage) error {
+			// 		log = &m
+			// 		return nil
+			// 	})
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
 			if err != nil {
@@ -136,15 +129,6 @@ func TestChat_Handle(t *testing.T) {
 				}()
 			}
 
-			if tt.out != nil {
-				tt.s.sleep = 10 * time.Minute
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					tt.s.out <- *tt.out
-				}()
-			}
-
 			context.Set(req, "serverKey", "bloop")
 			context.Set(req, "account", types.Account{BaseAccount: types.BaseAccount{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
@@ -157,7 +141,7 @@ func TestChat_Handle(t *testing.T) {
 			assert.Equal(t, tt.body, rr.Body.String(), "handler returned bad body")
 			assert.Equal(t, tt.status, rr.Code, "handler returned wrong status code")
 			assert.Equal(t, tt.in, in, "handler got wrong in message")
-			assert.Equal(t, tt.logged, log, "Chat log should be equal")
+			// assert.Equal(t, tt.logged, log, "Chat log should be equal")
 		})
 	}
 }

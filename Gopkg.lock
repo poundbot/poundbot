@@ -163,14 +163,6 @@
   revision = "336beac0a992ed9abaf4ef8e7042ba7fe3335c06"
 
 [[projects]]
-  digest = "1:808cdddf087fb64baeae67b8dfaee2069034d9704923a3cb8bd96a995421a625"
-  name = "github.com/patrickmn/go-cache"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "a3647f8e31d79543b2d0f0ae2fe5c379d72cedc0"
-  version = "v2.1.0"
-
-[[projects]]
   digest = "1:95741de3af260a92cc5c7f3f3061e85273f5a81b5db20d4bd68da74bd521675e"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
@@ -313,7 +305,6 @@
     "github.com/gorilla/context",
     "github.com/gorilla/mux",
     "github.com/nanobox-io/golang-scribble",
-    "github.com/patrickmn/go-cache",
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/mock",

@@ -16,8 +16,8 @@ func TestRaidAlerter_Run(t *testing.T) {
 	var mockRA *mocks.RaidAlertsStore
 
 	var rn = types.RaidNotification{
-		DiscordInfo: types.DiscordInfo{
-			KnownName: "Foo#1234",
+		SteamInfo: types.SteamInfo{
+			SteamID: 1234,
 		},
 	}
 	var rnResult types.RaidNotification

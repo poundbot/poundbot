@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
+	"github.com/gorilla/context"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestEntityDeath_Handle(t *testing.T) {
@@ -62,13 +63,19 @@ func TestEntityDeath_Handle(t *testing.T) {
 			var added *types.EntityDeath
 			ras := mocks.RaidAlertsStore{}
 			tt.e.ras = &ras
-			ras.On("AddInfo", mock.AnythingOfType("types.EntityDeath")).
-				Return(func(ed types.EntityDeath) error {
+			// ras.On("AddInfo", mock.AnythingOfType("types.EntityDeath")).
+			ras.On("AddInfo", mock.AnythingOfType("time.Duration"), mock.AnythingOfType("types.EntityDeath")).
+				Return(func(t time.Duration, ed types.EntityDeath) error {
 					added = &ed
 					return nil
 				})
 
 			rr := httptest.NewRecorder()
+
+			context.Set(req, "serverKey", "bloop")
+			context.Set(req, "account", types.Account{BaseAccount: types.BaseAccount{Servers: []types.Server{
+				{ChatChanID: "1234", Key: "bloop"},
+			}}})
 
 			handler := http.HandlerFunc(tt.e.Handle)
 			handler.ServeHTTP(rr, req)
