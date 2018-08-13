@@ -21,9 +21,6 @@ import (
 type UsersStore interface {
 	Get(steamID uint64, u *types.User) error
 	UpsertBase(baseUser types.BaseUser) error
-	RemoveClan(serverKey, tag string) error
-	RemoveClansNotIn(serverKey string, tags []string) error
-	SetClanIn(serverKey, tag string, steamIds []uint64) error
 }
 
 // DiscordAuthsStore is for accessing the discord -> user authentications

@@ -141,7 +141,6 @@ func TestChat_Handle(t *testing.T) {
 			assert.Equal(t, tt.body, rr.Body.String(), "handler returned bad body")
 			assert.Equal(t, tt.status, rr.Code, "handler returned wrong status code")
 			assert.Equal(t, tt.in, in, "handler got wrong in message")
-			// assert.Equal(t, tt.logged, log, "Chat log should be equal")
 		})
 	}
 }

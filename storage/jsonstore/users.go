@@ -40,18 +40,3 @@ func (u Users) UpsertBase(base types.BaseUser) error {
 
 	return nil
 }
-
-// RemoveClan implements db.UsersStore.RemoveClan
-func (u Users) RemoveClan(serverKey, tag string) error {
-	return nil
-}
-
-// RemoveClansNotIn implements db.UsersStore.RemoveClansNotIn
-func (u Users) RemoveClansNotIn(serverKey string, tags []string) error {
-	return nil
-}
-
-// SetClanIn implements db.UsersStore.SetClanIn
-func (u Users) SetClanIn(serverKey, tag string, steamIds []uint64) error {
-	return nil
-}
