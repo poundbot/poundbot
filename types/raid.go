@@ -2,8 +2,9 @@ package types
 
 import (
 	"fmt"
-	"strings"
 	"time"
+
+	"bitbucket.org/mrpoundsign/poundbot/messages"
 )
 
 type EntityDeath struct {
@@ -35,13 +36,5 @@ func (rn RaidAlert) String() string {
 		index++
 	}
 
-	return fmt.Sprintf(`
-	%s RAID ALERT! You are being raided!
-	
-	Locations: 
-	  %s
-	
-	Destroyed:
-	  %s
-	`, rn.ServerName, strings.Join(rn.GridPositions, ", "), strings.Join(items, ", "))
+	return messages.RaidAlert(rn.ServerName, rn.GridPositions, items)
 }

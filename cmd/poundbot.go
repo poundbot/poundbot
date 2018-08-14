@@ -85,11 +85,16 @@ func start(s service, name string) error {
 	return nil
 }
 
+func versionString() string {
+	return fmt.Sprintf("PoundBot %s (%s @ %s)\n", version, buildstamp, githash)
+}
+
 func main() {
 	flag.Parse()
 	// If the version flag is set, print the version and quit.
+
+	fmt.Println(versionString())
 	if *versionFlag {
-		fmt.Printf("PoundBot %s (%s @ %s)\n", version, buildstamp, githash)
 		return
 	}
 

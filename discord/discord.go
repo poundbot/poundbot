@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/discord/handler"
+	"bitbucket.org/mrpoundsign/poundbot/messages"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 
@@ -163,10 +164,7 @@ func (c *Client) runner() {
 					if err != nil {
 						return
 					}
-					_, err = c.sendPrivateMessage(t.Snowflake, `
-					A request has been made for you to authenticate your ALM user.
-					Enter the PIN provided in-game to validate your account.
-					`)
+					_, err = c.sendPrivateMessage(t.Snowflake, messages.PinPrompt)
 					if err != nil {
 						log.Println("Could not send PIN request to user")
 					}
@@ -335,15 +333,7 @@ Instruct:
 
 	switch message {
 	case "help":
-		c.sendPrivateMessage(m.Author.ID, `
-Commands:
-  server init       - Initializes your server and will PM you the API key.
-					  Chat will be relayed into the channel you send this
-					  message from
-  server reset      - Resets your server API Key. A new key will be sent to you.
-  server chat here  - Sets the channel for server chat to this channel
-
-		`)
+		c.sendPrivateMessage(m.Author.ID, messages.HelpText)
 		break
 	case "server init":
 		if len(account.Servers) > 0 {
@@ -367,7 +357,6 @@ Commands:
 		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0])
 		c.sendServerKey(m.Author.ID, account.Servers[0].Key)
 		return
-		break
 	case "server chat here":
 		if len(account.Servers) < 1 {
 			c.sendPrivateMessage(m.Author.ID, "You don't have a server defined. Try *help*")
@@ -376,7 +365,6 @@ Commands:
 		account.Servers[0].ChatChanID = m.ChannelID
 		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0])
 		return
-		break
 	}
 	// log.Printf(s.State.User.ID)
 	// for _, embed := range m.Mentions {
@@ -398,13 +386,7 @@ func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Mes
 }
 
 func (c *Client) sendServerKey(snowflake, u1 string) (m *discordgo.Message, err error) {
-	return c.sendPrivateMessage(snowflake, fmt.Sprintf("Your new server key is *%s*. Add it to your oxide/config/PoundBotConnextor.json or copy and paste the following:\n\n```"+`
-{
-	"api_url": "http://poundbot.mrpoundsign.com:7070/",
-	"show_own_damage": true,
-	"api_key": "%s"
-}
-`+"```", u1, u1))
+	return c.sendPrivateMessage(snowflake, messages.ServerKeyMessage(u1))
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error
