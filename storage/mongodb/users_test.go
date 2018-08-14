@@ -29,6 +29,7 @@ func NewUsers(t *testing.T) (*Users, *mongotest.Collection) {
 
 func TestUsers_Get(t *testing.T) {
 	t.Parallel()
+
 	type args struct {
 		steamID uint64
 	}
@@ -72,13 +73,10 @@ func TestUsers_Get(t *testing.T) {
 
 func TestUsers_UpsertBase(t *testing.T) {
 	t.Parallel()
-	type args struct {
-		user types.BaseUser
-	}
+
 	tests := []struct {
 		name      string
 		user      types.User
-		args      args
 		wantCount int
 		wantErr   bool
 	}{

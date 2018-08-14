@@ -3,6 +3,8 @@ package discord
 import "testing"
 
 func Test_pinString(t *testing.T) {
+	t.Parallel()
+
 	type args struct {
 		pin int
 	}

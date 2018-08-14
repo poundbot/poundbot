@@ -98,13 +98,6 @@ func TestChat_Handle(t *testing.T) {
 						return nil
 					})
 			}
-			// var log *types.ChatMessage
-
-			// cs.On("Log", mock.AnythingOfType("types.ChatMessage")).
-			// 	Return(func(m types.ChatMessage) error {
-			// 		log = &m
-			// 		return nil
-			// 	})
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
 			if err != nil {

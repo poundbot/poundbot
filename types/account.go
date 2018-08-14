@@ -12,14 +12,10 @@ type Server struct {
 	RaidDelay     string
 }
 
-type AccountDiscord struct {
+type BaseAccount struct {
 	GuildSnowflake string
 	OwnerSnowflake string
-}
-
-type BaseAccount struct {
-	AccountDiscord
-	Servers []Server
+	Servers        []Server
 }
 
 type Account struct {

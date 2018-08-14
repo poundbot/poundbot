@@ -32,7 +32,7 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 						fmt.Sprintf("items.%s", ed.Name): 1,
 					},
 					"$addToSet": bson.M{
-						"grid_positions": ed.GridPos,
+						"gridpositions": ed.GridPos,
 					},
 				},
 			)
