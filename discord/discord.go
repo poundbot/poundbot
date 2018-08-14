@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"bitbucket.org/mrpoundsign/poundbot/discord/handler"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 
 	"github.com/bwmarrin/discordgo"
+	uuid "github.com/satori/go.uuid"
 )
 
 const logSymbol = "🏟️ "
@@ -69,6 +71,8 @@ func (c *Client) Start() error {
 		c.session.AddHandler(c.ready)
 		c.session.AddHandler(c.disconnected)
 		c.session.AddHandler(c.resumed)
+		c.session.AddHandler(handler.NewGuildCreate(c.as))
+		c.session.AddHandler(handler.NewGuildDelete(c.as))
 
 		c.status = make(chan bool)
 
@@ -232,20 +236,6 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	c.status <- true
 }
 
-func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Message, err error) {
-	channel, err := c.session.UserChannelCreate(snowflake)
-	if err != nil {
-		log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
-		return
-	} else {
-		return c.session.ChannelMessageSend(
-			channel.ID,
-			message,
-		)
-	}
-
-}
-
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -256,6 +246,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		return
 	}
 
+	var da types.DiscordAuth
 	var account types.Account
 	var server types.Server
 
@@ -284,7 +275,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			goto Interact
+			goto Instruct
 		}
 	}
 
@@ -316,7 +307,6 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	return
 
 Interact:
-	var da types.DiscordAuth
 	err = c.getDiscordAuth(m.Author.ID, &da)
 	if err != nil {
 		return
@@ -334,6 +324,87 @@ Interact:
 			s.ChannelMessageSend(m.ChannelID, "Invalid pin. Please try again.")
 		}
 	}
+	return
+
+Instruct:
+	log.Printf("Instruct: %s, %s", account.GuildSnowflake, m.ContentWithMentionsReplaced())
+	message := strings.Trim(
+		strings.Replace(m.Content, fmt.Sprintf("<@%s>", s.State.User.ID), "", -1),
+		"\n ",
+	)
+
+	switch message {
+	case "help":
+		c.sendPrivateMessage(m.Author.ID, `
+Commands:
+  server init       - Initializes your server and will PM you the API key.
+					  Chat will be relayed into the channel you send this
+					  message from
+  server reset      - Resets your server API Key. A new key will be sent to you.
+  server chat here  - Sets the channel for server chat to this channel
+
+		`)
+		break
+	case "server init":
+		if len(account.Servers) > 0 {
+			c.sendPrivateMessage(m.Author.ID, "You already have a server")
+			return
+		}
+
+		account.Servers = []types.Server{
+			types.Server{Key: uuid.NewV4().String(), ChatChanID: m.ChannelID, RaidDelay: "1m"},
+		}
+
+		c.as.AddServer(account.GuildSnowflake, account.Servers[0])
+		c.sendServerKey(m.Author.ID, account.Servers[0].Key)
+		return
+	case "server reset":
+		if len(account.Servers) < 1 {
+			c.sendPrivateMessage(m.Author.ID, "You don't have a server defined. Try *help*")
+			return
+		}
+		account.Servers[0].Key = uuid.NewV4().String()
+		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0])
+		c.sendServerKey(m.Author.ID, account.Servers[0].Key)
+		return
+		break
+	case "server chat here":
+		if len(account.Servers) < 1 {
+			c.sendPrivateMessage(m.Author.ID, "You don't have a server defined. Try *help*")
+			return
+		}
+		account.Servers[0].ChatChanID = m.ChannelID
+		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0])
+		return
+		break
+	}
+	// log.Printf(s.State.User.ID)
+	// for _, embed := range m.Mentions {
+	// 	log.Printf("Type: %s, %v", embed.String(), embed)
+	// }
+}
+
+func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Message, err error) {
+	channel, err := c.session.UserChannelCreate(snowflake)
+	if err != nil {
+		log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
+		return
+	} else {
+		return c.session.ChannelMessageSend(
+			channel.ID,
+			message,
+		)
+	}
+}
+
+func (c *Client) sendServerKey(snowflake, u1 string) (m *discordgo.Message, err error) {
+	return c.sendPrivateMessage(snowflake, fmt.Sprintf("Your new server key is *%s*. Add it to your oxide/config/PoundBotConnextor.json or copy and paste the following:\n\n```"+`
+{
+	"api_url": "http://poundbot.mrpoundsign.com:7070/",
+	"show_own_damage": true,
+	"api_key": "%s"
+}
+`+"```", u1, u1))
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error

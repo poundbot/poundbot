@@ -59,13 +59,18 @@ type ChatsStore interface {
 // AccountsStore is for accounts storage
 type AccountsStore interface {
 	All(*[]types.Account) error
-	GetByDiscordGuild(key string, account *types.Account) error
-	GetByServerKey(key string, account *types.Account) error
+	GetByDiscordGuild(snowflake string, account *types.Account) error
+	GetByServerKey(serverKey string, account *types.Account) error
 	UpsertBase(types.BaseAccount) error
-	Remove(key string) error
-	AddClan(key string, clan types.Clan) error
-	RemoveClan(key, clanTag string) error
-	SetClans(key string, clans []types.Clan) error
+	Remove(snowflake string) error
+
+	AddServer(snowflake string, server types.Server) error
+	UpdateServer(snowflake string, server types.Server) error
+	RemoveServer(snowflake, serverKey string) error
+
+	AddClan(serverKey string, clan types.Clan) error
+	RemoveClan(serverKey, clanTag string) error
+	SetClans(serverKey string, clans []types.Clan) error
 }
 
 // Storage is a complete implementation of the data store for users,

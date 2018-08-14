@@ -42,18 +42,18 @@ func (s Accounts) Remove(key string) error {
 	return s.collection.Remove(bson.M{accountsKeyField: key})
 }
 
-func (s Accounts) AddClan(key string, clan types.Clan) error {
+func (s Accounts) AddClan(serverKey string, clan types.Clan) error {
 	return s.collection.Update(
-		bson.M{serverKeyField: key},
+		bson.M{serverKeyField: serverKey},
 		bson.M{
 			"$push": bson.M{"servers.$.clans": clan},
 		},
 	)
 }
 
-func (s Accounts) RemoveClan(key, clanTag string) error {
+func (s Accounts) RemoveClan(serverKey, clanTag string) error {
 	return s.collection.Update(
-		bson.M{serverKeyField: key, "servers.clans.tag": clanTag},
+		bson.M{serverKeyField: serverKey, "servers.clans.tag": clanTag},
 		bson.M{"$pull": bson.M{"servers.$.clans": bson.M{"tag": clanTag}}},
 	)
 }
@@ -62,5 +62,30 @@ func (s Accounts) SetClans(key string, clans []types.Clan) error {
 	return s.collection.Update(
 		bson.M{serverKeyField: key},
 		bson.M{"$set": bson.M{"servers.$.clans": clans}},
+	)
+}
+
+func (s Accounts) AddServer(snowflake string, server types.Server) error {
+	return s.collection.Update(
+		bson.M{accountsKeyField: snowflake},
+		bson.M{
+			"$push": bson.M{"servers": server},
+		},
+	)
+}
+
+func (s Accounts) RemoveServer(snowflake, serverKey string) error {
+	return s.collection.Update(
+		bson.M{serverKeyField: serverKey},
+		bson.M{"$pull": bson.M{"servers": bson.M{"key": serverKey}}},
+	)
+}
+
+func (s Accounts) UpdateServer(snowflake string, server types.Server) error {
+	return s.collection.Update(
+		bson.M{
+			accountsKeyField: snowflake,
+		},
+		bson.M{"$set": bson.M{"servers": []types.Server{server}}},
 	)
 }

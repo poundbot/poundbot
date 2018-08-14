@@ -123,9 +123,9 @@ func TestChat_Handle(t *testing.T) {
 			}
 
 			context.Set(req, "serverKey", "bloop")
-			context.Set(req, "account", types.Account{BaseAccount: types.BaseAccount{Servers: []types.Server{
+			context.Set(req, "account", types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
-			}}})
+			}})
 			handler := http.HandlerFunc(tt.s.Handle)
 			handler.ServeHTTP(rr, req)
 

@@ -15,11 +15,11 @@ type Server struct {
 type BaseAccount struct {
 	GuildSnowflake string
 	OwnerSnowflake string
-	Servers        []Server
 }
 
 type Account struct {
 	BaseAccount `bson:",inline" json:",inline"`
+	Servers     []Server
 	Timestamp   `bson:",inline" json:",inline"`
 }
 

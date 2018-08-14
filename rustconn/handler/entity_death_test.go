@@ -73,9 +73,9 @@ func TestEntityDeath_Handle(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			context.Set(req, "serverKey", "bloop")
-			context.Set(req, "account", types.Account{BaseAccount: types.BaseAccount{Servers: []types.Server{
+			context.Set(req, "account", types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
-			}}})
+			}})
 
 			handler := http.HandlerFunc(tt.e.Handle)
 			handler.ServeHTTP(rr, req)

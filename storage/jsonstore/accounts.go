@@ -10,11 +10,11 @@ func (s Accounts) All(*[]types.Account) error {
 	return nil
 }
 
-func (s Accounts) GetByServerKey(key string, serverAccount *types.Account) error {
+func (s Accounts) GetByServerKey(serverKey string, serverAccount *types.Account) error {
 	return nil
 }
 
-func (s Accounts) GetByDiscordGuild(key string, serverAccount *types.Account) error {
+func (s Accounts) GetByDiscordGuild(snowflake string, serverAccount *types.Account) error {
 	return nil
 }
 
@@ -22,18 +22,30 @@ func (s Accounts) UpsertBase(types.BaseAccount) error {
 	return nil
 }
 
-func (s Accounts) Remove(key string) error {
+func (s Accounts) Remove(snowflake string) error {
 	return nil
 }
 
-func (s Accounts) AddClan(key string, clan types.Clan) error {
+func (s Accounts) AddClan(serverKey string, clan types.Clan) error {
 	return nil
 }
 
-func (s Accounts) RemoveClan(clanTag, key string) error {
+func (s Accounts) RemoveClan(serverKey, clanTag string) error {
 	return nil
 }
 
-func (s Accounts) SetClans(key string, clans []types.Clan) error {
+func (s Accounts) SetClans(serverKey string, clans []types.Clan) error {
+	return nil
+}
+
+func (s Accounts) AddServer(snowflake string, server types.Server) error {
+	return nil
+}
+
+func (s Accounts) RemoveServer(snowflake, serverKey string) error {
+	return nil
+}
+
+func (s Accounts) UpdateServer(snowflake string, server types.Server) error {
 	return nil
 }
