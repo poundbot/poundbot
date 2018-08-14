@@ -37,7 +37,7 @@ type DiscordAuthsStore interface {
 }
 
 // RaidAlertsStore is for accessing raid information. The raid information
-// comes in as types.EntityDeath and comes out as types.RaidNotification
+// comes in as types.EntityDeath and comes out as types.RaidAlert
 //
 // GetReady gets raid alerts that are ready to alert
 //
@@ -45,9 +45,9 @@ type DiscordAuthsStore interface {
 //
 // Remove deletes a raid alert
 type RaidAlertsStore interface {
-	GetReady(*[]types.RaidNotification) error
+	GetReady(*[]types.RaidAlert) error
 	AddInfo(alertIn time.Duration, ed types.EntityDeath) error
-	Remove(types.RaidNotification) error
+	Remove(types.RaidAlert) error
 }
 
 // ChatsStore is for logging chat

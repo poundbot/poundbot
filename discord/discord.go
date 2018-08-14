@@ -38,7 +38,7 @@ type Client struct {
 	// StatusChan     chan string
 	GeneralChan chan types.ChatMessage
 	// GeneralOutChan chan types.ChatMessage
-	RaidAlertChan chan types.RaidNotification
+	RaidAlertChan chan types.RaidAlert
 	DiscordAuth   chan types.DiscordAuth
 	AuthSuccess   chan types.DiscordAuth
 	shutdown      bool
@@ -57,7 +57,7 @@ func Runner(token string, as storage.AccountsStore, cs storage.ChatsStore, das s
 		// GeneralOutChan: make(chan types.ChatMessage),
 		DiscordAuth:   make(chan types.DiscordAuth),
 		AuthSuccess:   make(chan types.DiscordAuth),
-		RaidAlertChan: make(chan types.RaidNotification),
+		RaidAlertChan: make(chan types.RaidAlert),
 	}
 }
 

@@ -11,20 +11,20 @@ const raLogSymbol = "💬 "
 
 // A RaidStore stores raid information
 type RaidStore interface {
-	GetReady(*[]types.RaidNotification) error
-	Remove(types.RaidNotification) error
+	GetReady(*[]types.RaidAlert) error
+	Remove(types.RaidAlert) error
 }
 
 // A RaidAlerter sends notifications on raids
 type RaidAlerter struct {
 	RaidStore  RaidStore
-	RaidNotify chan types.RaidNotification
+	RaidNotify chan types.RaidAlert
 	SleepTime  time.Duration
 	done       chan struct{}
 }
 
 // NewRaidAlerter constructs a RaidAlerter
-func NewRaidAlerter(ral RaidStore, rnc chan types.RaidNotification, done chan struct{}) *RaidAlerter {
+func NewRaidAlerter(ral RaidStore, rnc chan types.RaidAlert, done chan struct{}) *RaidAlerter {
 	return &RaidAlerter{
 		RaidStore:  ral,
 		RaidNotify: rnc,
@@ -43,7 +43,7 @@ func (r *RaidAlerter) Run() {
 			log.Println(raLogSymbol + "🛑 Shutting down RaidAlerter")
 			return
 		case <-time.After(r.SleepTime):
-			var results []types.RaidNotification
+			var results []types.RaidAlert
 			err := r.RaidStore.GetReady(&results)
 			if err != nil && err.Error() != "not found" {
 				log.Printf("Get Raid Alerts Error: %s\n", err)

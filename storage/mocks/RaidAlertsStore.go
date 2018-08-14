@@ -26,11 +26,11 @@ func (_m *RaidAlertsStore) AddInfo(alertIn time.Duration, ed types.EntityDeath) 
 }
 
 // GetReady provides a mock function with given fields: _a0
-func (_m *RaidAlertsStore) GetReady(_a0 *[]types.RaidNotification) error {
+func (_m *RaidAlertsStore) GetReady(_a0 *[]types.RaidAlert) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*[]types.RaidNotification) error); ok {
+	if rf, ok := ret.Get(0).(func(*[]types.RaidAlert) error); ok {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
@@ -40,11 +40,11 @@ func (_m *RaidAlertsStore) GetReady(_a0 *[]types.RaidNotification) error {
 }
 
 // Remove provides a mock function with given fields: _a0
-func (_m *RaidAlertsStore) Remove(_a0 types.RaidNotification) error {
+func (_m *RaidAlertsStore) Remove(_a0 types.RaidAlert) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(types.RaidNotification) error); ok {
+	if rf, ok := ret.Get(0).(func(types.RaidAlert) error); ok {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)

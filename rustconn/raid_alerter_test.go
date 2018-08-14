@@ -15,22 +15,22 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 	var mockRA *mocks.RaidAlertsStore
 
-	var rn = types.RaidNotification{
+	var rn = types.RaidAlert{
 		SteamInfo: types.SteamInfo{
 			SteamID: 1234,
 		},
 	}
-	var rnResult types.RaidNotification
+	var rnResult types.RaidAlert
 
 	tests := []struct {
 		name string
 		r    func() *RaidAlerter
-		want types.RaidNotification
+		want types.RaidAlert
 	}{
 		{
 			name: "With nothing",
 			r: func() *RaidAlerter {
-				ch := make(chan types.RaidNotification)
+				ch := make(chan types.RaidAlert)
 				done := make(chan struct{})
 
 				mockRA = &mocks.RaidAlertsStore{}
@@ -39,24 +39,24 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 				return NewRaidAlerter(mockRA, ch, done)
 			},
-			want: types.RaidNotification{},
+			want: types.RaidAlert{},
 		},
 		{
 			name: "With RaidAlert",
 			r: func() *RaidAlerter {
-				ch := make(chan types.RaidNotification)
+				ch := make(chan types.RaidAlert)
 				first := true // Track first run of GetReady
 				done := make(chan struct{})
 
 				mockRA = &mocks.RaidAlertsStore{}
 
-				mockRA.On("GetReady", mock.AnythingOfType("*[]types.RaidNotification")).
-					Return(func(args *[]types.RaidNotification) error {
+				mockRA.On("GetReady", mock.AnythingOfType("*[]types.RaidAlert")).
+					Return(func(args *[]types.RaidAlert) error {
 						if first {
 							first = false
-							*args = []types.RaidNotification{rn}
+							*args = []types.RaidAlert{rn}
 						} else {
-							*args = []types.RaidNotification{}
+							*args = []types.RaidAlert{}
 						}
 
 						return nil
@@ -79,7 +79,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 	for _, tt := range tests {
 
 		// Reset rnTesult
-		rnResult = types.RaidNotification{}
+		rnResult = types.RaidAlert{}
 		mockRA = nil
 
 		t.Run(tt.name, func(t *testing.T) {

@@ -29,7 +29,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      args
-		want      types.RaidNotification
+		want      types.RaidAlert
 		atTimeNew bool
 		wantCount int
 		wantErr   bool
@@ -37,7 +37,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		{
 			name: "upsert",
 			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcd", Name: "thing", GridPos: "D7", Owners: []uint64{1, 2}}},
-			want: types.RaidNotification{
+			want: types.RaidAlert{
 				GridPositions: []string{"D8", "D7"},
 				SteamInfo:     types.SteamInfo{SteamID: 2},
 				Items:         map[string]int{"thing": 3},
@@ -47,7 +47,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		{
 			name: "insert",
 			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", Owners: []uint64{1, 3}}},
-			want: types.RaidNotification{
+			want: types.RaidAlert{
 				GridPositions: []string{"D7"},
 				SteamInfo:     types.SteamInfo{SteamID: 3},
 				Items:         map[string]int{"thing": 1},
@@ -58,7 +58,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		{
 			name: "noop",
 			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", Owners: []uint64{5}}},
-			want: types.RaidNotification{
+			want: types.RaidAlert{
 				GridPositions: []string{"D8"},
 				SteamInfo:     types.SteamInfo{SteamID: 2},
 				Items:         map[string]int{"thing": 2},
@@ -76,7 +76,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 
 			raidAlerts.users = users
 
-			coll.C.Insert(types.RaidNotification{
+			coll.C.Insert(types.RaidAlert{
 				GridPositions: []string{"D8"},
 				SteamInfo:     types.SteamInfo{SteamID: 2},
 				Items:         map[string]int{"thing": 2},
@@ -96,7 +96,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 				}
 				assert.Equal(t, tt.wantCount, count)
 
-				var rn types.RaidNotification
+				var rn types.RaidAlert
 				err = coll.C.Find(tt.want.SteamInfo).One(&rn)
 				if err != nil {
 					t.Fatal(err)
@@ -115,47 +115,108 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 }
 
 func TestRaidAlerts_GetReady(t *testing.T) {
-	type args struct {
-		alerts *[]types.RaidNotification
-	}
+	t.Parallel()
+
 	tests := []struct {
 		name    string
-		args    args
+		alerts  []types.RaidAlert
+		want    []types.RaidAlert
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "one of two",
+			alerts: []types.RaidAlert{
+				types.RaidAlert{SteamInfo: types.SteamInfo{SteamID: 1001}, AlertAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC)},
+				types.RaidAlert{AlertAt: time.Now().UTC().Add(time.Hour)},
+			},
+			want: []types.RaidAlert{
+				types.RaidAlert{
+					SteamInfo:     types.SteamInfo{SteamID: 1001},
+					AlertAt:       time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond),
+					ServerName:    "",
+					GridPositions: []string{},
+					Items:         map[string]int{},
+				},
+			},
+		},
+		{
+			name: "none",
+			alerts: []types.RaidAlert{
+				types.RaidAlert{AlertAt: time.Now().UTC().Add(time.Hour)},
+				types.RaidAlert{AlertAt: time.Now().UTC().Add(time.Hour)},
+			},
+			want: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			raidAlerts, coll := NewRaidAlerts(t)
 			defer coll.Close()
 
-			if err := raidAlerts.GetReady(tt.args.alerts); (err != nil) != tt.wantErr {
+			for _, alert := range tt.alerts {
+				coll.C.Insert(alert)
+			}
+
+			var alerts []types.RaidAlert
+
+			if err := raidAlerts.GetReady(&alerts); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.GetReady() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			assert.Equal(t, tt.want, alerts)
 		})
 	}
 }
 
 func TestRaidAlerts_Remove(t *testing.T) {
 	type args struct {
-		alert types.RaidNotification
+		alert types.RaidAlert
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name      string
+		args      args
+		alerts    []types.RaidAlert
+		wantCount int
+		wantErr   bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "one of two",
+			args: args{alert: types.RaidAlert{SteamInfo: types.SteamInfo{SteamID: 1002}}},
+			alerts: []types.RaidAlert{
+				types.RaidAlert{SteamInfo: types.SteamInfo{SteamID: 1001}},
+				types.RaidAlert{SteamInfo: types.SteamInfo{SteamID: 1002}},
+			},
+			wantCount: 1,
+		},
+		{
+			name: "none",
+			args: args{alert: types.RaidAlert{SteamInfo: types.SteamInfo{SteamID: 1003}}},
+			alerts: []types.RaidAlert{
+				types.RaidAlert{SteamInfo: types.SteamInfo{SteamID: 1001}},
+				types.RaidAlert{SteamInfo: types.SteamInfo{SteamID: 1002}},
+			},
+			wantCount: 2,
+			wantErr:   true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			raidAlerts, coll := NewRaidAlerts(t)
 			defer coll.Close()
 
+			for _, alert := range tt.alerts {
+				coll.C.Insert(alert)
+			}
+
 			if err := raidAlerts.Remove(tt.args.alert); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.Remove() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			count, err := coll.C.Count()
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tt.wantCount, count)
 		})
 	}
 }

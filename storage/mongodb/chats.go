@@ -17,7 +17,6 @@ func (c Chats) Log(cm types.ChatMessage) error {
 }
 
 func (c Chats) GetNext(serverKey string, chatMessage *types.ChatMessage) error {
-	change := mgo.Change{Remove: true}
-	_, err := c.collection.Find(bson.M{"serverkey": serverKey}).Limit(1).Apply(change, &chatMessage)
+	_, err := c.collection.Find(bson.M{"serverkey": serverKey}).Limit(1).Apply(mgo.Change{Remove: true}, &chatMessage)
 	return err
 }

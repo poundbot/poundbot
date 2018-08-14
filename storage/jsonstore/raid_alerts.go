@@ -13,12 +13,12 @@ type RaidAlerts struct {
 	users storage.UsersStore
 }
 
-func (r RaidAlerts) get(steamID uint64) (types.RaidNotification, error) {
+func (r RaidAlerts) get(steamID uint64) (types.RaidAlert, error) {
 	ra, found := raidAlerts.d[steamID]
 	if !found {
 		err := raidAlerts.driver.Read(raidAlerts.collection, fmt.Sprintf("%d", steamID), &ra)
 		if err != nil {
-			return types.RaidNotification{}, err
+			return types.RaidAlert{}, err
 		}
 	}
 	return ra, nil
@@ -65,7 +65,7 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 }
 
 // GetReady implements storage.RaidAlertsStore.GetReady
-func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
+func (r RaidAlerts) GetReady(alerts *[]types.RaidAlert) error {
 	for _, v := range raidAlerts.d {
 		// fmt.Printf("%d, %s\n", time.Now().UTC().Sub(v.AlertAt).Seconds(), v.DiscordID)
 		if int(time.Now().UTC().Sub(v.AlertAt).Seconds()) > 0 {
@@ -80,7 +80,7 @@ func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
 }
 
 // Remove implements storage.RaidAlertsStore.Remove
-func (r RaidAlerts) Remove(alert types.RaidNotification) error {
+func (r RaidAlerts) Remove(alert types.RaidAlert) error {
 	err := raidAlerts.driver.Delete(raidAlerts.collection, fmt.Sprintf("%d", alert.SteamID))
 	if err != nil {
 		return err

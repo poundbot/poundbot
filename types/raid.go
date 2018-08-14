@@ -19,7 +19,7 @@ type RaidInventory struct {
 	Count int
 }
 
-type RaidNotification struct {
+type RaidAlert struct {
 	SteamInfo     `bson:",inline"`
 	ServerName    string
 	GridPositions []string
@@ -27,7 +27,7 @@ type RaidNotification struct {
 	AlertAt       time.Time
 }
 
-func (rn RaidNotification) String() string {
+func (rn RaidAlert) String() string {
 	index := 0
 	items := make([]string, len(rn.Items))
 	for k, v := range rn.Items {

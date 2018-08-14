@@ -24,7 +24,7 @@ type ServerConfig struct {
 }
 
 type ServerChannels struct {
-	RaidNotify  chan types.RaidNotification
+	RaidNotify  chan types.RaidAlert
 	DiscordAuth chan types.DiscordAuth
 	AuthSuccess chan types.DiscordAuth
 	ChatChan    chan types.ChatMessage

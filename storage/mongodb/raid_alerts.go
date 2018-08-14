@@ -45,7 +45,7 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 }
 
 // GetReady implements storage.RaidAlertsStore.GetReady
-func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
+func (r RaidAlerts) GetReady(alerts *[]types.RaidAlert) error {
 	// change := mgo.Change{Remove: true}
 	err := r.collection.Find(
 		bson.M{
@@ -58,6 +58,6 @@ func (r RaidAlerts) GetReady(alerts *[]types.RaidNotification) error {
 }
 
 // Remove implements storage.RaidAlertsStore.Remove
-func (r RaidAlerts) Remove(alert types.RaidNotification) error {
+func (r RaidAlerts) Remove(alert types.RaidAlert) error {
 	return r.collection.Remove(alert.SteamInfo)
 }

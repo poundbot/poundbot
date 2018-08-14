@@ -32,7 +32,7 @@ type usersStore struct {
 
 type raidAlertsStore struct {
 	s
-	d map[uint64]types.RaidNotification
+	d map[uint64]types.RaidAlert
 }
 
 var (
@@ -53,7 +53,7 @@ var (
 		s: s{
 			collection: "raid_alerts",
 		},
-		d: map[uint64]types.RaidNotification{},
+		d: map[uint64]types.RaidAlert{},
 	}
 )
 
@@ -114,7 +114,7 @@ func (j *Json) Init() {
 		panic(err)
 	} else {
 		for _, f := range records {
-			foundRa := types.RaidNotification{}
+			foundRa := types.RaidAlert{}
 			if err := json.Unmarshal([]byte(f), &foundRa); err != nil {
 				fmt.Println("Error", err)
 			}
