@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("PoundBotConnector", "MrPoundsign", "0.2.0")]
+    [Info("PoundBotConnector", "MrPoundsign", "0.2.1")]
     [Description("Communicate with PoundBot")]
 
     class PoundBotConnector : RustPlugin
@@ -175,7 +175,7 @@ namespace Oxide.Plugins
         protected override void LoadDefaultConfig()
         {
             Config.Clear();
-            Config["api_url"] = "http://localhost:9090/";
+            Config["api_url"] = "http://poundbot.mrpoundsign.com:7070/";
             Config["show_own_damage"] = false;
             Config["api_key"] = "API KEY HERE";
             SaveConfig();
