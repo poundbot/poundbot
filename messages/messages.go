@@ -17,8 +17,8 @@ Commands:
 `
 
 const PinPrompt = `
-A request has been made for you to authenticate your ALM user.
 Enter the PIN provided in-game to validate your account.
+Once you are validated, you will begin receiving raid alerts!
 `
 
 func ServerKeyMessage(key string) string {
