@@ -58,23 +58,24 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 
 	serverAuth := ServerAuth{as: sc.Storage.Accounts()}
 	r := mux.NewRouter()
-	r.HandleFunc(
+	api := r.PathPrefix("/api").Subrouter()
+	api.HandleFunc(
 		"/entity_death",
 		handler.NewEntityDeath(logSymbol, sc.Storage.RaidAlerts()),
 	)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/discord_auth",
 		handler.NewDiscordAuth(logSymbol, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/chat",
 		handler.NewChat(s.options.ChatRelay, logSymbol, sc.Storage.Chats(), channels.ChatChan),
 	)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/clans",
 		handler.NewClans(logSymbol, sc.Storage.Accounts()),
 	).Methods(http.MethodPut)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/clans/{tag}",
 		handler.NewClan(logSymbol, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
