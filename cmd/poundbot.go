@@ -188,7 +188,7 @@ func main() {
 
 	asConfig.Storage = store
 
-	// Discoed server
+	// Discord server
 	// dConfig.as = asConfig.Storage.Accounts()
 	// dConfig.cs = asConfig.Storage.Chats()
 	dr := discord.Runner(dConfig.Token, store.Accounts(), store.Chats(), store.DiscordAuths(), store.Users())

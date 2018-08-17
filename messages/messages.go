@@ -33,9 +33,9 @@ func ServerKeyMessage(key string) string {
 
 func RaidAlert(serverName string, gridPositions, items []string) string {
 	return fmt.Sprintf(`
-  %s RAID ALERT! You are being raided!
+%s RAID ALERT! You are being raided!
 
-  Locations: 
+  Locations:
     %s
 
   Destroyed:
