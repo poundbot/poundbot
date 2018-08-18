@@ -18,43 +18,11 @@
   version = "v0.18.0"
 
 [[projects]]
-  digest = "1:2209584c0f7c9b68c23374e659357ab546e1b70eec2761f03280f69a8fd23d77"
-  name = "github.com/cenkalti/backoff"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "2ea60e5f094469f9e65adb9cd103795b73ae743e"
-  version = "v2.0.0"
-
-[[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "UT"
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
-  version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:79dd9c7011f155e20ace97c9585054f4ecc0b4c65c8377923e198148202ff559"
-  name = "github.com/dghubble/go-twitter"
-  packages = ["twitter"]
-  pruneopts = "UT"
-  revision = "b77318be397b2373226c0d80337213103b853637"
-
-[[projects]]
-  digest = "1:144f5984ed1f07aa8fa2468844f856b1ac8e93ac94e1fd19fbf69ce034d9ef92"
-  name = "github.com/dghubble/oauth1"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "70562a5920ad9b6ff03ef697c0f90ae569abbd2b"
-  version = "v0.4.0"
-
-[[projects]]
-  digest = "1:ace1aef6acdf2c4647365dc87c14fb8b71ed8bb0b3ae114ffb216614a24da219"
-  name = "github.com/dghubble/sling"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "eb56e89ac5088bebb12eef3cb4b293300f43608b"
   version = "v1.1.0"
 
 [[projects]]
@@ -78,14 +46,6 @@
   ]
   pruneopts = "UT"
   revision = "113d3961e7311526535a1ef7042196563d442761"
-
-[[projects]]
-  branch = "master"
-  digest = "1:a63cff6b5d8b95638bfe300385d93b2a6d9d687734b863da8e09dc834510a690"
-  name = "github.com/google/go-querystring"
-  packages = ["query"]
-  pruneopts = "UT"
-  revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 
 [[projects]]
   digest = "1:c79fb010be38a59d657c48c6ba1d003a8aa651fa56b579d959d74573b7dff8e1"
@@ -263,14 +223,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:76ee51c3f468493aff39dbacc401e8831fbb765104cbf613b89bef01cf4bad70"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  pruneopts = "UT"
-  revision = "3673e40ba22529d22c3fd7c93e97b0ce50fa7bdd"
-
-[[projects]]
-  branch = "master"
   digest = "1:dbe2ad3afac439a4bfd3e1b0352c4869dc26aae52662dcab72355408776ed5d5"
   name = "golang.org/x/sys"
   packages = ["unix"]
@@ -306,8 +258,6 @@
   input-imports = [
     "github.com/alliedmodders/blaster/valve",
     "github.com/bwmarrin/discordgo",
-    "github.com/dghubble/go-twitter/twitter",
-    "github.com/dghubble/oauth1",
     "github.com/globalsign/mgo",
     "github.com/globalsign/mgo/bson",
     "github.com/gorilla/context",

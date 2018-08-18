@@ -40,22 +40,8 @@ type service interface {
 func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
 	return &discord.RunnerConfig{
 		Token: cfg.GetString("token"),
-		// LinkChan:    cfg.GetString("channels.link"),
-		// StatusChan:  cfg.GetString("channels.status"),
-		// GeneralChan: cfg.GetString("channels.general"),
 	}
 }
-
-// func newTwitterConfig(cfg *viper.Viper) *twitter.Config {
-// 	return &twitter.Config{
-// 		ConsumerKey:    cfg.GetString("consumer.key"),
-// 		ConsumerSecret: cfg.GetString("consumer.secret"),
-// 		AccessToken:    cfg.GetString("access.token"),
-// 		AccessSecret:   cfg.GetString("access.secret"),
-// 		UserID:         cfg.GetInt64("userid"),
-// 		Filters:        cfg.GetStringSlice("filters"),
-// 	}
-// }
 
 func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
@@ -100,7 +86,6 @@ func main() {
 
 	servicesCount := 2 // ALways at least 1 for discord, but should always be >1
 
-	// var thingsToKill = 0
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
@@ -108,7 +93,6 @@ func main() {
 	viper.SetDefault("json-store.path", "./json-store")
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
-	// viper.SetDefault("features.twitter", false)
 	viper.SetDefault("features.players-joined", false)
 	viper.SetDefault("features.raid-alerts", true)
 	viper.SetDefault("features.chat-relay", true)
@@ -116,15 +100,8 @@ func main() {
 	viper.SetDefault("http.bind_addr", "")
 	viper.SetDefault("http.port", 9090)
 	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
-	// viper.SetDefault("discord.channels.link", "CHANNEL ID FOR TWITTER LINKS")
 	viper.SetDefault("discord.channels.status", "CHANNEL ID FOR SERVER STATUS (players joined)")
 	viper.SetDefault("discord.channels.general", "CHANNEL ID FOR CHAT RELAY")
-	// viper.SetDefault("twitter.consumer.key", "CONSUMER KEY")
-	// viper.SetDefault("twitter.consumer.secret", "SECRET KEY")
-	// viper.SetDefault("twitter.access.token", "ACCESS TOKEN")
-	// viper.SetDefault("twitter.access.secret", "ACCESS SECRET")
-	// viper.SetDefault("twitter.userid", int64(0))
-	// viper.SetDefault("twitter.filters", "#ServerUpdate")
 
 	var loaded = false
 
@@ -189,8 +166,6 @@ func main() {
 	asConfig.Storage = store
 
 	// Discord server
-	// dConfig.as = asConfig.Storage.Accounts()
-	// dConfig.cs = asConfig.Storage.Chats()
 	dr := discord.Runner(dConfig.Token, store.Accounts(), store.Chats(), store.DiscordAuths(), store.Users())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)
@@ -213,13 +188,6 @@ func main() {
 	if err := start(server, "HTTP Server"); err != nil {
 		log.Fatalf("Could not start HTTP server, %v\n", err)
 	}
-
-	// if viper.GetBool("features.twitter") {
-	// 	servicesCount++
-	// 	tConfig := newTwitterConfig(viper.Sub("twitter"))
-	// 	t := twitter.NewTwitter(tConfig, dr.LinkChan)
-	// 	start(t, "Twitter")
-	// }
 
 	// Rust Server Watcher
 	// if viper.GetBool("features.players-joined") {
