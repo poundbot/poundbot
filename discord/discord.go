@@ -266,7 +266,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 	err = c.as.GetByDiscordGuild(ch.GuildID, &account)
 	if err != nil {
-		log.Println("Could not get account")
+		log.Printf("Could not get account for %s:%s\n", ch.GuildID, ch.Name)
 		return
 	}
 
@@ -278,7 +278,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 
 	if len(account.Servers) == 0 {
-		log.Println("Could not get servers")
+		log.Printf("No servers for account %s:%s %s\n", ch.GuildID, ch.Name, account.BaseAccount.GuildSnowflake)
 		return
 	}
 
