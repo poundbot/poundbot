@@ -278,7 +278,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 
 	if len(account.Servers) == 0 {
-		log.Printf("No servers for account %s:%s %s\n", ch.GuildID, ch.Name, account.BaseAccount.GuildSnowflake)
+		// log.Printf("No servers for account %s:%s %s\n", ch.GuildID, ch.Name, account.BaseAccount.GuildSnowflake)
 		return
 	}
 
