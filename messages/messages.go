@@ -14,6 +14,7 @@ Commands:
   server chat here  - Sets the channel for server chat to this channel
   
   Download the plugin at https://bitbucket.org/mrpoundsign/poundbot/src/multi-server/rust_plugin/
+  Join MrPoundsign's discord at https://discordapp.com/invite/ZwTuJQW
 `
 
 const PinPrompt = `
