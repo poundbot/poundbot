@@ -24,7 +24,7 @@ func NewEntityDeath(ls string, ras storage.RaidAlertsStore) func(w http.Response
 // Handle manages incoming Rust entity death notices and sends them
 // to the RaidAlertsStore and RaidAlerts channel
 func (e *EntityDeath) Handle(w http.ResponseWriter, r *http.Request) {
-
+	defer r.Body.Close()
 	account := context.Get(r, "account").(types.Account)
 
 	decoder := json.NewDecoder(r.Body)
