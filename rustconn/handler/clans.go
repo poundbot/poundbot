@@ -24,6 +24,7 @@ func NewClans(ls string, as storage.AccountsStore) func(w http.ResponseWriter, r
 // Handle manages clans sync HTTP requests from the Rust server
 // These requests are a complete refresh of all clans
 func (c *Clans) Handle(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	serverKey := context.Get(r, "serverKey").(string)
 	log.Printf("Server key is \"%s\"\n", serverKey)
 

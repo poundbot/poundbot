@@ -25,6 +25,7 @@ func NewDiscordAuth(ls string, das storage.DiscordAuthsStore, us storage.UsersSt
 // Handle takes Discord verification requests from the Rust server
 // and sends them to the DiscordAuthsStore and DiscordAuth channel
 func (da *DiscordAuth) Handle(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth
 	err := decoder.Decode(&t)

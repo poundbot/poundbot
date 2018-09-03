@@ -41,6 +41,7 @@ func NewChat(d bool, ls string, cs storage.ChatsStore, in chan types.ChatMessage
 // HTTP GET requests wait for messages and disconnect with http.StatusNoContent
 // after sleep seconds.
 func (c *Chat) Handle(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	serverKey := context.Get(r, "serverKey").(string)
 	account := context.Get(r, "account").(types.Account)
 
