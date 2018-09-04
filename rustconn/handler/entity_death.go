@@ -25,6 +25,7 @@ func NewEntityDeath(ls string, ras storage.RaidAlertsStore) func(w http.Response
 // to the RaidAlertsStore and RaidAlerts channel
 func (e *EntityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	defer context.Clear(r)
 	account := context.Get(r, "account").(types.Account)
 
 	decoder := json.NewDecoder(r.Body)

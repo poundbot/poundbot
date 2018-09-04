@@ -24,6 +24,7 @@ func NewClan(ls string, as storage.AccountsStore, us storage.UsersStore) func(w 
 // Handle manages individual clan REST requests form the Rust server
 func (c *Clan) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	defer context.Clear(r)
 	// account := context.Get(r, "account").(types.Account)
 	serverKey := context.Get(r, "serverKey").(string)
 	log.Printf("Server key is %s\n", serverKey)
