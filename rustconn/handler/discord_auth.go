@@ -8,7 +8,6 @@ import (
 
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
-	"github.com/gorilla/context"
 )
 
 type DiscordAuth struct {
@@ -27,7 +26,6 @@ func NewDiscordAuth(ls string, das storage.DiscordAuthsStore, us storage.UsersSt
 // and sends them to the DiscordAuthsStore and DiscordAuth channel
 func (da *DiscordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	defer context.Clear(r)
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth
 	err := decoder.Decode(&t)

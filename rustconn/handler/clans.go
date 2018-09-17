@@ -25,7 +25,6 @@ func NewClans(ls string, as storage.AccountsStore) func(w http.ResponseWriter, r
 // These requests are a complete refresh of all clans
 func (c *Clans) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	defer context.Clear(r)
 	serverKey := context.Get(r, "serverKey").(string)
 	log.Printf("Server key is \"%s\"\n", serverKey)
 

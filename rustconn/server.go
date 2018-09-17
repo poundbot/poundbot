@@ -58,7 +58,10 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 
 	serverAuth := ServerAuth{as: sc.Storage.Accounts()}
 	r := mux.NewRouter()
+
+	// Handles all /api requests, and sets the server auth handler
 	api := r.PathPrefix("/api").Subrouter()
+	api.Use(serverAuth.Handle)
 	api.HandleFunc(
 		"/entity_death",
 		handler.NewEntityDeath(logSymbol, sc.Storage.RaidAlerts()),
@@ -79,7 +82,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 		"/clans/{tag}",
 		handler.NewClan(logSymbol, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
-	r.Use(serverAuth.Handle)
+
 	s.Handler = r
 
 	s.shutdownRequest = make(chan struct{})
@@ -87,7 +90,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 	return &s
 }
 
-// Serve starts the HTTP server, raid alerter, and Discord auth manager
+// Start starts the HTTP server, raid alerter, and Discord auth manager
 func (s *Server) Start() error {
 	// Start the AuthSaver
 	go func() {
@@ -121,6 +124,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Stop stops the http server
 func (s *Server) Stop() {
 	log.Printf(logSymbol + "🛑 Shutting down HTTP server ...")
 
