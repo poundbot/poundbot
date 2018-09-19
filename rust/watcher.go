@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const wLogSymbol = "📶 "
+const logPrefix = "[RUST] "
 
 type Watcher struct {
 	querier    Querier
@@ -22,7 +22,7 @@ func NewWatcher(config ServerConfig, pDeltaFreq int, statusChan chan string) (*W
 	}
 	err = rq.Update()
 	if err != nil {
-		log.Println(wLogSymbol + "⚠️ Error contacting Rust server: " + err.Error())
+		log.Println(logPrefix + "[WARN] Error contacting Rust server: " + err.Error())
 	}
 	return &Watcher{
 		querier:    *rq,
@@ -33,7 +33,7 @@ func NewWatcher(config ServerConfig, pDeltaFreq int, statusChan chan string) (*W
 
 func (w *Watcher) Start() error {
 	w.done = make(chan struct{})
-	log.Println(wLogSymbol + "🛫 Starting Rust Watcher")
+	log.Println(logPrefix + "Starting Rust Watcher")
 
 	go func() {
 
@@ -48,7 +48,7 @@ func (w *Watcher) Start() error {
 		var waitOrKill = func(t time.Duration) (kill bool) {
 			select {
 			case <-w.done:
-				log.Println(wLogSymbol + "🛑 Shutting down RustWatcher")
+				log.Println(logPrefix + "[WARN] Shutting down RustWatcher")
 				kill = true
 			case <-time.After(t):
 				kill = false
@@ -63,7 +63,7 @@ func (w *Watcher) Start() error {
 				serverDown = true
 				downChecks++
 				if downChecks%3 == 0 {
-					log.Printf(wLogSymbol+" 🏃 ⚠️ Server is down! %s", err)
+					log.Printf(logPrefix+"[RUNNER][WARN] Server is down! %s", err)
 					if waitOrKill(20 * time.Second) {
 						return
 					}
@@ -74,7 +74,7 @@ func (w *Watcher) Start() error {
 			} else {
 				if downChecks > 0 {
 					downChecks = 0
-					log.Println(wLogSymbol + " 🏃 Server is back!")
+					log.Println(logPrefix + "[RUNNER][WARN] Server is back!")
 				}
 
 				if serverDown {
@@ -106,7 +106,7 @@ func (w *Watcher) Start() error {
 							w.querier.PlayerInfo.Players,
 							w.querier.PlayerInfo.MaxPlayers,
 						)
-						log.Printf(wLogSymbol+" 🏃 Sending notice of %d new players\n", playerDelta)
+						log.Printf(logPrefix+"[RUNNER]Sending notice of %d new players\n", playerDelta)
 						w.statusChan <- message
 						playerDelta = 0
 					}

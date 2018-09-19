@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -56,7 +59,7 @@ func newRustServerConfig(cfg *viper.Viper) *rust.ServerConfig {
 
 func start(s service, name string) error {
 	if err := s.Start(); err != nil {
-		log.Printf("🤖 ⚠️ Failed to start %s: %s\n", name, err)
+		log.Printf("[MAIN][WARN] Failed to start %s: %s\n", name, err)
 		return err
 	}
 
@@ -64,7 +67,7 @@ func start(s service, name string) error {
 	go func() {
 		defer wg.Done()
 		<-killChan
-		log.Printf("🤖 Requesting %s shutdown...\n", name)
+		log.Printf("[MAIN] Requesting %s shutdown...\n", name)
 		s.Stop()
 	}()
 
@@ -102,6 +105,10 @@ func main() {
 	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
 	viper.SetDefault("discord.channels.status", "CHANNEL ID FOR SERVER STATUS (players joined)")
 	viper.SetDefault("discord.channels.general", "CHANNEL ID FOR CHAT RELAY")
+
+	go func() {
+		log.Fatal(http.ListenAndServe("localhost:6061", nil))
+	}()
 
 	var loaded = false
 
@@ -214,7 +221,7 @@ func main() {
 	)
 	<-sc
 
-	log.Println("🤖 Stopping...")
+	log.Println("[MAIN] Stopping...")
 	for i := 0; i < servicesCount; i++ {
 		go func() { killChan <- struct{}{} }()
 	}

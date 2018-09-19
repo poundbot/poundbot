@@ -94,22 +94,8 @@ func (c *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 			log.Println(c.ls + err.Error())
 			return
 		}
-		// c.cs.Log(res)
 
 		w.Write(b)
-		// select {
-		// case res := <-c.out:
-		// 	b, err := json.Marshal(res)
-		// 	if err != nil {
-		// 		log.Println(c.ls + err.Error())
-		// 		return
-		// 	}
-		// 	c.cs.Log(res)
-
-		// 	w.Write(b)
-		// case <-time.After(c.sleep):
-		// 	w.WriteHeader(http.StatusNoContent)
-		// }
 
 	default:
 		methodNotAllowed(w, c.ls)

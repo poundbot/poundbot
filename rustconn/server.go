@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var logSymbol = "🕸️ "
+var logPrefix = "[RC]"
 
 // ServerConfig contains the base Server configuration
 type ServerConfig struct {
@@ -64,23 +64,23 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 	api.Use(serverAuth.Handle)
 	api.HandleFunc(
 		"/entity_death",
-		handler.NewEntityDeath(logSymbol, sc.Storage.RaidAlerts()),
+		handler.NewEntityDeath(logPrefix, sc.Storage.RaidAlerts()),
 	)
 	api.HandleFunc(
 		"/discord_auth",
-		handler.NewDiscordAuth(logSymbol, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
+		handler.NewDiscordAuth(logPrefix, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
 	api.HandleFunc(
 		"/chat",
-		handler.NewChat(s.options.ChatRelay, logSymbol, sc.Storage.Chats(), channels.ChatChan),
+		handler.NewChat(s.options.ChatRelay, logPrefix, sc.Storage.Chats(), channels.ChatChan),
 	)
 	api.HandleFunc(
 		"/clans",
-		handler.NewClans(logSymbol, sc.Storage.Accounts()),
+		handler.NewClans(logPrefix, sc.Storage.Accounts()),
 	).Methods(http.MethodPut)
 	api.HandleFunc(
 		"/clans/{tag}",
-		handler.NewClan(logSymbol, sc.Storage.Accounts(), sc.Storage.Users()),
+		handler.NewClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
 
 	s.Handler = r
@@ -113,11 +113,11 @@ func (s *Server) Start() error {
 	}
 
 	go func() {
-		log.Printf(logSymbol+"🛫 Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+		log.Printf(logPrefix+"🛫 Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 		if err := s.ListenAndServe(); err != nil {
-			log.Printf(logSymbol+"HTTP server died with error %v\n", err)
+			log.Printf(logPrefix+"HTTP server died with error %v\n", err)
 		} else {
-			log.Printf(logSymbol+"HTTP server graceful shutdown\n", err)
+			log.Printf(logPrefix+"HTTP server graceful shutdown\n", err)
 		}
 	}()
 
@@ -126,7 +126,7 @@ func (s *Server) Start() error {
 
 // Stop stops the http server
 func (s *Server) Stop() {
-	log.Printf(logSymbol + "🛑 Shutting down HTTP server ...")
+	log.Printf(logPrefix + "[WARN] Shutting down HTTP server ...")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -139,7 +139,7 @@ func (s *Server) Stop() {
 		//shutdown the server
 		err := s.Shutdown(ctx)
 		if err != nil {
-			log.Printf(logSymbol+"Shutdown request error: %v", err)
+			log.Printf(logPrefix+"[WARN] Shutdown request error: %v", err)
 		}
 	}()
 	s.shutdownRequest <- struct{}{} // AuthSaver

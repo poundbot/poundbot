@@ -16,8 +16,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-const logSymbol = "🏟️ "
-const logRunnerSymbol = logSymbol + "🏃 "
+const logPrefix = "[DISCORD] "
+const logRunnerPrefix = logPrefix + "[RUNNER] "
 
 type RunnerConfig struct {
 	Token string
@@ -85,32 +85,32 @@ func (c *Client) Start() error {
 }
 
 func (c *Client) Stop() {
-	log.Println(logSymbol + "🛑 Disconnecting")
+	log.Println(logPrefix + "🛑 Disconnecting")
 	c.shutdown = true
 	c.session.Close()
 }
 
 func (c *Client) runner() {
 	defer func() {
-		log.Println(logRunnerSymbol + " Runner Exiting")
+		log.Println(logRunnerPrefix + " Runner Exiting")
 	}()
 	connectedState := false
 
 	for {
 		if connectedState {
-			log.Println(logRunnerSymbol + " Waiting for messages")
+			log.Println(logRunnerPrefix + " Waiting for messages")
 		Reading:
 			for {
 				select {
 				case connectedState = <-c.status:
 					if !connectedState {
-						log.Println(logRunnerSymbol + "☎️ Received disconnected message")
+						log.Println(logRunnerPrefix + "[CONN] Received disconnected message")
 						if c.shutdown {
 							return
 						}
 						break Reading
 					} else {
-						log.Println(logRunnerSymbol + "❓ Received unexpected connected message")
+						log.Println(logRunnerPrefix + "[CONN] Received unexpected connected message")
 					}
 				// case t := <-c.LinkChan:
 				// 	_, err := c.session.ChannelMessageSend(
@@ -135,19 +135,19 @@ func (c *Client) runner() {
 
 					err := c.us.Get(t.SteamID, &u)
 					if err != nil {
-						log.Printf(logRunnerSymbol + "User not found")
+						log.Printf(logRunnerPrefix + "User not found")
 						return
 					}
 
 					user, err := c.session.User(u.Snowflake)
 					if err != nil {
-						log.Printf(logRunnerSymbol+" Error finding user %d: %d\n", t.SteamID, err)
+						log.Printf(logRunnerPrefix+" Error finding user %d: %d\n", t.SteamID, err)
 						break
 					}
 
 					channel, err := c.session.UserChannelCreate(user.ID)
 					if err != nil {
-						log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
+						log.Printf(logRunnerPrefix+" Error creating user channel: %v", err)
 					} else {
 						c.session.ChannelMessageSend(channel.ID, t.String())
 					}
@@ -176,20 +176,20 @@ func (c *Client) runner() {
 					}
 					_, err := c.session.ChannelMessageSend(t.ChannelID, fmt.Sprintf("☢️ **%s%s**: %s", clan, t.DisplayName, t.Message))
 					if err != nil {
-						log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
+						log.Printf(logRunnerPrefix+" Error sending to channel: %v\n", err)
 					}
 				}
 			}
 		}
 	Connecting:
 		for {
-			log.Println(logRunnerSymbol + " Waiting for connected state")
+			log.Println(logRunnerPrefix + " Waiting for connected state")
 			connectedState = <-c.status
 			if connectedState {
-				log.Println(logRunnerSymbol + "📞 Received connected message")
+				log.Println(logRunnerPrefix + "[CONN] Received connected message")
 				break Connecting
 			} else {
-				log.Println(logRunnerSymbol + "☎️ Received disconnected message")
+				log.Println(logRunnerPrefix + "[CONN] Received disconnected message")
 			}
 		}
 	}
@@ -199,15 +199,15 @@ func (c *Client) runner() {
 }
 
 func (c *Client) connect() {
-	log.Println(logSymbol + "☎️ Connecting")
+	log.Println(logPrefix + "[CONN] Connecting")
 	for {
 		err := c.session.Open()
 		if err != nil {
-			log.Println(logSymbol+"⚠️ Error connecting:", err)
-			log.Println(logSymbol + "🔁 Attempting discord reconnect...")
+			log.Println(logPrefix+"[CONN][WARN] Error connecting:", err)
+			log.Println(logPrefix + "[CONN] Attempting discord reconnect...")
 			time.Sleep(1 * time.Second)
 		} else {
-			log.Println(logSymbol + "📞 ✔️ Connected!")
+			log.Println(logPrefix + "[CONN] Connected!")
 			return
 		}
 		time.Sleep(1 * time.Second)
@@ -218,18 +218,18 @@ func (c *Client) connect() {
 // the "disconnect" event from Discord.
 func (c *Client) disconnected(s *discordgo.Session, event *discordgo.Disconnect) {
 	c.status <- false
-	log.Println(logSymbol + "☎️ Disconnected!")
+	log.Println(logPrefix + "[CONN] Disconnected!")
 }
 
 func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
-	log.Println(logSymbol + "📞 Resumed!")
+	log.Println(logPrefix + "[CONN] Resumed!")
 	c.status <- true
 }
 
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
 func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
-	log.Println(logSymbol + "📞 ✔️ Ready!")
+	log.Println(logPrefix + "[CONN] Ready!")
 	s.UpdateStatus(0, "I'm a real boy!")
 	c.status <- true
 }
@@ -250,7 +250,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 	// check if the message is "!test"
 	// if strings.HasPrefix(m.Content, "!test") {
-	// log.Printf(logSymbol+" Message (%v) %s from %s %s on %s\n", m.Type, m.Content, m.Author.Username, m.Author.String(), m.ChannelID)
+	// log.Printf(logPrefix+" Message (%v) %s from %s %s on %s\n", m.Type, m.Content, m.Author.Username, m.Author.String(), m.ChannelID)
 
 	ch, err := s.Channel(m.ChannelID)
 	if err != nil {
@@ -375,7 +375,7 @@ Instruct:
 func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Message, err error) {
 	channel, err := c.session.UserChannelCreate(snowflake)
 	if err != nil {
-		log.Printf(logRunnerSymbol+" Error creating user channel: %v", err)
+		log.Printf(logRunnerPrefix+" Error creating user channel: %v", err)
 		return
 	} else {
 		return c.session.ChannelMessageSend(
