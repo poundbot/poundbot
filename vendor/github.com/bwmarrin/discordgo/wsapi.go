@@ -86,6 +86,10 @@ func (s *Session) Open() error {
 		return err
 	}
 
+	s.wsConn.SetCloseHandler(func(code int, text string) error {
+		return nil
+	})
+
 	defer func() {
 		// because of this, all code below must set err to the error
 		// when exiting with an error :)  Maybe someone has a better
@@ -283,7 +287,7 @@ func (s *Session) heartbeat(wsConn *websocket.Conn, listening <-chan interface{}
 		last := s.LastHeartbeatAck
 		s.RUnlock()
 		sequence := atomic.LoadInt64(s.sequence)
-		s.log(LogInformational, "sending gateway websocket heartbeat seq %d", sequence)
+		s.log(LogDebug, "sending gateway websocket heartbeat seq %d", sequence)
 		s.wsMutex.Lock()
 		err = wsConn.WriteJSON(heartbeatOp{1, sequence})
 		s.wsMutex.Unlock()
@@ -323,16 +327,8 @@ type updateStatusOp struct {
 	Data UpdateStatusData `json:"d"`
 }
 
-// UpdateStreamingStatus is used to update the user's streaming status.
-// If idle>0 then set status to idle.
-// If game!="" then set game.
-// If game!="" and url!="" then set the status type to streaming with the URL set.
-// if otherwise, set status to active, and no game.
-func (s *Session) UpdateStreamingStatus(idle int, game string, url string) (err error) {
-
-	s.log(LogInformational, "called")
-
-	usd := UpdateStatusData{
+func newUpdateStatusData(idle int, gameType GameType, game, url string) *UpdateStatusData {
+	usd := &UpdateStatusData{
 		Status: "online",
 	}
 
@@ -341,10 +337,6 @@ func (s *Session) UpdateStreamingStatus(idle int, game string, url string) (err 
 	}
 
 	if game != "" {
-		gameType := GameTypeGame
-		if url != "" {
-			gameType = GameTypeStreaming
-		}
 		usd.Game = &Game{
 			Name: game,
 			Type: gameType,
@@ -352,7 +344,35 @@ func (s *Session) UpdateStreamingStatus(idle int, game string, url string) (err 
 		}
 	}
 
-	return s.UpdateStatusComplex(usd)
+	return usd
+}
+
+// UpdateStatus is used to update the user's status.
+// If idle>0 then set status to idle.
+// If game!="" then set game.
+// if otherwise, set status to active, and no game.
+func (s *Session) UpdateStatus(idle int, game string) (err error) {
+	return s.UpdateStatusComplex(*newUpdateStatusData(idle, GameTypeGame, game, ""))
+}
+
+// UpdateStreamingStatus is used to update the user's streaming status.
+// If idle>0 then set status to idle.
+// If game!="" then set game.
+// If game!="" and url!="" then set the status type to streaming with the URL set.
+// if otherwise, set status to active, and no game.
+func (s *Session) UpdateStreamingStatus(idle int, game string, url string) (err error) {
+	gameType := GameTypeGame
+	if url != "" {
+		gameType = GameTypeStreaming
+	}
+	return s.UpdateStatusComplex(*newUpdateStatusData(idle, gameType, game, url))
+}
+
+// UpdateListeningStatus is used to set the user to "Listening to..."
+// If game!="" then set to what user is listening to
+// Else, set user to active and no game.
+func (s *Session) UpdateListeningStatus(game string) (err error) {
+	return s.UpdateStatusComplex(*newUpdateStatusData(0, GameTypeListening, game, ""))
 }
 
 // UpdateStatusComplex allows for sending the raw status update data untouched by discordgo.
@@ -369,14 +389,6 @@ func (s *Session) UpdateStatusComplex(usd UpdateStatusData) (err error) {
 	s.wsMutex.Unlock()
 
 	return
-}
-
-// UpdateStatus is used to update the user's status.
-// If idle>0 then set status to idle.
-// If game!="" then set game.
-// if otherwise, set status to active, and no game.
-func (s *Session) UpdateStatus(idle int, game string) (err error) {
-	return s.UpdateStreamingStatus(idle, game, "")
 }
 
 type requestGuildMembersData struct {
@@ -508,7 +520,7 @@ func (s *Session) onEvent(messageType int, message []byte) (*Event, error) {
 		s.Lock()
 		s.LastHeartbeatAck = time.Now().UTC()
 		s.Unlock()
-		s.log(LogInformational, "got heartbeat ACK")
+		s.log(LogDebug, "got heartbeat ACK")
 		return e, nil
 	}
 
@@ -609,6 +621,30 @@ func (s *Session) ChannelVoiceJoin(gID, cID string, mute, deaf bool) (voice *Voi
 	if err != nil {
 		s.log(LogWarning, "error waiting for voice to connect, %s", err)
 		voice.Close()
+		return
+	}
+
+	return
+}
+
+// ChannelVoiceJoinManual initiates a voice session to a voice channel, but does not complete it.
+//
+// This should only be used when the VoiceServerUpdate will be intercepted and used elsewhere.
+//
+//    gID     : Guild ID of the channel to join.
+//    cID     : Channel ID of the channel to join.
+//    mute    : If true, you will be set to muted upon joining.
+//    deaf    : If true, you will be set to deafened upon joining.
+func (s *Session) ChannelVoiceJoinManual(gID, cID string, mute, deaf bool) (err error) {
+
+	s.log(LogInformational, "called")
+
+	// Send the request to Discord that we want to join the voice channel
+	data := voiceChannelJoinOp{4, voiceChannelJoinData{&gID, &cID, mute, deaf}}
+	s.wsMutex.Lock()
+	err = s.wsConn.WriteJSON(data)
+	s.wsMutex.Unlock()
+	if err != nil {
 		return
 	}
 
@@ -732,11 +768,8 @@ func (s *Session) identify() error {
 	s.wsMutex.Lock()
 	err := s.wsConn.WriteJSON(op)
 	s.wsMutex.Unlock()
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (s *Session) reconnect() {

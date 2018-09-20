@@ -16,8 +16,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-const logPrefix = "[DISCORD] "
-const logRunnerPrefix = logPrefix + "[RUNNER] "
+const logPrefix = "[DISCORD]"
+const logRunnerPrefix = logPrefix + "[RUNNER]"
 
 type RunnerConfig struct {
 	Token string
@@ -85,7 +85,7 @@ func (c *Client) Start() error {
 }
 
 func (c *Client) Stop() {
-	log.Println(logPrefix + "🛑 Disconnecting")
+	log.Println(logPrefix + "[CONN] Disconnecting")
 	c.shutdown = true
 	c.session.Close()
 }
@@ -247,26 +247,16 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	var da types.DiscordAuth
 	var account types.Account
 	var server types.Server
-
-	// check if the message is "!test"
-	// if strings.HasPrefix(m.Content, "!test") {
-	// log.Printf(logPrefix+" Message (%v) %s from %s %s on %s\n", m.Type, m.Content, m.Author.Username, m.Author.String(), m.ChannelID)
-
-	ch, err := s.Channel(m.ChannelID)
-	if err != nil {
-		log.Println("Channel not found for message")
-		return
-	}
+	var err error
 
 	// Detect PM
-	if ch.GuildID == "" {
-		log.Println("Channel is PM channel")
+	if m.GuildID == "" {
 		goto Interact
 	}
 
-	err = c.as.GetByDiscordGuild(ch.GuildID, &account)
+	err = c.as.GetByDiscordGuild(m.GuildID, &account)
 	if err != nil {
-		log.Printf("Could not get account for %s:%s\n", ch.GuildID, ch.Name)
+		log.Printf(logPrefix+"Could not get account for %s\n", m.GuildID)
 		return
 	}
 
@@ -278,7 +268,6 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 
 	if len(account.Servers) == 0 {
-		// log.Printf("No servers for account %s:%s %s\n", ch.GuildID, ch.Name, account.BaseAccount.GuildSnowflake)
 		return
 	}
 
@@ -366,10 +355,6 @@ Instruct:
 		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0])
 		return
 	}
-	// log.Printf(s.State.User.ID)
-	// for _, embed := range m.Mentions {
-	// 	log.Printf("Type: %s, %v", embed.String(), embed)
-	// }
 }
 
 func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Message, err error) {
