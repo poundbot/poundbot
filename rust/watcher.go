@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const logPrefix = "[RUST] "
+const logPrefix = "[RUST]"
 
 type Watcher struct {
 	querier    Querier
@@ -33,7 +33,7 @@ func NewWatcher(config ServerConfig, pDeltaFreq int, statusChan chan string) (*W
 
 func (w *Watcher) Start() error {
 	w.done = make(chan struct{})
-	log.Println(logPrefix + "Starting Rust Watcher")
+	log.Println(logPrefix + " Starting Rust Watcher")
 
 	go func() {
 
@@ -106,7 +106,7 @@ func (w *Watcher) Start() error {
 							w.querier.PlayerInfo.Players,
 							w.querier.PlayerInfo.MaxPlayers,
 						)
-						log.Printf(logPrefix+"[RUNNER]Sending notice of %d new players\n", playerDelta)
+						log.Printf(logPrefix+"[RUNNER] Sending notice of %d new players\n", playerDelta)
 						w.statusChan <- message
 						playerDelta = 0
 					}

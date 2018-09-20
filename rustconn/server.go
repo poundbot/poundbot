@@ -113,11 +113,11 @@ func (s *Server) Start() error {
 	}
 
 	go func() {
-		log.Printf(logPrefix+"🛫 Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+		log.Printf(logPrefix+" Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 		if err := s.ListenAndServe(); err != nil {
-			log.Printf(logPrefix+"HTTP server died with error %v\n", err)
+			log.Printf(logPrefix+" HTTP server died with error %v\n", err)
 		} else {
-			log.Printf(logPrefix+"HTTP server graceful shutdown\n", err)
+			log.Printf(logPrefix+" HTTP server graceful shutdown\n", err)
 		}
 	}()
 

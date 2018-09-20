@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
-const raLogPrefix = "[RAIDALERT] "
+const raLogPrefix = "[RAIDALERT]"
 
 // A RaidStore stores raid information
 type RaidStore interface {
@@ -36,7 +36,7 @@ func NewRaidAlerter(ral RaidStore, rnc chan types.RaidAlert, done chan struct{})
 // Run checks for raids that need to be alerted and sends them
 // out through the RaidNotify channel. It runs in a loop.
 func (r *RaidAlerter) Run() {
-	log.Println(raLogPrefix + "Starting RaidAlerter")
+	log.Println(raLogPrefix + " Starting RaidAlerter")
 	for {
 		select {
 		case <-r.done:
