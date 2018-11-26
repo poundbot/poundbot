@@ -10,11 +10,11 @@ fi
 
 for x in windows linux darwin
 do
-    cd $MAIN/builds/$x
-    FILE=PoundBot-`[[ $x = "darwin" ]] && echo "OSX" || echo $x`-${VERSION}.zip
+    cd $BUILD_DIR/$x
+    FILE="${BUILD_DIR}/PoundBot-$x-${VERSION}.zip"
     echo "Creating ${FILE}"
-    zip -9r PoundBot-`[[ $x = "darwin" ]] && echo "OSX" || echo $x`-${VERSION}.zip .
+    zip -9r $FILE .
 done
-cd $MAIN/builds
-cp $MAIN/rust_plugin/PoundbotConnector.cs .
-zip -9 PoundbotConnector-Plugin-${PLUGIN_VERSION}.zip PoundbotConnector.cs
+cd $BUILD_DIR
+cp $MAIN/rust_plugin/PoundBotConnector.cs .
+zip -9 PoundbotConnector-Plugin-${PLUGIN_VERSION}.zip PoundBotConnector.cs
