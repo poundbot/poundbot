@@ -118,19 +118,19 @@ func (c *Client) runner() {
 
 					err := c.us.Get(t.SteamID, &u)
 					if err != nil {
-						log.Printf(logRunnerPrefix + "User not found")
-						break Reading
+						log.Printf(logRunnerPrefix + "[COMM] User not found trying to send raid alert")
+						break
 					}
 
 					user, err := c.session.User(u.Snowflake)
 					if err != nil {
-						log.Printf(logRunnerPrefix+" Error finding user %d: %d\n", t.SteamID, err)
-						break Reading
+						log.Printf(logRunnerPrefix+"[COMM] Error finding user %d: %d\n", t.SteamID, err)
+						break
 					}
 
 					channel, err := c.session.UserChannelCreate(user.ID)
 					if err != nil {
-						log.Printf(logRunnerPrefix+" Error creating user channel: %v", err)
+						log.Printf(logRunnerPrefix+"[COMM] Error creating user channel: %v", err)
 					} else {
 						c.session.ChannelMessageSend(channel.ID, t.String())
 					}
@@ -138,25 +138,25 @@ func (c *Client) runner() {
 				case t := <-c.DiscordAuth:
 					dUser, err := c.getUserByName(t.DiscordInfo.DiscordName)
 					if err != nil {
-						log.Printf(logRunnerPrefix+"User %s not found\n", t.DiscordInfo.DiscordName)
+						log.Printf(logRunnerPrefix+"[COMM] User %s not found\n", t.DiscordInfo.DiscordName)
 						err = c.das.Remove(t.SteamInfo)
 						if err != nil {
-							log.Printf(logRunnerPrefix+" - Error removing SteamID %d from the database\n", t.SteamInfo.SteamID)
+							log.Printf(logRunnerPrefix+"[DB] - Error removing SteamID %d from the database\n", t.SteamInfo.SteamID)
 						}
-						break Reading
+						break
 					}
 
 					t.BaseUser.Snowflake = dUser.ID
 
 					err = c.das.Upsert(t)
 					if err != nil {
-						log.Printf(logRunnerPrefix+" - Error upserting SteamID %d from the database\n", t.SteamInfo.SteamID)
-						break Reading
+						log.Printf(logRunnerPrefix+"[DB] - Error upserting SteamID %d from the database\n", t.SteamInfo.SteamID)
+						break
 					}
 
 					_, err = c.sendPrivateMessage(t.Snowflake, messages.PinPrompt)
 					if err != nil {
-						log.Println(logRunnerPrefix + "Could not send PIN request to user")
+						log.Println(logRunnerPrefix + "[COMM] Could not send PIN request to user")
 					}
 
 				case t := <-c.GeneralChan:
@@ -166,7 +166,7 @@ func (c *Client) runner() {
 					}
 					_, err := c.session.ChannelMessageSend(t.ChannelID, fmt.Sprintf("☢️ **%s%s**: %s", clan, t.DisplayName, t.Message))
 					if err != nil {
-						log.Printf(logRunnerPrefix+" Error sending to channel: %v\n", err)
+						log.Printf(logRunnerPrefix+"[COMM] Error sending to channel: %v\n", err)
 					}
 				}
 			}
