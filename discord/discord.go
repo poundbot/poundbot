@@ -138,18 +138,25 @@ func (c *Client) runner() {
 				case t := <-c.DiscordAuth:
 					dUser, err := c.getUserByName(t.DiscordInfo.DiscordName)
 					if err != nil {
-						fmt.Printf("User %s not found\n", t.DiscordInfo.DiscordName)
-						c.das.Remove(t.SteamInfo)
+						log.Printf(logRunnerPrefix+"User %s not found\n", t.DiscordInfo.DiscordName)
+						err = c.das.Remove(t.SteamInfo)
+						if err != nil {
+							log.Printf(logRunnerPrefix+" - Error removing SteamID %d from the database\n", t.SteamInfo.SteamID)
+						}
 						break Reading
 					}
+
 					t.BaseUser.Snowflake = dUser.ID
+
 					err = c.das.Upsert(t)
 					if err != nil {
+						log.Printf(logRunnerPrefix+" - Error upserting SteamID %d from the database\n", t.SteamInfo.SteamID)
 						break Reading
 					}
+
 					_, err = c.sendPrivateMessage(t.Snowflake, messages.PinPrompt)
 					if err != nil {
-						log.Println("Could not send PIN request to user")
+						log.Println(logRunnerPrefix + "Could not send PIN request to user")
 					}
 
 				case t := <-c.GeneralChan:
