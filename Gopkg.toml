@@ -31,15 +31,15 @@
 
 [[constraint]]
   name = "github.com/bwmarrin/discordgo"
-  branch = "develop"
-
-[[constraint]]
   branch = "master"
-  name = "github.com/dghubble/go-twitter"
 
-[[constraint]]
-  name = "github.com/dghubble/oauth1"
-  version = "0.4.0"
+# [[constraint]]
+#   branch = "master"
+#   name = "github.com/dghubble/go-twitter"
+
+# [[constraint]]
+#   name = "github.com/dghubble/oauth1"
+#   version = "0.4.0"
 
 [[constraint]]
   name = "github.com/spf13/viper"
