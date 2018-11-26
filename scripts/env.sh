@@ -1,3 +1,4 @@
+#!/bin/bash
 MAIN=`go env GOPATH`/src/bitbucket.org/mrpoundsign/poundbot
 BUILD_DIR=$MAIN/builds
 VERSION=`cat $MAIN/VERSION`
