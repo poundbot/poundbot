@@ -112,23 +112,6 @@ func (c *Client) runner() {
 					} else {
 						log.Println(logRunnerPrefix + "[CONN] Received unexpected connected message")
 					}
-				// case t := <-c.LinkChan:
-				// 	_, err := c.session.ChannelMessageSend(
-				// 		c.linkChanID,
-				// 		fmt.Sprintf("📝 @everyone New Update: %s", t),
-				// 	)
-				// 	if err != nil {
-				// 		log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
-				// 	}
-
-				// case t := <-c.StatusChan:
-				// 	_, err := c.session.ChannelMessageSend(
-				// 		c.statusChanID,
-				// 		fmt.Sprintf(logRunnerSymbol+t),
-				// 	)
-				// 	if err != nil {
-				// 		log.Printf(logRunnerSymbol+" Error sending to channel: %v\n", err)
-				// 	}
 
 				case t := <-c.RaidAlertChan:
 					var u types.User
@@ -136,13 +119,13 @@ func (c *Client) runner() {
 					err := c.us.Get(t.SteamID, &u)
 					if err != nil {
 						log.Printf(logRunnerPrefix + "User not found")
-						return
+						break Reading
 					}
 
 					user, err := c.session.User(u.Snowflake)
 					if err != nil {
 						log.Printf(logRunnerPrefix+" Error finding user %d: %d\n", t.SteamID, err)
-						break
+						break Reading
 					}
 
 					channel, err := c.session.UserChannelCreate(user.ID)
@@ -157,12 +140,12 @@ func (c *Client) runner() {
 					if err != nil {
 						fmt.Printf("User %s not found\n", t.DiscordInfo.DiscordName)
 						c.das.Remove(t.SteamInfo)
-						return
+						break Reading
 					}
 					t.BaseUser.Snowflake = dUser.ID
 					err = c.das.Upsert(t)
 					if err != nil {
-						return
+						break Reading
 					}
 					_, err = c.sendPrivateMessage(t.Snowflake, messages.PinPrompt)
 					if err != nil {
