@@ -4,7 +4,7 @@
 # -----
 # \${BITBUCKET_REPO_OWNER}
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: golang:1.10.3
+image: golang:1.11.2
 
 pipelines:
   default:
@@ -14,4 +14,5 @@ pipelines:
           - mkdir -pv "${PACKAGE_PATH}"
           - tar -cO --exclude-vcs --exclude=bitbucket-pipelines.yml . | tar -xv -C "${PACKAGE_PATH}"
           - cd "${PACKAGE_PATH}"
+          - go mod download
           - GOMAXPROCS=4 go test ./... -parallel 8 -cover
