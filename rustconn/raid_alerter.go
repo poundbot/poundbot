@@ -7,24 +7,24 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
-const raLogSymbol = "💬 "
+const raLogPrefix = "[RAIDALERT]"
 
 // A RaidStore stores raid information
 type RaidStore interface {
-	GetReady(*[]types.RaidNotification) error
-	Remove(types.RaidNotification) error
+	GetReady(*[]types.RaidAlert) error
+	Remove(types.RaidAlert) error
 }
 
 // A RaidAlerter sends notifications on raids
 type RaidAlerter struct {
 	RaidStore  RaidStore
-	RaidNotify chan types.RaidNotification
+	RaidNotify chan types.RaidAlert
 	SleepTime  time.Duration
 	done       chan struct{}
 }
 
 // NewRaidAlerter constructs a RaidAlerter
-func NewRaidAlerter(ral RaidStore, rnc chan types.RaidNotification, done chan struct{}) *RaidAlerter {
+func NewRaidAlerter(ral RaidStore, rnc chan types.RaidAlert, done chan struct{}) *RaidAlerter {
 	return &RaidAlerter{
 		RaidStore:  ral,
 		RaidNotify: rnc,
@@ -36,17 +36,17 @@ func NewRaidAlerter(ral RaidStore, rnc chan types.RaidNotification, done chan st
 // Run checks for raids that need to be alerted and sends them
 // out through the RaidNotify channel. It runs in a loop.
 func (r *RaidAlerter) Run() {
-	log.Println(raLogSymbol + "🛫 Starting RaidAlerter")
+	log.Println(raLogPrefix + " Starting RaidAlerter")
 	for {
 		select {
 		case <-r.done:
-			log.Println(raLogSymbol + "🛑 Shutting down RaidAlerter")
+			log.Println(raLogPrefix + "[WARN] Shutting down RaidAlerter")
 			return
 		case <-time.After(r.SleepTime):
-			var results []types.RaidNotification
+			var results []types.RaidAlert
 			err := r.RaidStore.GetReady(&results)
-			if err != nil {
-				log.Println(err)
+			if err != nil && err.Error() != "not found" {
+				log.Printf("[ERROR] Get Raid Alerts Error: %s\n", err)
 				continue
 			}
 

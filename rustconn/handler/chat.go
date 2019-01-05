@@ -2,24 +2,22 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
-
+	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/gorilla/context"
 )
 
 // A Chat is for handling discord <-> rust chat
 type Chat struct {
-	d     bool
-	ls    string
-	cs    db.ChatsStore
-	in    chan string
-	out   chan types.ChatMessage
+	d  bool
+	ls string
+	cs storage.ChatsStore
+	in chan types.ChatMessage
+	// out   chan types.ChatMessage
 	sleep time.Duration
 }
 
@@ -29,8 +27,8 @@ type Chat struct {
 // ls is the log symbol
 // in is the channel for server -> discord
 // out is the channel for discord -> server
-func NewChat(d bool, ls string, cs db.ChatsStore, in chan string, out chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
-	chat := Chat{d: d, ls: ls, cs: cs, in: in, out: out, sleep: 10 * time.Second}
+func NewChat(d bool, ls string, cs storage.ChatsStore, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
+	chat := Chat{d: d, ls: ls, cs: cs, in: in, sleep: 10 * time.Second}
 	return chat.Handle
 }
 
@@ -43,7 +41,10 @@ func NewChat(d bool, ls string, cs db.ChatsStore, in chan string, out chan types
 // HTTP GET requests wait for messages and disconnect with http.StatusNoContent
 // after sleep seconds.
 func (c *Chat) Handle(w http.ResponseWriter, r *http.Request) {
-	// TODO: Make this less awful. Plugin must be updated to be smarter.
+	defer r.Body.Close()
+	serverKey := context.Get(r, "serverKey").(string)
+	account := context.Get(r, "account").(types.Account)
+
 	if c.d {
 		switch r.Method {
 		case http.MethodPost:
@@ -60,46 +61,42 @@ func (c *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
-		var wg sync.WaitGroup
 		decoder := json.NewDecoder(r.Body)
-		var t types.ChatMessage
-		err := decoder.Decode(&t)
+		var m types.ChatMessage
+		err := decoder.Decode(&m)
 		if err != nil {
 			log.Println(c.ls + err.Error())
 			return
 		}
 
-		t.Source = types.ChatSourceRust
-
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
-			c.cs.Log(t)
-		}()
-		go func(t types.ChatMessage, c chan string) {
-			defer wg.Done()
-			var clan = ""
-			if t.ClanTag != "" {
-				clan = fmt.Sprintf("[%s] ", t.ClanTag)
-			}
-			c <- fmt.Sprintf("☢️ **%s%s**: %s", clan, t.DisplayName, t.Message)
-		}(t, c.in)
-		wg.Wait()
-
-	case http.MethodGet:
-		select {
-		case res := <-c.out:
-			b, err := json.Marshal(res)
-			if err != nil {
-				log.Println(c.ls + err.Error())
+		m.Source = types.ChatSourceRust
+		for _, s := range account.Servers {
+			if s.Key == serverKey {
+				m.Timestamp.CreatedAt = time.Now().UTC()
+				m.ChannelID = s.ChatChanID
+				c.in <- m
 				return
 			}
-			c.cs.Log(res)
-
-			w.Write(b)
-		case <-time.After(c.sleep):
-			w.WriteHeader(http.StatusNoContent)
 		}
+
+	case http.MethodGet:
+		var m types.ChatMessage
+		err := c.cs.GetNext(serverKey, &m)
+		if err != nil {
+			if err.Error() != "not found" {
+				log.Println(c.ls + err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			return
+		}
+
+		b, err := json.Marshal(m)
+		if err != nil {
+			log.Println(c.ls + err.Error())
+			return
+		}
+
+		w.Write(b)
 
 	default:
 		methodNotAllowed(w, c.ls)

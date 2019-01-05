@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"bitbucket.org/mrpoundsign/poundbot/db/mocks"
+	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
@@ -25,8 +26,7 @@ func TestChat_Handle(t *testing.T) {
 		body   string
 		rBody  string
 		status int
-		in     string
-		logged *types.ChatMessage
+		in     *types.ChatMessage
 		out    *types.ChatMessage
 	}{
 		{
@@ -53,15 +53,9 @@ func TestChat_Handle(t *testing.T) {
 				DisplayName: "player",
 				Message:     "hello there!",
 				Source:      "discord",
+				Timestamp:   types.Timestamp{CreatedAt: time.Time{}},
 			},
-			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\"}",
-			logged: &types.ChatMessage{
-				SteamInfo:   types.SteamInfo{SteamID: 1234},
-				ClanTag:     "FoO",
-				DisplayName: "player",
-				Message:     "hello there!",
-				Source:      "discord",
-			},
+			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\",\"CreatedAt\":\"0001-01-01T00:00:00Z\"}",
 		},
 		{
 			name:   "chat enabled POST",
@@ -76,33 +70,34 @@ func TestChat_Handle(t *testing.T) {
 				"Message":"hello there!"
 			}
 			`,
-			logged: &types.ChatMessage{
+			in: &types.ChatMessage{
 				SteamInfo:   types.SteamInfo{SteamID: 1234},
 				ClanTag:     "FoO",
 				DisplayName: "player",
 				Message:     "hello there!",
 				Source:      "rust",
+				ChannelID:   "1234",
 			},
-			in: "☢️ **[FoO] player**: hello there!",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var in string
+			var in *types.ChatMessage
 
-			tt.s.in = make(chan string)
-			tt.s.out = make(chan types.ChatMessage)
+			tt.s.in = make(chan types.ChatMessage)
 
 			cs := mocks.ChatsStore{}
 			tt.s.cs = &cs
-			var log *types.ChatMessage
 
-			cs.On("Log", mock.AnythingOfType("types.ChatMessage")).
-				Return(func(m types.ChatMessage) error {
-					log = &m
-					return nil
-				})
+			if tt.out != nil {
+				cs.On("GetNext", "bloop", mock.AnythingOfType("*types.ChatMessage")).
+					Return(func(serverKey string, m *types.ChatMessage) error {
+						tmp := *tt.out
+						*m = tmp
+						return nil
+					})
+			}
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
 			if err != nil {
@@ -114,26 +109,23 @@ func TestChat_Handle(t *testing.T) {
 			var wg sync.WaitGroup
 
 			// Collect any incoming messages
-			if tt.in != "" {
+			if tt.in != nil {
 				wg.Add(1)
+				var thing types.ChatMessage
 				go func() {
 					defer wg.Done()
 					select {
-					case in = <-tt.s.in:
+					case thing = <-tt.s.in:
+						in = &thing
 						break
 					}
 				}()
 			}
 
-			if tt.out != nil {
-				tt.s.sleep = 10 * time.Minute
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					tt.s.out <- *tt.out
-				}()
-			}
-
+			context.Set(req, "serverKey", "bloop")
+			context.Set(req, "account", types.Account{Servers: []types.Server{
+				{ChatChanID: "1234", Key: "bloop"},
+			}})
 			handler := http.HandlerFunc(tt.s.Handle)
 			handler.ServeHTTP(rr, req)
 
@@ -142,7 +134,6 @@ func TestChat_Handle(t *testing.T) {
 			assert.Equal(t, tt.body, rr.Body.String(), "handler returned bad body")
 			assert.Equal(t, tt.status, rr.Code, "handler returned wrong status code")
 			assert.Equal(t, tt.in, in, "handler got wrong in message")
-			assert.Equal(t, tt.logged, log, "Chat log should be equal")
 		})
 	}
 }

@@ -6,18 +6,18 @@ import (
 	"log"
 	"net/http"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
+	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 type DiscordAuth struct {
 	ls  string
-	das db.DiscordAuthsStore
-	us  db.UsersStore
+	das storage.DiscordAuthsStore
+	us  storage.UsersStore
 	dac chan types.DiscordAuth
 }
 
-func NewDiscordAuth(ls string, das db.DiscordAuthsStore, us db.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
+func NewDiscordAuth(ls string, das storage.DiscordAuthsStore, us storage.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
 	da := DiscordAuth{ls: ls, das: das, us: us, dac: dac}
 	return da.Handle
 }
@@ -25,6 +25,7 @@ func NewDiscordAuth(ls string, das db.DiscordAuthsStore, us db.UsersStore, dac c
 // Handle takes Discord verification requests from the Rust server
 // and sends them to the DiscordAuthsStore and DiscordAuth channel
 func (da *DiscordAuth) Handle(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth
 	err := decoder.Decode(&t)
@@ -35,14 +36,15 @@ func (da *DiscordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf(da.ls+"User Auth Request: %v from %v\n", t, r.Body)
 
-	u, err := da.us.Get(t.SteamInfo)
+	var u types.User
+	err = da.us.Get(t.SteamID, &u)
 	if err == nil {
 		handleError(w, da.ls, types.RESTError{
 			StatusCode: http.StatusMethodNotAllowed,
-			Error:      fmt.Sprintf("%s is linked to you.", u.DiscordID),
+			Error:      fmt.Sprintf("%s is linked to you.", u.DiscordName),
 		})
 		return
-	} else if t.DiscordID == "check" {
+	} else if t.DiscordName == "check" {
 		handleError(w, da.ls, types.RESTError{
 			StatusCode: http.StatusNotFound,
 			Error:      "Account is not linked to discord.",

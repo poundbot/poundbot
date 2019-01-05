@@ -6,7 +6,7 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
-const asLogSymbol = "🆔 "
+const asLogSymbol = "[AUTH] "
 
 type DiscordAuthsStore interface {
 	Remove(types.SteamInfo) error
@@ -36,7 +36,7 @@ func NewAuthSaver(da DiscordAuthsStore, u UsersStore, as chan types.DiscordAuth,
 
 // Run writes users sent in through the AuthSuccess channel
 func (a *AuthSaver) Run() {
-	log.Println(asLogSymbol + "🛫 Starting AuthServer")
+	log.Println(asLogSymbol + "Starting AuthServer")
 	for {
 		select {
 		case as := <-a.AuthSuccess:
@@ -53,7 +53,7 @@ func (a *AuthSaver) Run() {
 				}
 			}
 		case <-a.done:
-			log.Println(asLogSymbol + "🛑 Shutting down AuthServer...")
+			log.Println(asLogSymbol + "Shutting down AuthServer...")
 			return
 		}
 	}

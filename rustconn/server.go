@@ -8,27 +8,27 @@ import (
 	"sync"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/db"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn/handler"
+	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/gorilla/mux"
 )
 
-var logSymbol = "🕸️ "
+var logPrefix = "[RC]"
 
 // ServerConfig contains the base Server configuration
 type ServerConfig struct {
-	BindAddr  string
-	Port      int
-	Datastore db.DataStore
+	BindAddr string
+	Port     int
+	Storage  storage.Storage
 }
 
 type ServerChannels struct {
-	RaidNotify  chan types.RaidNotification
+	RaidNotify  chan types.RaidAlert
 	DiscordAuth chan types.DiscordAuth
 	AuthSuccess chan types.DiscordAuth
-	ChatChan    chan string
-	ChatOutChan chan types.ChatMessage
+	ChatChan    chan types.ChatMessage
+	// ChatOutChan chan types.ChatMessage
 }
 
 type ServerOptions struct {
@@ -56,27 +56,33 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 		options:  options,
 	}
 
+	serverAuth := ServerAuth{as: sc.Storage.Accounts()}
 	r := mux.NewRouter()
-	r.HandleFunc(
+
+	// Handles all /api requests, and sets the server auth handler
+	api := r.PathPrefix("/api").Subrouter()
+	api.Use(serverAuth.Handle)
+	api.HandleFunc(
 		"/entity_death",
-		handler.NewEntityDeath(logSymbol, sc.Datastore.RaidAlerts()),
+		handler.NewEntityDeath(logPrefix, sc.Storage.RaidAlerts()),
 	)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/discord_auth",
-		handler.NewDiscordAuth(logSymbol, sc.Datastore.DiscordAuths(), sc.Datastore.Users(), channels.DiscordAuth),
+		handler.NewDiscordAuth(logPrefix, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/chat",
-		handler.NewChat(s.options.ChatRelay, logSymbol, sc.Datastore.Chats(), channels.ChatChan, channels.ChatOutChan),
+		handler.NewChat(s.options.ChatRelay, logPrefix, sc.Storage.Chats(), channels.ChatChan),
 	)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/clans",
-		handler.NewClans(logSymbol, sc.Datastore.Clans(), sc.Datastore.Users()),
+		handler.NewClans(logPrefix, sc.Storage.Accounts()),
 	).Methods(http.MethodPut)
-	r.HandleFunc(
+	api.HandleFunc(
 		"/clans/{tag}",
-		handler.NewClan(logSymbol, sc.Datastore.Clans(), sc.Datastore.Users()),
+		handler.NewClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
+
 	s.Handler = r
 
 	s.shutdownRequest = make(chan struct{})
@@ -84,11 +90,11 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 	return &s
 }
 
-// Serve starts the HTTP server, raid alerter, and Discord auth manager
+// Start starts the HTTP server, raid alerter, and Discord auth manager
 func (s *Server) Start() error {
 	// Start the AuthSaver
 	go func() {
-		var newConn = s.sc.Datastore.Copy()
+		var newConn = s.sc.Storage.Copy()
 		defer newConn.Close()
 
 		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.channels.AuthSuccess, s.shutdownRequest)
@@ -98,7 +104,7 @@ func (s *Server) Start() error {
 	if s.options.RaidAlerts {
 		// Start the RaidAlerter
 		go func() {
-			var newConn = s.sc.Datastore.Copy()
+			var newConn = s.sc.Storage.Copy()
 			defer newConn.Close()
 
 			var ra = NewRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)
@@ -107,19 +113,20 @@ func (s *Server) Start() error {
 	}
 
 	go func() {
-		log.Printf(logSymbol+"🛫 Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+		log.Printf(logPrefix+" Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 		if err := s.ListenAndServe(); err != nil {
-			log.Printf(logSymbol+"HTTP server died with error %v\n", err)
+			log.Printf(logPrefix+" HTTP server died with error %v\n", err)
 		} else {
-			log.Printf(logSymbol+"HTTP server graceful shutdown\n", err)
+			log.Printf(logPrefix+" HTTP server graceful shutdown\n", err)
 		}
 	}()
 
 	return nil
 }
 
+// Stop stops the http server
 func (s *Server) Stop() {
-	log.Printf(logSymbol + "🛑 Shutting down HTTP server ...")
+	log.Printf(logPrefix + "[WARN] Shutting down HTTP server ...")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -132,7 +139,7 @@ func (s *Server) Stop() {
 		//shutdown the server
 		err := s.Shutdown(ctx)
 		if err != nil {
-			log.Printf(logSymbol+"Shutdown request error: %v", err)
+			log.Printf(logPrefix+"[WARN] Shutdown request error: %v", err)
 		}
 	}()
 	s.shutdownRequest <- struct{}{} // AuthSaver
