@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"time"
-	"log"
 
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/globalsign/mgo"
@@ -113,9 +112,5 @@ func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
 		},
 		bson.M{"$set": bson.M{"disabled": false}},
 	)
-
-	if err == nil {
-		log.Println(info)
-	}
 	return err
 }
