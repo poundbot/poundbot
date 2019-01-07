@@ -71,6 +71,8 @@ type AccountsStore interface {
 	AddClan(serverKey string, clan types.Clan) error
 	RemoveClan(serverKey, clanTag string) error
 	SetClans(serverKey string, clans []types.Clan) error
+
+	RemoveNotInDiscordGuildList(guildIDs []string) error
 }
 
 // Storage is a complete implementation of the data store for users,

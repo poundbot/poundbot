@@ -159,6 +159,7 @@ func main() {
 			Database:    viper.GetString("mongo.database"),
 		})
 		if err != nil {
+			log.Printf("Why")
 			log.Panicf("Could not connect to DB: %v\n", err)
 		}
 		store = mongo

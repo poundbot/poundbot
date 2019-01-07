@@ -49,3 +49,7 @@ func (s Accounts) RemoveServer(snowflake, serverKey string) error {
 func (s Accounts) UpdateServer(snowflake string, server types.Server) error {
 	return nil
 }
+
+func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
+	return nil
+}

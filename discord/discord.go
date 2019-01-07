@@ -1,7 +1,6 @@
 package discord
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -21,26 +20,17 @@ const logRunnerPrefix = logPrefix + "[RUNNER]"
 
 type RunnerConfig struct {
 	Token string
-	// LinkChan    string
-	// StatusChan  string
-	// GeneralChan string
 }
 
 type Client struct {
-	session *discordgo.Session
-	// linkChanID     string
-	// statusChanID   string
-	// generalChanID  string
-	as     storage.AccountsStore
-	cs     storage.ChatsStore
-	das    storage.DiscordAuthsStore
-	us     storage.UsersStore
-	token  string
-	status chan bool
-	// LinkChan       chan string
-	// StatusChan     chan string
-	GeneralChan chan types.ChatMessage
-	// GeneralOutChan chan types.ChatMessage
+	session       *discordgo.Session
+	as            storage.AccountsStore
+	cs            storage.ChatsStore
+	das           storage.DiscordAuthsStore
+	us            storage.UsersStore
+	token         string
+	status        chan bool
+	GeneralChan   chan types.ChatMessage
 	RaidAlertChan chan types.RaidAlert
 	DiscordAuth   chan types.DiscordAuth
 	AuthSuccess   chan types.DiscordAuth
@@ -49,21 +39,19 @@ type Client struct {
 
 func Runner(token string, as storage.AccountsStore, cs storage.ChatsStore, das storage.DiscordAuthsStore, us storage.UsersStore) *Client {
 	return &Client{
-		as:    as,
-		cs:    cs,
-		das:   das,
-		us:    us,
-		token: token,
-		// LinkChan:       make(chan string),
-		// StatusChan:     make(chan string),
-		GeneralChan: make(chan types.ChatMessage),
-		// GeneralOutChan: make(chan types.ChatMessage),
+		as:            as,
+		cs:            cs,
+		das:           das,
+		us:            us,
+		token:         token,
+		GeneralChan:   make(chan types.ChatMessage),
 		DiscordAuth:   make(chan types.DiscordAuth),
 		AuthSuccess:   make(chan types.DiscordAuth),
 		RaidAlertChan: make(chan types.RaidAlert),
 	}
 }
 
+// Start starts the runner
 func (c *Client) Start() error {
 	session, err := discordgo.New("Bot " + c.token)
 	if err == nil {
@@ -84,6 +72,7 @@ func (c *Client) Start() error {
 	return err
 }
 
+// Stop stops the runner
 func (c *Client) Stop() {
 	log.Println(logPrefix + "[CONN] Disconnecting")
 	c.shutdown = true
@@ -221,6 +210,11 @@ func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.Println(logPrefix + "[CONN] Ready!")
 	s.UpdateStatus(0, "I'm a real boy!")
+	guilds := make([]string, len(s.State.Guilds))
+	for i, guild := range s.State.Guilds {
+		guilds[i] = guild.ID
+	}
+	c.as.RemoveNotInDiscordGuildList(guilds)
 	c.status <- true
 }
 
@@ -288,20 +282,21 @@ Interact:
 	err = c.getDiscordAuth(m.Author.ID, &da)
 	if err != nil {
 		return
-	} else {
-		if pinString(da.Pin) == strings.TrimSpace(m.Content) {
-			da.Ack = func(authed bool) {
-				if authed {
-					s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
-				} else {
-					s.ChannelMessageSend(m.ChannelID, "Internal error. Please try again. If the problem persists, please contact MrPoundsign")
-				}
-			}
-			c.AuthSuccess <- da
-		} else {
-			s.ChannelMessageSend(m.ChannelID, "Invalid pin. Please try again.")
-		}
 	}
+
+	if pinString(da.Pin) == strings.TrimSpace(m.Content) {
+		da.Ack = func(authed bool) {
+			if authed {
+				s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
+			} else {
+				s.ChannelMessageSend(m.ChannelID, "Internal error. Please try again. If the problem persists, please contact MrPoundsign")
+			}
+		}
+		c.AuthSuccess <- da
+	} else {
+		s.ChannelMessageSend(m.ChannelID, "Invalid pin. Please try again.")
+	}
+
 	return
 
 Instruct:
@@ -350,15 +345,16 @@ Instruct:
 
 func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Message, err error) {
 	channel, err := c.session.UserChannelCreate(snowflake)
+
 	if err != nil {
 		log.Printf(logRunnerPrefix+" Error creating user channel: %v", err)
 		return
-	} else {
-		return c.session.ChannelMessageSend(
-			channel.ID,
-			message,
-		)
 	}
+
+	return c.session.ChannelMessageSend(
+		channel.ID,
+		message,
+	)
 }
 
 func (c *Client) sendServerKey(snowflake, u1 string) (m *discordgo.Message, err error) {
@@ -370,7 +366,7 @@ func (c *Client) getUserByName(name string) (user discordgo.User, err error) {
 
 	guilds, err := c.session.UserGuilds(100, "", "")
 	if err != nil {
-		return discordgo.User{}, errors.New(fmt.Sprintf("discord user not found %s", name))
+		return discordgo.User{}, fmt.Errorf("discord user not found %s", name)
 	}
 
 	for _, guild := range guilds {
@@ -386,7 +382,7 @@ func (c *Client) getUserByName(name string) (user discordgo.User, err error) {
 		}
 	}
 
-	return discordgo.User{}, errors.New(fmt.Sprintf("discord user not found %s", name))
+	return discordgo.User{}, fmt.Errorf("discord user not found %s", name)
 }
 
 func (c *Client) getDiscordAuth(snowflake string, da *types.DiscordAuth) error {

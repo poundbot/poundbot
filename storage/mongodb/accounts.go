@@ -89,3 +89,27 @@ func (s Accounts) UpdateServer(snowflake string, server types.Server) error {
 		bson.M{"$set": bson.M{"servers": []types.Server{server}}},
 	)
 }
+
+func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
+	err := s.collection.Update(
+		bson.M{
+			accountsKeyField: bson.M{
+				"$nin": guildIDs,
+			},
+		},
+		bson.M{"$set": bson.M{"disabled": true}},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return s.collection.Update(
+		bson.M{
+			accountsKeyField: bson.M{
+				"$in": guildIDs,
+			},
+		},
+		bson.M{"$set": bson.M{"disabled": false}},
+	)
+}
