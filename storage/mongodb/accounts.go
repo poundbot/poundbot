@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"time"
+	"log"
 
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/globalsign/mgo"
@@ -91,7 +92,7 @@ func (s Accounts) UpdateServer(snowflake string, server types.Server) error {
 }
 
 func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
-	err := s.collection.Update(
+	_, err := s.collection.UpdateAll(
 		bson.M{
 			accountsKeyField: bson.M{
 				"$nin": guildIDs,
@@ -104,7 +105,7 @@ func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
 		return err
 	}
 
-	return s.collection.Update(
+	_, err = s.collection.UpdateAll(
 		bson.M{
 			accountsKeyField: bson.M{
 				"$in": guildIDs,
@@ -112,4 +113,9 @@ func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
 		},
 		bson.M{"$set": bson.M{"disabled": false}},
 	)
+
+	if err == nil {
+		log.Println(info)
+	}
+	return err
 }
