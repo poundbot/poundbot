@@ -72,7 +72,6 @@ func (c *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 		m.Source = types.ChatSourceRust
 		for _, s := range account.Servers {
 			if s.Key == serverKey {
-				m.Timestamp.CreatedAt = time.Now().UTC()
 				m.ChannelID = s.ChatChanID
 				c.in <- m
 				return

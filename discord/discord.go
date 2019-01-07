@@ -270,6 +270,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				cm.Message = truncateString(cm.Message, 128)
 				c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
 			}
+			cm.CreatedAt = time.Now().UTC()
 			c.cs.Log(cm)
 
 		}(types.ChatMessage{

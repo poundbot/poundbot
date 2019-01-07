@@ -53,9 +53,9 @@ func TestChat_Handle(t *testing.T) {
 				DisplayName: "player",
 				Message:     "hello there!",
 				Source:      "discord",
-				Timestamp:   types.Timestamp{CreatedAt: time.Time{}},
+				Timestamp:   types.Timestamp{CreatedAt: time.Unix(0, 0).UTC()},
 			},
-			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\",\"CreatedAt\":\"0001-01-01T00:00:00Z\"}",
+			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\",\"CreatedAt\":\"1970-01-01T00:00:00Z\"}",
 		},
 		{
 			name:   "chat enabled POST",

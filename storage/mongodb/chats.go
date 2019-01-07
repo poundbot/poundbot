@@ -16,6 +16,7 @@ func (c Chats) Log(cm types.ChatMessage) error {
 	return c.collection.Insert(cm)
 }
 
+// GetNext gets next available chat message for the Rust server
 func (c Chats) GetNext(serverKey string, chatMessage *types.ChatMessage) error {
 	_, err := c.collection.Find(bson.M{"serverkey": serverKey}).Limit(1).Apply(mgo.Change{Remove: true}, &chatMessage)
 	return err
