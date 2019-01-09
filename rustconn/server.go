@@ -31,29 +31,22 @@ type ServerChannels struct {
 	// ChatOutChan chan types.ChatMessage
 }
 
-type ServerOptions struct {
-	RaidAlerts bool
-	ChatRelay  bool
-}
-
 // A Server runs the HTTP server, notification channels, and DB writing.
 type Server struct {
 	http.Server
 	sc              *ServerConfig
 	channels        ServerChannels
-	options         ServerOptions
 	shutdownRequest chan struct{}
 }
 
 // NewServer creates a Server
-func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions) *Server {
+func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	s := Server{
 		Server: http.Server{
 			Addr: fmt.Sprintf("%s:%d", sc.BindAddr, sc.Port),
 		},
 		sc:       sc,
 		channels: channels,
-		options:  options,
 	}
 
 	serverAuth := ServerAuth{as: sc.Storage.Accounts()}
@@ -72,7 +65,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels, options ServerOptions)
 	)
 	api.HandleFunc(
 		"/chat",
-		handler.NewChat(s.options.ChatRelay, logPrefix, sc.Storage.Chats(), channels.ChatChan),
+		handler.NewChat(logPrefix, sc.Storage.Chats(), channels.ChatChan),
 	)
 	api.HandleFunc(
 		"/clans",
@@ -101,16 +94,14 @@ func (s *Server) Start() error {
 		as.Run()
 	}()
 
-	if s.options.RaidAlerts {
-		// Start the RaidAlerter
-		go func() {
-			var newConn = s.sc.Storage.Copy()
-			defer newConn.Close()
+	// Start the RaidAlerter
+	go func() {
+		var newConn = s.sc.Storage.Copy()
+		defer newConn.Close()
 
-			var ra = NewRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)
-			ra.Run()
-		}()
-	}
+		var ra = NewRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)
+		ra.Run()
+	}()
 
 	go func() {
 		log.Printf(logPrefix+" Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
@@ -143,8 +134,6 @@ func (s *Server) Stop() {
 		}
 	}()
 	s.shutdownRequest <- struct{}{} // AuthSaver
-	if s.options.RaidAlerts {
-		s.shutdownRequest <- struct{}{} // RaidAlerter
-	}
+	s.shutdownRequest <- struct{}{} // RaidAlerter
 	wg.Wait()
 }

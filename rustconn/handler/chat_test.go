@@ -31,19 +31,6 @@ func TestChat_Handle(t *testing.T) {
 		out    *types.ChatMessage
 	}{
 		{
-			name:   "chat disabled GET",
-			method: http.MethodGet,
-			s:      &Chat{d: true},
-			status: http.StatusNoContent,
-		},
-		{
-			name:   "chat disabled POST",
-			method: http.MethodPost,
-			s:      &Chat{d: true},
-			status: http.StatusOK,
-			rBody:  `{"steam_id": 1234}`,
-		},
-		{
 			name:   "chat enabled GET",
 			method: http.MethodGet,
 			s:      &Chat{},

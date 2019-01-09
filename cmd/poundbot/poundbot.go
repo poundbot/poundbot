@@ -15,7 +15,6 @@ import (
 	"syscall"
 
 	"bitbucket.org/mrpoundsign/poundbot/discord"
-	"bitbucket.org/mrpoundsign/poundbot/rust"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/storage/mongodb"
@@ -50,10 +49,6 @@ func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),
 	}
-}
-
-func newRustServerConfig(cfg *viper.Viper) *rust.ServerConfig {
-	return &rust.ServerConfig{Hostname: cfg.GetString("hostname"), Port: cfg.GetInt("port")}
 }
 
 func start(s service, name string) error {
@@ -91,24 +86,17 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
-	viper.SetDefault("json-store.path", "./json-store")
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
-	viper.SetDefault("features.players-joined", false)
-	viper.SetDefault("features.raid-alerts", true)
-	viper.SetDefault("features.chat-relay", true)
-	viper.SetDefault("players-joined-frequency", 30)
 	viper.SetDefault("http.bind_addr", "")
 	viper.SetDefault("http.port", 9090)
 	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
-	viper.SetDefault("discord.channels.status", "CHANNEL ID FOR SERVER STATUS (players joined)")
-	viper.SetDefault("discord.channels.general", "CHANNEL ID FOR CHAT RELAY")
 
 	go func() {
 		log.Fatal(http.ListenAndServe("localhost:6061", nil))
 	}()
 
-	var loaded = false
+	// var loaded = false
 
 	if *writeConfigForce {
 		*writeConfig = true
@@ -119,21 +107,7 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		loaded = true
-	}
-
-	if loaded {
-		if viper.IsSet("rust.api-server") {
-			log.Println("Deprecated config option: /rust.api-server. Please remove.")
-			log.Println("  copying to /http")
-			viper.RegisterAlias("http", "rust.api-server")
-		}
-
-		if viper.IsSet("player-delta-frequency") {
-			log.Println("Deprecated config option: /player-delta-frequency. Please remove.")
-			log.Println("  copying to /players-joined-frequency")
-			viper.RegisterAlias("players-joined-frequency", "player-delta-frequency")
-		}
+		// loaded = true
 	}
 
 	if *writeConfig {
@@ -179,27 +153,11 @@ func main() {
 			AuthSuccess: dr.AuthSuccess,
 			ChatChan:    dr.GeneralChan,
 		},
-		rustconn.ServerOptions{
-			RaidAlerts: viper.GetBool("features.raid-alerts"),
-			ChatRelay:  !viper.GetBool("features.chat-relay"),
-		},
 	)
 
 	if err := start(server, "HTTP Server"); err != nil {
 		log.Fatalf("Could not start HTTP server, %v\n", err)
 	}
-
-	// Rust Server Watcher
-	// if viper.GetBool("features.players-joined") {
-	// 	servicesCount++
-	// 	rConfig := newRustServerConfig(viper.Sub("rust.server"))
-	// 	pDeltaFreq := viper.GetInt("players-joined-frequency")
-	// 	rw, err := rust.NewWatcher(*rConfig, pDeltaFreq, dr.StatusChan)
-	// 	if err != nil {
-	// 		log.Fatalf("Can't start rust watcher, %v\n", err)
-	// 	}
-	// 	start(rw, "RustWatcher")
-	// }
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(

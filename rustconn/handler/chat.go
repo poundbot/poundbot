@@ -14,7 +14,6 @@ import (
 
 // A Chat is for handling discord <-> rust chat
 type Chat struct {
-	d  bool
 	ls string
 	cs storage.ChatsStore
 	in chan types.ChatMessage
@@ -24,12 +23,11 @@ type Chat struct {
 
 // NewChat initializes a chat handler and returns it
 //
-// d disables chat (bool)
 // ls is the log symbol
 // in is the channel for server -> discord
 // out is the channel for discord -> server
-func NewChat(d bool, ls string, cs storage.ChatsStore, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
-	chat := Chat{d: d, ls: ls, cs: cs, in: in, sleep: 10 * time.Second}
+func NewChat(ls string, cs storage.ChatsStore, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
+	chat := Chat{ls: ls, cs: cs, in: in, sleep: 10 * time.Second}
 	return chat.Handle
 }
 
@@ -45,20 +43,6 @@ func (c *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	serverKey := context.Get(r, "serverKey").(string)
 	account := context.Get(r, "account").(types.Account)
-
-	if c.d {
-		switch r.Method {
-		case http.MethodPost:
-			w.WriteHeader(http.StatusOK)
-		case http.MethodGet:
-			select {
-			case <-time.After(c.sleep):
-				break
-			}
-			w.WriteHeader(http.StatusNoContent)
-		}
-		return
-	}
 
 	switch r.Method {
 	case http.MethodPost:
