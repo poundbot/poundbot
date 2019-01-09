@@ -18,7 +18,6 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/rust"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
-	"bitbucket.org/mrpoundsign/poundbot/storage/jsonstore"
 	"bitbucket.org/mrpoundsign/poundbot/storage/mongodb"
 	"github.com/spf13/viper"
 )
@@ -92,7 +91,6 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
-	viper.SetDefault("storage", "mongodb")
 	viper.SetDefault("json-store.path", "./json-store")
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
@@ -152,22 +150,16 @@ func main() {
 
 	var store storage.Storage
 
-	switch viper.GetString("storage") {
-	case "mongodb":
-		mongo, err := mongodb.NewMongoDB(mongodb.Config{
-			DialAddress: viper.GetString("mongo.dial-addr"),
-			Database:    viper.GetString("mongo.database"),
-		})
-		if err != nil {
-			log.Printf("Why")
-			log.Panicf("Could not connect to DB: %v\n", err)
-		}
-		store = mongo
-	case "json":
-		path := filepath.Clean(viper.GetString("json-store.path"))
-		os.MkdirAll(path, os.ModePerm)
-		store = jsonstore.NewJson(path)
+	mongo, err := mongodb.NewMongoDB(mongodb.Config{
+		DialAddress: viper.GetString("mongo.dial-addr"),
+		Database:    viper.GetString("mongo.database"),
+	})
+
+	if err != nil {
+		log.Panicf("Could not connect to DB: %v\n", err)
 	}
+
+	store = mongo
 
 	store.Init()
 
