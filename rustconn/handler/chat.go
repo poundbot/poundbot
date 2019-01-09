@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage"
+	ptime "bitbucket.org/mrpoundsign/poundbot/time"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/gorilla/context"
 )
@@ -70,6 +71,11 @@ func (c *Chat) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		m.Source = types.ChatSourceRust
+
+		if m.CreatedAt.Equal(time.Time{}) {
+			m.CreatedAt = ptime.Clock().Now().UTC()
+		}
+
 		for _, s := range account.Servers {
 			if s.Key == serverKey {
 				m.ChannelID = s.ChatChanID

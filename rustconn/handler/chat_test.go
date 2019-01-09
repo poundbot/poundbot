@@ -6,17 +6,18 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/gorilla/context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
+	ptime "bitbucket.org/mrpoundsign/poundbot/time"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 func TestChat_Handle(t *testing.T) {
+	ptime.Mock()
 	t.Parallel()
 
 	tests := []struct {
@@ -53,7 +54,7 @@ func TestChat_Handle(t *testing.T) {
 				DisplayName: "player",
 				Message:     "hello there!",
 				Source:      "discord",
-				Timestamp:   types.Timestamp{CreatedAt: time.Unix(0, 0).UTC()},
+				Timestamp:   types.Timestamp{CreatedAt: ptime.Clock().Now().UTC()},
 			},
 			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\",\"CreatedAt\":\"1970-01-01T00:00:00Z\"}",
 		},
@@ -77,6 +78,7 @@ func TestChat_Handle(t *testing.T) {
 				Message:     "hello there!",
 				Source:      "rust",
 				ChannelID:   "1234",
+				Timestamp:   types.Timestamp{CreatedAt: ptime.Clock().Now().UTC()},
 			},
 		},
 	}

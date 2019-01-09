@@ -2,6 +2,7 @@ module bitbucket.org/mrpoundsign/poundbot
 
 require (
 	github.com/alliedmodders/blaster v0.0.0-20170816013103-9ae89170d621
+	github.com/benbjohnson/clock v0.0.0-20161215174838-7dc76406b6d3
 	github.com/bwmarrin/discordgo v0.19.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fsnotify/fsnotify v1.4.7
