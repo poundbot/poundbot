@@ -3,13 +3,12 @@ package types
 import "strconv"
 
 type Server struct {
-	Key           string
-	Address       string
-	Clans         []Clan
-	TwitterChanID string
-	ChatChanID    string
-	ServerChanID  string
-	RaidDelay     string
+	Key          string
+	Address      string
+	Clans        []Clan
+	ChatChanID   string
+	ServerChanID string
+	RaidDelay    string
 }
 
 type BaseAccount struct {
