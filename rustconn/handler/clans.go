@@ -26,7 +26,7 @@ func NewClans(ls string, as storage.AccountsStore) func(w http.ResponseWriter, r
 func (c *Clans) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	serverKey := context.Get(r, "serverKey").(string)
-	log.Printf("Server key is \"%s\"\n", serverKey)
+	log.Printf(c.ls+"clansHandler: Updating all clans for %s\n", serverKey)
 
 	decoder := json.NewDecoder(r.Body)
 	var t []types.ServerClan

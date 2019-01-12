@@ -26,18 +26,17 @@ func (c *Clan) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	// account := context.Get(r, "account").(types.Account)
 	serverKey := context.Get(r, "serverKey").(string)
-	log.Printf("Server key is %s\n", serverKey)
 
 	vars := mux.Vars(r)
 	tag := vars["tag"]
 
 	switch r.Method {
 	case http.MethodDelete:
-		log.Printf(c.ls+"clanHandler: Removing clan %s\n", tag)
+		log.Printf(c.ls+"clanHandler: Removing clan %s for %s\n", tag, serverKey)
 		c.as.RemoveClan(serverKey, tag)
 		return
 	case http.MethodPut:
-		log.Printf(c.ls+"clanHandler: Updating clan %s\n", tag)
+		log.Printf(c.ls+"clanHandler: Updating clan %s for %s\n", tag, serverKey)
 		decoder := json.NewDecoder(r.Body)
 		var t types.ServerClan
 		err := decoder.Decode(&t)
