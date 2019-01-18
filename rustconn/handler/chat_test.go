@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -23,17 +24,18 @@ func TestChat_Handle(t *testing.T) {
 	tests := []struct {
 		name   string
 		method string
-		s      *Chat
+		s      *chat
 		body   string
 		rBody  string
 		status int
 		in     *types.ChatMessage
 		out    *types.ChatMessage
+		log    string
 	}{
 		{
-			name:   "chat enabled GET",
+			name:   "chat GET",
 			method: http.MethodGet,
-			s:      &Chat{},
+			s:      &chat{},
 			status: http.StatusOK,
 			out: &types.ChatMessage{
 				SteamInfo:   types.SteamInfo{SteamID: 1234},
@@ -46,9 +48,9 @@ func TestChat_Handle(t *testing.T) {
 			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\",\"CreatedAt\":\"1970-01-01T00:00:00Z\"}",
 		},
 		{
-			name:   "chat enabled POST",
+			name:   "chat POST",
 			method: http.MethodPost,
-			s:      &Chat{},
+			s:      &chat{},
 			status: http.StatusOK,
 			rBody: `
 			{
@@ -68,9 +70,21 @@ func TestChat_Handle(t *testing.T) {
 				Timestamp:   types.Timestamp{CreatedAt: ptime.Clock().Now().UTC()},
 			},
 		},
+		{
+			name:   "chat POST bad json",
+			method: http.MethodPost,
+			s:      &chat{},
+			status: http.StatusOK,
+			rBody:  "not JSON",
+			log:    "[C] [request-1] Invalid JSON: invalid character 'o' in literal null (expecting 'u')\n",
+		},
 	}
 
 	for _, tt := range tests {
+		var logBuffer bytes.Buffer
+		tt.s.logger.SetOutput(&logBuffer)
+		tt.s.logger.SetPrefix("[C] ")
+
 		t.Run(tt.name, func(t *testing.T) {
 			var in *types.ChatMessage
 
@@ -111,6 +125,7 @@ func TestChat_Handle(t *testing.T) {
 				}()
 			}
 
+			context.Set(req, "requestUUID", "request-1")
 			context.Set(req, "serverKey", "bloop")
 			context.Set(req, "account", types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
@@ -123,6 +138,7 @@ func TestChat_Handle(t *testing.T) {
 			assert.Equal(t, tt.body, rr.Body.String(), "handler returned bad body")
 			assert.Equal(t, tt.status, rr.Code, "handler returned wrong status code")
 			assert.Equal(t, tt.in, in, "handler got wrong in message")
+			assert.Equal(t, tt.log, logBuffer.String(), "log was incorrect")
 		})
 	}
 }

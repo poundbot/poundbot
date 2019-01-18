@@ -11,28 +11,30 @@ import (
 	"github.com/gorilla/context"
 )
 
-type EntityDeath struct {
-	ls  string
-	ras storage.RaidAlertsStore
+type entityDeath struct {
+	ras    storage.RaidAlertsStore
+	logger log.Logger
 }
 
-func NewEntityDeath(ls string, ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
-	ed := EntityDeath{ls, ras}
+func NewEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
+	ed := entityDeath{ras: ras, logger: log.Logger{}}
+	ed.logger.SetPrefix(logPrefix)
 	return ed.Handle
 }
 
 // Handle manages incoming Rust entity death notices and sends them
 // to the RaidAlertsStore and RaidAlerts channel
-func (e *EntityDeath) Handle(w http.ResponseWriter, r *http.Request) {
+func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	requestUUID := context.Get(r, "requestUUID").(string)
 	account := context.Get(r, "account").(types.Account)
 
 	decoder := json.NewDecoder(r.Body)
 	var ed types.EntityDeath
 	err := decoder.Decode(&ed)
 	if err != nil {
-		log.Println(e.ls + err.Error())
-		handleError(w, e.ls, types.RESTError{
+		e.logger.Printf("[%s] Invalid JSON: %s", requestUUID, err.Error())
+		handleError(w, types.RESTError{
 			Error:      "Invalid request",
 			StatusCode: http.StatusBadRequest,
 		})

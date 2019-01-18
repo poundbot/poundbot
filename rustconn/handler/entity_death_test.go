@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,21 +21,23 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		e      *EntityDeath
+		e      *entityDeath
 		method string
 		status int
 		rBody  string
 		ed     *types.EntityDeath
+		log    string
 	}{
 		{
-			name:   "empty request",
-			e:      &EntityDeath{},
+			name:   "POST empty request",
+			e:      &entityDeath{},
 			method: http.MethodPost,
 			status: http.StatusBadRequest,
+			log:    "[C] [request-1] Invalid JSON: EOF\n",
 		},
 		{
-			name:   "entity death",
-			e:      &EntityDeath{},
+			name:   "POST entity death",
+			e:      &entityDeath{},
 			method: http.MethodPost,
 			status: http.StatusOK,
 			rBody: `
@@ -55,6 +58,10 @@ func TestEntityDeath_Handle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		var logBuffer bytes.Buffer
+		tt.e.logger.SetOutput(&logBuffer)
+		tt.e.logger.SetPrefix("[C] ")
+
 		t.Run(tt.name, func(t *testing.T) {
 			req, err := http.NewRequest(tt.method, "/entity_death", strings.NewReader(tt.rBody))
 			if err != nil {
@@ -73,6 +80,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			context.Set(req, "serverKey", "bloop")
+			context.Set(req, "requestUUID", "request-1")
 			context.Set(req, "account", types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
 			}})
@@ -82,6 +90,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			assert.Equal(t, tt.status, rr.Code)
 			assert.Equal(t, tt.ed, added)
+			assert.Equal(t, tt.log, logBuffer.String(), "log was incorrect")
 		})
 	}
 }

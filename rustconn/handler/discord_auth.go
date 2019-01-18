@@ -10,42 +10,43 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
-type DiscordAuth struct {
-	ls  string
-	das storage.DiscordAuthsStore
-	us  storage.UsersStore
-	dac chan types.DiscordAuth
+type discordAuth struct {
+	das    storage.DiscordAuthsStore
+	us     storage.UsersStore
+	dac    chan types.DiscordAuth
+	logger log.Logger
 }
 
-func NewDiscordAuth(ls string, das storage.DiscordAuthsStore, us storage.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
-	da := DiscordAuth{ls: ls, das: das, us: us, dac: dac}
+func NewDiscordAuth(logPrefix string, das storage.DiscordAuthsStore, us storage.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
+	da := discordAuth{das: das, us: us, dac: dac, logger: log.Logger{}}
+	da.logger.SetPrefix(logPrefix)
 	return da.Handle
 }
 
 // Handle takes Discord verification requests from the Rust server
 // and sends them to the DiscordAuthsStore and DiscordAuth channel
-func (da *DiscordAuth) Handle(w http.ResponseWriter, r *http.Request) {
+func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth
 	err := decoder.Decode(&t)
 	if err != nil {
-		log.Println(da.ls + err.Error())
+		da.logger.Println(err.Error())
 		return
 	}
 
-	log.Printf(da.ls+"User Auth Request: %v from %v\n", t, r.Body)
+	da.logger.Printf("User Auth Request: %v from %v\n", t, r.Body)
 
 	var u types.User
 	err = da.us.Get(t.SteamID, &u)
 	if err == nil {
-		handleError(w, da.ls, types.RESTError{
+		handleError(w, types.RESTError{
 			StatusCode: http.StatusMethodNotAllowed,
 			Error:      fmt.Sprintf("%s is linked to you.", u.DiscordName),
 		})
 		return
 	} else if t.DiscordName == "check" {
-		handleError(w, da.ls, types.RESTError{
+		handleError(w, types.RESTError{
 			StatusCode: http.StatusNotFound,
 			Error:      "Account is not linked to discord.",
 		})
@@ -56,6 +57,6 @@ func (da *DiscordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		da.dac <- t
 	} else {
-		log.Println(da.ls + err.Error())
+		da.logger.Println(err.Error())
 	}
 }

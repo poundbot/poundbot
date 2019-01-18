@@ -49,12 +49,14 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 		channels: channels,
 	}
 
+	requestUUID := RequestUUID{}
 	serverAuth := ServerAuth{as: sc.Storage.Accounts()}
 	r := mux.NewRouter()
 
 	// Handles all /api requests, and sets the server auth handler
 	api := r.PathPrefix("/api").Subrouter()
 	api.Use(serverAuth.Handle)
+	api.Use(requestUUID.Handle)
 	api.HandleFunc(
 		"/entity_death",
 		handler.NewEntityDeath(logPrefix, sc.Storage.RaidAlerts()),

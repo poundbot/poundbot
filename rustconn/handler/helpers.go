@@ -2,24 +2,20 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
 // handleError is a generic JSON HTTP error response
-func handleError(w http.ResponseWriter, s string, restError types.RESTError) {
+func handleError(w http.ResponseWriter, restError types.RESTError) error {
 	w.WriteHeader(restError.StatusCode)
-	err := json.NewEncoder(w).Encode(restError)
-	if err != nil {
-		log.Printf(s+"Error encoding %v, %s\n", restError, err)
-	}
+	return json.NewEncoder(w).Encode(restError)
 }
 
-func methodNotAllowed(w http.ResponseWriter, s string) {
-	handleError(w, s, types.RESTError{
+func methodNotAllowed(w http.ResponseWriter) {
+	handleError(w, types.RESTError{
 		StatusCode: http.StatusMethodNotAllowed,
-		Error:      "Method %s not allowed",
+		Error:      "Method not allowed",
 	})
 }

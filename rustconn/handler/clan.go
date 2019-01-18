@@ -11,18 +11,19 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type Clan struct {
-	ls string
-	as storage.AccountsStore
+type clan struct {
+	as     storage.AccountsStore
+	logger log.Logger
 }
 
-func NewClan(ls string, as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
-	clan := Clan{ls, as}
-	return clan.Handle
+func NewClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
+	c := clan{as: as, logger: log.Logger{}}
+	c.logger.SetPrefix(logPrefix)
+	return c.Handle
 }
 
 // Handle manages individual clan REST requests form the Rust server
-func (c *Clan) Handle(w http.ResponseWriter, r *http.Request) {
+func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	// account := context.Get(r, "account").(types.Account)
 	serverKey := context.Get(r, "serverKey").(string)
@@ -32,22 +33,22 @@ func (c *Clan) Handle(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodDelete:
-		log.Printf(c.ls+"clanHandler: Removing clan %s for %s\n", tag, serverKey)
+		c.logger.Printf("clanHandler: Removing clan %s for %s\n", tag, serverKey)
 		c.as.RemoveClan(serverKey, tag)
 		return
 	case http.MethodPut:
-		log.Printf(c.ls+"clanHandler: Updating clan %s for %s\n", tag, serverKey)
+		c.logger.Printf("clanHandler: Updating clan %s for %s\n", tag, serverKey)
 		decoder := json.NewDecoder(r.Body)
 		var t types.ServerClan
 		err := decoder.Decode(&t)
 		if err != nil {
-			log.Println(c.ls + err.Error())
+			c.logger.Println(err.Error())
 			return
 		}
 
 		clan, err := types.ClanFromServerClan(t)
 		if err != nil {
-			handleError(w, c.ls, types.RESTError{
+			handleError(w, types.RESTError{
 				StatusCode: http.StatusBadRequest,
 				Error:      "Error processing clan data",
 			})
