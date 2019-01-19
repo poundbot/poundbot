@@ -50,12 +50,6 @@ type RaidAlertsStore interface {
 	Remove(types.RaidAlert) error
 }
 
-// ChatsStore is for logging chat
-type ChatsStore interface {
-	Log(types.ChatMessage) error
-	GetNext(serverKey string, ChatMessage *types.ChatMessage) error
-}
-
 // AccountsStore is for accounts storage
 type AccountsStore interface {
 	All(*[]types.Account) error
@@ -91,7 +85,6 @@ type Storage interface {
 	Init()
 	Accounts() AccountsStore
 	Users() UsersStore
-	Chats() ChatsStore
 	DiscordAuths() DiscordAuthsStore
 	RaidAlerts() RaidAlertsStore
 }

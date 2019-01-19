@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	"bitbucket.org/mrpoundsign/poundbot/discord/handler"
 	"bitbucket.org/mrpoundsign/poundbot/messages"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
@@ -25,26 +26,26 @@ type RunnerConfig struct {
 type Client struct {
 	session       *discordgo.Session
 	as            storage.AccountsStore
-	cs            storage.ChatsStore
+	cc            *chatcache.ChatCache
 	das           storage.DiscordAuthsStore
 	us            storage.UsersStore
 	token         string
 	status        chan bool
-	GeneralChan   chan types.ChatMessage
+	ChatChan      chan types.ChatMessage
 	RaidAlertChan chan types.RaidAlert
 	DiscordAuth   chan types.DiscordAuth
 	AuthSuccess   chan types.DiscordAuth
 	shutdown      bool
 }
 
-func Runner(token string, as storage.AccountsStore, cs storage.ChatsStore, das storage.DiscordAuthsStore, us storage.UsersStore) *Client {
+func Runner(token string, cc *chatcache.ChatCache, as storage.AccountsStore, das storage.DiscordAuthsStore, us storage.UsersStore) *Client {
 	return &Client{
 		as:            as,
-		cs:            cs,
+		cc:            cc,
 		das:           das,
 		us:            us,
 		token:         token,
-		GeneralChan:   make(chan types.ChatMessage),
+		ChatChan:      make(chan types.ChatMessage),
 		DiscordAuth:   make(chan types.DiscordAuth),
 		AuthSuccess:   make(chan types.DiscordAuth),
 		RaidAlertChan: make(chan types.RaidAlert),
@@ -148,7 +149,7 @@ func (c *Client) runner() {
 						log.Println(logRunnerPrefix + "[COMM] Could not send PIN request to user")
 					}
 
-				case t := <-c.GeneralChan:
+				case t := <-c.ChatChan:
 					var clan = ""
 					if t.ClanTag != "" {
 						clan = fmt.Sprintf("[%s] ", t.ClanTag)
@@ -259,20 +260,25 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	server = account.Servers[0]
 
 	if server.ChatChanID == m.ChannelID {
-		go func(cm types.ChatMessage) {
+		go func(cm types.ChatMessage, cc chan types.ChatMessage) {
 			if len(cm.Message) > 128 {
 				cm.Message = truncateString(cm.Message, 128)
 				c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
 			}
 			cm.CreatedAt = time.Now().UTC()
-			c.cs.Log(cm)
+			select {
+			case cc <- cm:
+				return
+			case <-time.After(10 * time.Second):
+				return
+			}
 
 		}(types.ChatMessage{
 			ServerKey:   server.Key,
 			DisplayName: m.Author.Username,
 			Message:     m.Message.Content,
 			Source:      types.ChatSourceDiscord,
-		})
+		}, c.cc.GetOutChannel(server.Key))
 	}
 
 	// Break out and do not interact.

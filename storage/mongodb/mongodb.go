@@ -65,11 +65,6 @@ func (m MongoDb) RaidAlerts() storage.RaidAlertsStore {
 	})
 }
 
-// Chats implements storage.Storage.Chats
-func (m MongoDb) Chats() storage.ChatsStore {
-	return Chats{collection: m.session.DB(m.dbname).C(chatsCollection)}
-}
-
 // ServerAccounts implements storage.Storage.ServerAccounts
 func (m MongoDb) Accounts() storage.AccountsStore {
 	return Accounts{collection: m.session.DB(m.dbname).C(accountsCollection)}

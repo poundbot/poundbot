@@ -26,22 +26,6 @@ func (_m *Storage) Accounts() storage.AccountsStore {
 	return r0
 }
 
-// Chats provides a mock function with given fields:
-func (_m *Storage) Chats() storage.ChatsStore {
-	ret := _m.Called()
-
-	var r0 storage.ChatsStore
-	if rf, ok := ret.Get(0).(func() storage.ChatsStore); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(storage.ChatsStore)
-		}
-	}
-
-	return r0
-}
-
 // Close provides a mock function with given fields:
 func (_m *Storage) Close() {
 	_m.Called()

@@ -10,9 +10,8 @@ import (
 
 	"github.com/gorilla/context"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
-	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
+	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	ptime "bitbucket.org/mrpoundsign/poundbot/time"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
@@ -90,16 +89,9 @@ func TestChat_Handle(t *testing.T) {
 
 			tt.s.in = make(chan types.ChatMessage)
 
-			cs := mocks.ChatsStore{}
-			tt.s.cs = &cs
-
 			if tt.out != nil {
-				cs.On("GetNext", "bloop", mock.AnythingOfType("*types.ChatMessage")).
-					Return(func(serverKey string, m *types.ChatMessage) error {
-						tmp := *tt.out
-						*m = tmp
-						return nil
-					})
+				tt.s.ccache = chatcache.NewChatCache()
+				go func(ch chan types.ChatMessage) { ch <- *tt.out }(tt.s.ccache.GetOutChannel("bloop"))
 			}
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))

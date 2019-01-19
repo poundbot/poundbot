@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn/handler"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
@@ -28,7 +29,7 @@ type ServerChannels struct {
 	DiscordAuth chan types.DiscordAuth
 	AuthSuccess chan types.DiscordAuth
 	ChatChan    chan types.ChatMessage
-	// ChatOutChan chan types.ChatMessage
+	ChatCache   *chatcache.ChatCache
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.
@@ -67,7 +68,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	)
 	api.HandleFunc(
 		"/chat",
-		handler.NewChat(logPrefix, sc.Storage.Chats(), channels.ChatChan),
+		handler.NewChat(logPrefix, channels.ChatCache, channels.ChatChan),
 	)
 	api.HandleFunc(
 		"/clans",

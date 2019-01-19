@@ -14,6 +14,7 @@ import (
 	"sync"
 	"syscall"
 
+	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	"bitbucket.org/mrpoundsign/poundbot/discord"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
@@ -139,8 +140,10 @@ func main() {
 
 	asConfig.Storage = store
 
+	ccache := chatcache.NewChatCache()
+
 	// Discord server
-	dr := discord.Runner(dConfig.Token, store.Accounts(), store.Chats(), store.DiscordAuths(), store.Users())
+	dr := discord.Runner(dConfig.Token, ccache, store.Accounts(), store.DiscordAuths(), store.Users())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)
 	}
@@ -151,7 +154,8 @@ func main() {
 			RaidNotify:  dr.RaidAlertChan,
 			DiscordAuth: dr.DiscordAuth,
 			AuthSuccess: dr.AuthSuccess,
-			ChatChan:    dr.GeneralChan,
+			ChatChan:    dr.ChatChan,
+			ChatCache:   ccache,
 		},
 	)
 
