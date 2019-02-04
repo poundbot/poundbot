@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/context"
+	"context"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
@@ -79,11 +79,13 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			context.Set(req, "serverKey", "bloop")
-			context.Set(req, "requestUUID", "request-1")
-			context.Set(req, "account", types.Account{Servers: []types.Server{
+			ctx := context.WithValue(context.Background(), "serverKey", "bloop")
+			ctx = context.WithValue(ctx, "requestUUID", "request-1")
+			ctx = context.WithValue(ctx, "account", types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
 			}})
+
+			req = req.WithContext(ctx)
 
 			handler := http.HandlerFunc(tt.e.Handle)
 			handler.ServeHTTP(rr, req)

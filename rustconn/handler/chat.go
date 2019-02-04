@@ -9,7 +9,6 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	ptime "bitbucket.org/mrpoundsign/poundbot/time"
 	"bitbucket.org/mrpoundsign/poundbot/types"
-	"github.com/gorilla/context"
 )
 
 // A Chat is for handling discord <-> rust chat
@@ -44,9 +43,9 @@ func NewChat(ls string, ccache *chatcache.ChatCache, in chan types.ChatMessage) 
 func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	serverKey := context.Get(r, "serverKey").(string)
-	requestUUID := context.Get(r, "requestUUID").(string)
-	account := context.Get(r, "account").(types.Account)
+	serverKey := r.Context().Value("serverKey").(string)
+	requestUUID := r.Context().Value("requestUUID").(string)
+	account := r.Context().Value("account").(types.Account)
 
 	switch r.Method {
 	case http.MethodPost:

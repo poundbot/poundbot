@@ -7,7 +7,6 @@ import (
 
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -26,7 +25,7 @@ func NewClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) 
 func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	// account := context.Get(r, "account").(types.Account)
-	serverKey := context.Get(r, "serverKey").(string)
+	serverKey := r.Context().Value("serverKey").(string)
 
 	vars := mux.Vars(r)
 	tag := vars["tag"]

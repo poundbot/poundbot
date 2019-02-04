@@ -8,7 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gorilla/context"
+	"context"
+
 	"github.com/stretchr/testify/assert"
 
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
@@ -91,7 +92,7 @@ func TestChat_Handle(t *testing.T) {
 
 			if tt.out != nil {
 				tt.s.ccache = chatcache.NewChatCache()
-				go func(ch chan types.ChatMessage) { ch <- *tt.out }(tt.s.ccache.GetOutChannel("bloop"))
+				go func(ch chan types.ChatMessage, message types.ChatMessage) { ch <- message }(tt.s.ccache.GetOutChannel("bloop"), *tt.out)
 			}
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
@@ -117,11 +118,13 @@ func TestChat_Handle(t *testing.T) {
 				}()
 			}
 
-			context.Set(req, "requestUUID", "request-1")
-			context.Set(req, "serverKey", "bloop")
-			context.Set(req, "account", types.Account{Servers: []types.Server{
+			ctx := context.WithValue(context.Background(), "requestUUID", "request-1")
+			ctx = context.WithValue(ctx, "serverKey", "bloop")
+			ctx = context.WithValue(ctx, "account", types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
 			}})
+
+			req = req.WithContext(ctx)
 			handler := http.HandlerFunc(tt.s.Handle)
 			handler.ServeHTTP(rr, req)
 

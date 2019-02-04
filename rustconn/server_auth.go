@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"context"
+
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
-	"github.com/gorilla/context"
 )
 
 type ServerAuth struct {
@@ -14,28 +15,27 @@ type ServerAuth struct {
 }
 
 func (sa ServerAuth) Handle(next http.Handler) http.Handler {
-	return context.ClearHandler(
-		http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
-				if len(s) != 2 {
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
+			if len(s) != 2 {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-				var account types.Account
+			var account types.Account
 
-				err := sa.as.GetByServerKey(s[1], &account)
-				if err != nil {
-					w.WriteHeader(http.StatusUnauthorized)
-					return
-				}
+			err := sa.as.GetByServerKey(s[1], &account)
+			if err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 
-				context.Set(r, "serverKey", s[1])
-				context.Set(r, "account", account)
+			ctx := context.WithValue(r.Context(), "serverKey", s[1])
+			ctx = context.WithValue(ctx, "account", account)
+			r = r.WithContext(ctx)
 
-				next.ServeHTTP(w, r)
-			},
-		),
+			next.ServeHTTP(w, r)
+		},
 	)
 }
