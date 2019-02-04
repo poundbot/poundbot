@@ -35,7 +35,7 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	da.logger.Printf("User Auth Request: %v from %v\n", t, r.Body)
+	// da.logger.Printf("User Auth Request: %v from %v\n", t, r.Body)
 
 	var u types.User
 	err = da.us.Get(t.SteamID, &u)
