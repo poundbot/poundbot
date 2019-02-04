@@ -13,7 +13,7 @@ Commands:
   server reset      - Resets your server API Key. A new key will be sent to you.
   server chat here  - Sets the channel for server chat to this channel
   
-  Download the plugin at https://bitbucket.org/mrpoundsign/poundbot/src/multi-server/rust_plugin/
+  Download the plugin at https://bitbucket.org/mrpoundsign/poundbot/downloads/
   Join MrPoundsign's discord at https://discordapp.com/invite/ZwTuJQW
 `
 
@@ -23,9 +23,9 @@ Once you are validated, you will begin receiving raid alerts!
 `
 
 func ServerKeyMessage(key string) string {
-	return fmt.Sprintf("Your new server key is *%s*. Add it to your oxide/config/PoundBotConnextor.json or copy and paste the following:\n\n```"+`
+	return fmt.Sprintf("Your new server key is *%s*. Add it to your oxide/config/PoundBotConnector.json or copy and paste the following:\n\n```"+`
 {
-	"api_url": "http://poundbot.mrpoundsign.com:7070/",
+	"api_url": "http://poundbot.mrpoundsign.com/",
 	"show_own_damage": true,
 	"api_key": "%s"
 }
