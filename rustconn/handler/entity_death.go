@@ -12,11 +12,11 @@ import (
 
 type entityDeath struct {
 	ras    storage.RaidAlertsStore
-	logger log.Logger
+	logger *log.Logger
 }
 
 func NewEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
-	ed := entityDeath{ras: ras, logger: log.Logger{}}
+	ed := entityDeath{ras: ras, logger: &log.Logger{}}
 	ed.logger.SetPrefix(logPrefix)
 	return ed.Handle
 }

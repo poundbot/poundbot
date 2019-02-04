@@ -58,8 +58,8 @@ func TestEntityDeath_Handle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		var logBuffer bytes.Buffer
-		tt.e.logger.SetOutput(&logBuffer)
+		logBuffer := bytes.NewBuffer([]byte{})
+		tt.e.logger.SetOutput(logBuffer)
 		tt.e.logger.SetPrefix("[C] ")
 
 		t.Run(tt.name, func(t *testing.T) {

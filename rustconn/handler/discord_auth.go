@@ -14,11 +14,11 @@ type discordAuth struct {
 	das    storage.DiscordAuthsStore
 	us     storage.UsersStore
 	dac    chan types.DiscordAuth
-	logger log.Logger
+	logger *log.Logger
 }
 
 func NewDiscordAuth(logPrefix string, das storage.DiscordAuthsStore, us storage.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
-	da := discordAuth{das: das, us: us, dac: dac, logger: log.Logger{}}
+	da := discordAuth{das: das, us: us, dac: dac, logger: &log.Logger{}}
 	da.logger.SetPrefix(logPrefix)
 	return da.Handle
 }

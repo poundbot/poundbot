@@ -16,7 +16,7 @@ type chat struct {
 	ccache *chatcache.ChatCache
 	in     chan types.ChatMessage
 	sleep  time.Duration
-	logger log.Logger
+	logger *log.Logger
 }
 
 // NewChat initializes a chat handler and returns it
@@ -25,7 +25,7 @@ type chat struct {
 // in is the channel for server -> discord
 // out is the channel for discord -> server
 func NewChat(ls string, ccache *chatcache.ChatCache, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
-	c := chat{ccache: ccache, in: in, sleep: 10 * time.Second, logger: log.Logger{}}
+	c := chat{ccache: ccache, in: in, sleep: 1 * time.Minute, logger: &log.Logger{}}
 
 	c.logger.SetPrefix(ls)
 

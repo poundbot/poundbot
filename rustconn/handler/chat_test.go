@@ -81,8 +81,8 @@ func TestChat_Handle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		var logBuffer bytes.Buffer
-		tt.s.logger.SetOutput(&logBuffer)
+		logBuffer := bytes.NewBuffer([]byte{})
+		tt.s.logger.SetOutput(logBuffer)
 		tt.s.logger.SetPrefix("[C] ")
 
 		t.Run(tt.name, func(t *testing.T) {

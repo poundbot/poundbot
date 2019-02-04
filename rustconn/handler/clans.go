@@ -11,11 +11,11 @@ import (
 
 type clans struct {
 	as     storage.AccountsStore
-	logger log.Logger
+	logger *log.Logger
 }
 
 func NewClans(logPrefix string, as storage.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
-	c := clans{as: as, logger: log.Logger{}}
+	c := clans{as: as, logger: &log.Logger{}}
 	c.logger.SetPrefix(logPrefix)
 	return c.Handle
 }
