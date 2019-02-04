@@ -173,7 +173,7 @@ namespace Oxide.Plugins
         #region Configuration
         protected override void LoadDefaultConfig()
         {
-            Config["api_url"] = "http://poundbot.mrpoundsign.com:7070/";
+            Config["api_url"] = "http://poundbot.mrpoundsign.com/";
             Config["show_own_damage"] = false;
             Config["api_key"] = "API KEY HERE";
         }
