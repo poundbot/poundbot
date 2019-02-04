@@ -18,7 +18,7 @@ func (ru RequestUUID) Handle(next http.Handler) http.Handler {
 				requestUUID = uuid.NewV4().String()
 			}
 
-			ctx := context.WithValue(r.Context(), "requestUUID", requestUUID)
+			ctx := context.WithValue(r.Context(), contextKeyRequestUUID, requestUUID)
 			r = r.WithContext(ctx)
 			w.Header().Set("X-Request-ID", requestUUID)
 

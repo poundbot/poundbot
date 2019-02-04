@@ -31,8 +31,8 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "serverKey", s[1])
-			ctx = context.WithValue(ctx, "account", account)
+			ctx := context.WithValue(r.Context(), contextKeyServerKey, s[1])
+			ctx = context.WithValue(ctx, contextKeyAccount, account)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)

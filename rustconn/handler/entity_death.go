@@ -25,8 +25,8 @@ func NewEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.R
 // to the RaidAlertsStore and RaidAlerts channel
 func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	requestUUID := r.Context().Value("requestUUID").(string)
-	account := r.Context().Value("account").(types.Account)
+	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
+	account := r.Context().Value(contextKeyAccount).(types.Account)
 
 	decoder := json.NewDecoder(r.Body)
 	var ed types.EntityDeath

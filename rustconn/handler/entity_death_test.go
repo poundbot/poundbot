@@ -79,9 +79,9 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			ctx := context.WithValue(context.Background(), "serverKey", "bloop")
-			ctx = context.WithValue(ctx, "requestUUID", "request-1")
-			ctx = context.WithValue(ctx, "account", types.Account{Servers: []types.Server{
+			ctx := context.WithValue(context.Background(), contextKeyServerKey, "bloop")
+			ctx = context.WithValue(ctx, contextKeyRequestUUID, "request-1")
+			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
 			}})
 

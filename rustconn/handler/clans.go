@@ -24,8 +24,8 @@ func NewClans(logPrefix string, as storage.AccountsStore) func(w http.ResponseWr
 // These requests are a complete refresh of all clans
 func (c *clans) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	serverKey := r.Context().Value("serverKey").(string)
-	requestUUID := r.Context().Value("requestUUID").(string)
+	serverKey := r.Context().Value(contextKeyServerKey).(string)
+	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
 	log.Printf("[%s] clansHandler: Updating all clans for %s\n", requestUUID, serverKey)
 
 	decoder := json.NewDecoder(r.Body)

@@ -118,9 +118,9 @@ func TestChat_Handle(t *testing.T) {
 				}()
 			}
 
-			ctx := context.WithValue(context.Background(), "requestUUID", "request-1")
-			ctx = context.WithValue(ctx, "serverKey", "bloop")
-			ctx = context.WithValue(ctx, "account", types.Account{Servers: []types.Server{
+			ctx := context.WithValue(context.Background(), contextKeyRequestUUID, "request-1")
+			ctx = context.WithValue(ctx, contextKeyServerKey, "bloop")
+			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{Servers: []types.Server{
 				{ChatChanID: "1234", Key: "bloop"},
 			}})
 

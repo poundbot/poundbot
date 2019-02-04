@@ -24,8 +24,8 @@ func NewClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) 
 // Handle manages individual clan REST requests form the Rust server
 func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	// account := context.Get(r, "account").(types.Account)
-	serverKey := r.Context().Value("serverKey").(string)
+	// account := context.Get(r, contextKeyAccount).(types.Account)
+	serverKey := r.Context().Value(contextKeyServerKey).(string)
 
 	vars := mux.Vars(r)
 	tag := vars["tag"]

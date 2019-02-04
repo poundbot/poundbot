@@ -43,9 +43,9 @@ func NewChat(ls string, ccache *chatcache.ChatCache, in chan types.ChatMessage) 
 func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	serverKey := r.Context().Value("serverKey").(string)
-	requestUUID := r.Context().Value("requestUUID").(string)
-	account := r.Context().Value("account").(types.Account)
+	serverKey := r.Context().Value(contextKeyServerKey).(string)
+	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
+	account := r.Context().Value(contextKeyAccount).(types.Account)
 
 	switch r.Method {
 	case http.MethodPost:
