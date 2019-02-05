@@ -6,6 +6,7 @@ import (
 
 	"context"
 
+	"github.com/blang/semver"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
@@ -17,6 +18,16 @@ type ServerAuth struct {
 func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			minVersion, err := semver.Make("0.3.0")
+			if err != nil {
+				panic(err)
+			}
+			version, err := semver.Make(r.Header.Get("X-PoundBotConnector-Version"))
+			if err != nil || version.LT(minVersion) {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("PoundBotConnector must be updated. Please download the latest version at https://bitbucket.org/mrpoundsign/poundbot/downloads/."))
+				return
+			}
 			s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 			if len(s) != 2 {
 				w.WriteHeader(http.StatusBadRequest)
@@ -25,7 +36,7 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 
 			var account types.Account
 
-			err := sa.as.GetByServerKey(s[1], &account)
+			err = sa.as.GetByServerKey(s[1], &account)
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
