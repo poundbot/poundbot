@@ -1,7 +1,6 @@
 package rustconn
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
@@ -31,8 +30,6 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-
-			log.Println(s[1])
 
 			ctx := context.WithValue(r.Context(), contextKeyServerKey, s[1])
 			ctx = context.WithValue(ctx, contextKeyAccount, account)
