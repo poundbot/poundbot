@@ -1,4 +1,4 @@
-package handler
+package rustconn
 
 import (
 	"encoding/json"

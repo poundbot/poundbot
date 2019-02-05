@@ -1,9 +1,10 @@
-package handler
+package rustconn
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
@@ -28,6 +29,7 @@ func NewChat(ls string, ccache *chatcache.ChatCache, in chan types.ChatMessage) 
 	c := chat{ccache: ccache, in: in, sleep: 1 * time.Minute, logger: &log.Logger{}}
 
 	c.logger.SetPrefix(ls)
+	c.logger.SetOutput(os.Stdout)
 
 	return c.Handle
 }

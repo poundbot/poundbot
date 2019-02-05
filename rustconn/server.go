@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
-	"bitbucket.org/mrpoundsign/poundbot/rustconn/handler"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/gorilla/mux"
@@ -60,23 +59,23 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	api.Use(requestUUID.Handle)
 	api.HandleFunc(
 		"/entity_death",
-		handler.NewEntityDeath(logPrefix, sc.Storage.RaidAlerts()),
+		NewEntityDeath(logPrefix, sc.Storage.RaidAlerts()),
 	)
 	api.HandleFunc(
 		"/discord_auth",
-		handler.NewDiscordAuth(logPrefix, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
+		NewDiscordAuth(logPrefix, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
 	api.HandleFunc(
 		"/chat",
-		handler.NewChat(logPrefix, channels.ChatCache, channels.ChatChan),
+		NewChat(logPrefix, channels.ChatCache, channels.ChatChan),
 	)
 	api.HandleFunc(
 		"/clans",
-		handler.NewClans(logPrefix, sc.Storage.Accounts()),
+		NewClans(logPrefix, sc.Storage.Accounts()),
 	).Methods(http.MethodPut)
 	api.HandleFunc(
 		"/clans/{tag}",
-		handler.NewClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
+		NewClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
 
 	s.Handler = r

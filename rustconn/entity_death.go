@@ -1,9 +1,10 @@
-package handler
+package rustconn
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage"
@@ -18,6 +19,7 @@ type entityDeath struct {
 func NewEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
 	ed := entityDeath{ras: ras, logger: &log.Logger{}}
 	ed.logger.SetPrefix(logPrefix)
+	ed.logger.SetOutput(os.Stdout)
 	return ed.Handle
 }
 

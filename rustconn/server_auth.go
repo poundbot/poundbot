@@ -1,6 +1,7 @@
 package rustconn
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -31,11 +32,12 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 				return
 			}
 
+			log.Println(s[1])
+
 			ctx := context.WithValue(r.Context(), contextKeyServerKey, s[1])
 			ctx = context.WithValue(ctx, contextKeyAccount, account)
-			r = r.WithContext(ctx)
 
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		},
 	)
 }

@@ -1,10 +1,11 @@
-package handler
+package rustconn
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
@@ -20,6 +21,7 @@ type discordAuth struct {
 func NewDiscordAuth(logPrefix string, das storage.DiscordAuthsStore, us storage.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
 	da := discordAuth{das: das, us: us, dac: dac, logger: &log.Logger{}}
 	da.logger.SetPrefix(logPrefix)
+	da.logger.SetOutput(os.Stdout)
 	return da.Handle
 }
 

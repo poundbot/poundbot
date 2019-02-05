@@ -1,9 +1,10 @@
-package handler
+package rustconn
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
@@ -18,6 +19,7 @@ type clan struct {
 func NewClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
 	c := clan{as: as, logger: &log.Logger{}}
 	c.logger.SetPrefix(logPrefix)
+	c.logger.SetOutput(os.Stdout)
 	return c.Handle
 }
 

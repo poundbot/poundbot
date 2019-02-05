@@ -8,5 +8,5 @@ mkdir -p $BUILD_DIR/linux
 
 # env GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o $BUILD_DIR/windows/poundbot.exe $MAIN/cmd/poundbot/poundbot.go
 # env GOOS=darwin GOARCH=amd64 go build -ldflags="$LDFLAGS" -o $BUILD_DIR/darwin/poundbot $MAIN/cmd/poundbot/poundbot.go
-env GOOS=linux GOARCH=amd64 go build -ldflags="$PB_LDFLAGS" -o $BUILD_DIR/linux/poundbot $MAIN/cmd/poundbot/poundbot.go
-upx $BUILD_DIR/linux/poundbot
+env GOOS=linux GOARCH=amd64 go build -ldflags="$PB_LDFLAGS" -o $BUILD_DIR/linux/poundbot-$PB_VERSION $MAIN/cmd/poundbot/poundbot.go
+upx $BUILD_DIR/linux/poundbot-$PB_VERSION
