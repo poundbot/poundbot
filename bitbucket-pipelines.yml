@@ -16,4 +16,11 @@ pipelines:
           - cd "${PACKAGE_PATH}"
           - export GO111MODULE=on
           - go mod download
-          - GOMAXPROCS=4 go test ./... -parallel 8 -cover
+          - GOMAXPROCS=4 go test ./... -tags integration -parallel 8
+        services:
+          - mongo
+
+definitions:
+  services:
+    mongo:
+      image: mongo
