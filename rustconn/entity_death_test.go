@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"log"
 
 	"context"
 
@@ -59,6 +60,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		logBuffer := bytes.NewBuffer([]byte{})
+		tt.e.logger = &log.Logger{}
 		tt.e.logger.SetOutput(logBuffer)
 		tt.e.logger.SetPrefix("[C] ")
 

@@ -15,7 +15,7 @@ func TestRaidAlert_String(t *testing.T) {
 			rn: RaidAlert{
 				ServerName:    "I am a server",
 				GridPositions: []string{"A1, D10"},
-				Items:         map[string]int{"foo": 8, "bar": 10},
+				Items:         map[string]int{"foo": 8, "bar": 10, "baz": 100},
 			},
 			want: `
 I am a server RAID ALERT! You are being raided!
@@ -24,7 +24,7 @@ I am a server RAID ALERT! You are being raided!
     A1, D10
 
   Destroyed:
-    foo(8), bar(10)
+    bar(10), baz(100), foo(8)
 `,
 		},
 	}

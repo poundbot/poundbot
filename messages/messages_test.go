@@ -31,7 +31,7 @@ I am a server RAID ALERT! You are being raided!
     A1, D10
 
   Destroyed:
-    foo(8), bar(10)
+    bar(10), foo(8)
 `,
 		},
 	}

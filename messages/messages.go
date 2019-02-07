@@ -3,6 +3,7 @@ package messages
 import (
 	"fmt"
 	"strings"
+	"sort"
 )
 
 const HelpText = `
@@ -33,6 +34,7 @@ func ServerKeyMessage(key string) string {
 }
 
 func RaidAlert(serverName string, gridPositions, items []string) string {
+	sort.Strings(items)
 	return fmt.Sprintf(`
 %s RAID ALERT! You are being raided!
 

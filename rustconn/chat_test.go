@@ -2,6 +2,7 @@ package rustconn
 
 import (
 	"bytes"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -82,6 +83,7 @@ func TestChat_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		logBuffer := bytes.NewBuffer([]byte{})
+		tt.s.logger = &log.Logger{}
 		tt.s.logger.SetOutput(logBuffer)
 		tt.s.logger.SetPrefix("[C] ")
 
@@ -89,10 +91,17 @@ func TestChat_Handle(t *testing.T) {
 			var in *types.ChatMessage
 
 			tt.s.in = make(chan types.ChatMessage)
+			tt.s.ccache = chatcache.NewChatCache()
 
 			if tt.out != nil {
-				tt.s.ccache = chatcache.NewChatCache()
-				go func(ch chan types.ChatMessage, message types.ChatMessage) { ch <- message }(tt.s.ccache.GetOutChannel("bloop"), *tt.out)
+				// Create a channel to ensure the go function has started
+				sChan := make(chan interface{})
+				go func(ch chan types.ChatMessage, message types.ChatMessage) {
+					sChan <- true
+					ch <- message
+				}(tt.s.ccache.GetOutChannel("bloop"), *tt.out)
+				<-sChan
+				close(sChan)
 			}
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
