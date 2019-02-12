@@ -15,7 +15,7 @@ which
 5. Poundbot will whisper you your API key and instructions on where to put it.
 
 ## Raid Alerts
-1. In Rust, type /discord YourUsername#7263
+1. In Rust, type /discord "YourUsername#7263"
 2. PoundBot should message you asking for the PIN number displayed in chat.
 3. Respond to PoundBot with that PIN number and you should be connected!
 
@@ -24,6 +24,6 @@ Add a delay to raid alerts. Currently players will get notified until 1 minute a
 
 Anything else you may be having a problem with, I can try to help resolve.
 
-If you have any questions, you can find me on Discord at http://discord.mrpoundsign.com/
+If you have any questions, you can find us on Discord at https://discord.gg/jT3HSUj in the #poundbot_support channel.
 
 Thanks!
