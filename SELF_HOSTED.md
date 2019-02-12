@@ -4,50 +4,32 @@
 * [MongoDB](https://mongodb.org]
 * a rust server, and PoundbotConnector.cs plugin.
 
-## To run:
+## Running
 
-```go run poundbot.go```
+```go run cmd/poindbot/poundbot.go```
+
+You can also build poundbot and run it. This is outside of the scope of this codument.
 
 ## Configuration
-Config can be in the following locations:
 
-```
-/etc/poundbot/config.json
-~/.poundbot/config.json
-config.json
-```
+### Initilize a new config.json
+Create a new configuration file with
+```poundbot -init```
+
 
 ### Sample Config
-```
+```json
 {
-    "twitter": {
-        "userid": <twitter user id from http://gettwitterid.com/>,
-        "filters": [
-            "#almupdate"
-        ],
-        "consumer": {
-            "key": "KEY",
-            "secret": "SECRET"
-        },
-        "access": {
-            "token": "TOKEN",
-            "secret": "SECRET"
-        }
-    },
-    "discord": {
-        "channels": {
-            "link": "CHANID1 (right click on discord client channel to obtain IDs)",
-            "status": "CHANID2",
-            "bot": "CHANID3",
-            "general": "CHANID4"
-        },
-        "token": "bot token"
-    },
-    "rust": {
-        "server": {
-            "hostname": "rust.example.com",
-            "port": 28015
-        }
-    }
+  "discord": {
+    "token": "YOUR DISCORD BOT AUTH TOKEN"
+  },
+  "http": {
+    "bind_addr": "",
+    "port": 9090
+  },
+  "mongo": {
+    "database": "poundbot",
+    "dial-addr": "mongodb://localhost"
+  }
 }
 ```
