@@ -1,3 +1,7 @@
+# PoundBot Self Hosting
+
+Please note you **WILL NOT** get support for this, but some people have asked for it, so here it is.
+
 ## Requirements
 
 * [go 1.11+](https://golang.org)
@@ -6,18 +10,19 @@
 
 ## Running
 
-```go run cmd/poindbot/poundbot.go```
+```go run cmd/poundbot/poundbot.go```
 
 You can also build poundbot and run it. This is outside of the scope of this codument.
 
 ## Configuration
 
-### Initilize a new config.json
+### Initialize a new config.json
+
 Create a new configuration file with
 ```poundbot -init```
 
-
 ### Sample Config
+
 ```json
 {
   "discord": {
