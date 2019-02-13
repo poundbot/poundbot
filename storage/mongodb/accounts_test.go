@@ -12,6 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var baseAccount = types.Account{
+	BaseAccount: types.BaseAccount{GuildSnowflake: "snowflake"},
+	Timestamp:   types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
+	Servers:     []types.Server{types.Server{Key: "floop2"}},
+}
+
 func NewAccounts(t *testing.T) (*Accounts, *mongotest.Collection) {
 	coll, err := mongotest.NewCollection(accountsCollection)
 	if err != nil {
@@ -401,6 +407,11 @@ func TestAccounts_SetClans(t *testing.T) {
 			},
 			args: args{key: "floop2", clans: []types.Clan{types.Clan{Tag: "foo"}}},
 		},
+		{
+			name:    "not found",
+			args:    args{key: "floop", clans: []types.Clan{}},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -417,8 +428,107 @@ func TestAccounts_SetClans(t *testing.T) {
 			}
 
 			var account types.Account
-			coll.C.Find(bson.M{}).One(&account)
+			coll.C.Find(bson.M{serverKeyField: tt.args.key}).One(&account)
 			assert.Equal(t, tt.want, account)
+		})
+	}
+}
+
+func TestAccounts_AddServer(t *testing.T) {
+	type args struct {
+		snowflake string
+		server    types.Server
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    types.Account
+		wantErr bool
+	}{
+		{
+			name: "add",
+			args: args{server: types.Server{Key: "floop"}, snowflake: "snowflake"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			accounts, coll := NewAccounts(t)
+			defer coll.Close()
+
+			coll.C.Insert(baseAccount)
+
+			if err := accounts.AddServer(tt.args.snowflake, tt.args.server); (err != nil) != tt.wantErr {
+				t.Errorf("Accounts.AddServer() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			var account types.Account
+			coll.C.Find(bson.M{serverKeyField: tt.args.snowflake}).One(&account)
+			assert.Equal(t, tt.want, account)
+		})
+	}
+}
+
+func TestAccounts_RemoveServer(t *testing.T) {
+	type args struct {
+		snowflake string
+		serverKey string
+	}
+	tests := []struct {
+		name    string
+		s       Accounts
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.RemoveServer(tt.args.snowflake, tt.args.serverKey); (err != nil) != tt.wantErr {
+				t.Errorf("Accounts.RemoveServer() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAccounts_UpdateServer(t *testing.T) {
+	type args struct {
+		snowflake string
+		oldKey    string
+		server    types.Server
+	}
+	tests := []struct {
+		name    string
+		s       Accounts
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.UpdateServer(tt.args.snowflake, tt.args.oldKey, tt.args.server); (err != nil) != tt.wantErr {
+				t.Errorf("Accounts.UpdateServer() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
+	type args struct {
+		guildIDs []string
+	}
+	tests := []struct {
+		name    string
+		s       Accounts
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.RemoveNotInDiscordGuildList(tt.args.guildIDs); (err != nil) != tt.wantErr {
+				t.Errorf("Accounts.RemoveNotInDiscordGuildList() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

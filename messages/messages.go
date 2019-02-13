@@ -1,22 +1,53 @@
 package messages
 
 import (
+	"bytes"
 	"fmt"
-	"strings"
+	"io"
+	"log"
 	"sort"
+	"strings"
+	"text/template"
 )
 
-const HelpText = `
-Commands:
-  server init       - Initializes your server and will PM you the API key.
-                      Chat will be relayed into the channel you send this
-                      message from.
-  server reset      - Resets your server API Key. A new key will be sent to you.
-  server chat here  - Sets the channel for server chat to this channel
-  
-  Download the plugin at https://bitbucket.org/mrpoundsign/poundbot/downloads/
-  Join MrPoundsign's discord at https://discordapp.com/invite/ZwTuJQW
-`
+var templates *template.Template
+
+func Init() {
+	if templates == nil {
+		templates = template.Must(template.ParseGlob("templates/*.tmpl"))
+	}
+}
+
+func executeTemplate(tmplName string, w io.Writer, data interface{}) error {
+	Init()
+	layout := templates.Lookup(tmplName)
+	if layout == nil {
+		log.Printf("Using default template for %s", tmplName)
+		layout = template.Must(template.New(tmplName).Parse(defaultTemplates[tmplName]))
+	}
+
+	layout, err := layout.Clone()
+	if err != nil {
+		return err
+	}
+
+	t := templates.Lookup(tmplName)
+	if t == nil {
+		return fmt.Errorf("No template %s", tmplName)
+	}
+
+	_, err = layout.AddParseTree("content", t.Tree)
+	if err != nil {
+		return err
+	}
+
+	return layout.Execute(w, data)
+}
+
+var defaultTemplates = map[string]string{
+	"ServerKeyMessage.tmpl": "Your new server key is {{ .Key }}.",
+	"HelpHext.tmpl":         "No help text available.",
+}
 
 const PinPrompt = `
 Enter the PIN provided in-game to validate your account.
@@ -24,13 +55,18 @@ Once you are validated, you will begin receiving raid alerts!
 `
 
 func ServerKeyMessage(key string) string {
-	return fmt.Sprintf("Your new server key is *%s*. Add it to your oxide/config/PoundBotConnector.json or copy and paste the following:\n\n```"+`
-{
-	"api_url": "http://poundbot.mrpoundsign.com/",
-	"show_own_damage": true,
-	"api_key": "%s"
+	type data struct {
+		Key string
+	}
+	buf := new(bytes.Buffer)
+	executeTemplate("ServerKeyMessage.tmpl", buf, data{Key: key})
+	return buf.String()
 }
-`+"```", key, key)
+
+func HelpText() string {
+	buf := new(bytes.Buffer)
+	executeTemplate("HelpText.tmpl", buf, nil)
+	return buf.String()
 }
 
 func RaidAlert(serverName string, gridPositions, items []string) string {

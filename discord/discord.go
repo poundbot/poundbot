@@ -314,7 +314,7 @@ Instruct:
 
 	switch message {
 	case "help":
-		c.sendPrivateMessage(m.Author.ID, messages.HelpText)
+		c.sendPrivateMessage(m.Author.ID, messages.HelpText())
 		break
 	case "server init":
 		if len(account.Servers) > 0 {
@@ -334,8 +334,9 @@ Instruct:
 			c.sendPrivateMessage(m.Author.ID, "You don't have a server defined. Try *help*")
 			return
 		}
+		oldKey := account.Servers[0].Key
 		account.Servers[0].Key = uuid.NewV4().String()
-		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0])
+		c.as.UpdateServer(account.GuildSnowflake, oldKey, account.Servers[0])
 		c.sendServerKey(m.Author.ID, account.Servers[0].Key)
 		return
 	case "server chat here":
@@ -344,7 +345,7 @@ Instruct:
 			return
 		}
 		account.Servers[0].ChatChanID = m.ChannelID
-		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0])
+		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0].Key, account.Servers[0])
 		return
 	}
 }
@@ -363,8 +364,9 @@ func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Mes
 	)
 }
 
-func (c *Client) sendServerKey(snowflake, u1 string) (m *discordgo.Message, err error) {
-	return c.sendPrivateMessage(snowflake, messages.ServerKeyMessage(u1))
+func (c *Client) sendServerKey(snowflake, key string) (m *discordgo.Message, err error) {
+	message := messages.ServerKeyMessage(key)
+	return c.sendPrivateMessage(snowflake, message)
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error

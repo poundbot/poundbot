@@ -16,6 +16,7 @@ import (
 
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	"bitbucket.org/mrpoundsign/poundbot/discord"
+	"bitbucket.org/mrpoundsign/poundbot/messages"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/storage/mongodb"
@@ -74,6 +75,7 @@ func versionString() string {
 }
 
 func main() {
+	messages.Init()
 	flag.Parse()
 	// If the version flag is set, print the version and quit.
 

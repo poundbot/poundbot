@@ -81,12 +81,13 @@ func (s Accounts) RemoveServer(snowflake, serverKey string) error {
 	)
 }
 
-func (s Accounts) UpdateServer(snowflake string, server types.Server) error {
+func (s Accounts) UpdateServer(snowflake, oldKey string, server types.Server) error {
 	return s.collection.Update(
 		bson.M{
 			accountsKeyField: snowflake,
+			serverKeyField:   oldKey,
 		},
-		bson.M{"$set": bson.M{"servers": []types.Server{server}}},
+		bson.M{"$set": bson.M{"servers.$": server}},
 	)
 }
 

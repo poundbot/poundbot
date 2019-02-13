@@ -59,7 +59,7 @@ type AccountsStore interface {
 	Remove(snowflake string) error
 
 	AddServer(snowflake string, server types.Server) error
-	UpdateServer(snowflake string, server types.Server) error
+	UpdateServer(snowflake, oldKey string, server types.Server) error
 	RemoveServer(snowflake, serverKey string) error
 
 	AddClan(serverKey string, clan types.Clan) error

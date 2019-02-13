@@ -1,6 +1,9 @@
 package types
 
-import "strconv"
+import (
+	"strconv"
+	"errors"
+)
 
 type Server struct {
 	Key          string
@@ -71,6 +74,15 @@ func ClanFromServerClan(sc ServerClan) (*Clan, error) {
 	clan.Invited = *nuints
 
 	return &clan, nil
+}
+
+func (a Account) ServerFromKey(key string) (*Server, error) {
+	for i := range a.Servers {
+		if a.Servers[i].Key == key {
+			return &a.Servers[i], nil
+		}
+	}
+	return nil, errors.New("server not found")
 }
 
 func convStringAToUnintA(in []string) (*[]uint64, error) {
