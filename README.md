@@ -10,9 +10,13 @@ PoundBot is a [Discord](https://discord.gg/) bot for the Rust game server, privi
 1. Download PoundBotConnector.cs and add it to your Oxide plugins.
 2. Add the bot to your Discord server at http://addpoundbot.mrpoundsign.com/
 which 
-3. Decide which channel you want the chat relay in. 
-4. @mention poundbot with "server init" in the channel you want your chat relay to occur. (Example: ```@PoundBot server init```)
-5. Poundbot will whisper you your API key and instructions on where to put it.
+3. \@mention BoundBot with ``server init`` in the channel you want your chat relay to occur. (Example: ```@PoundBot server init```)
+4. Poundbot will whisper you your API key and instructions on where to put it.
+   Note that chat will be relayed into the channel you sent this initialization.
+
+### If you want to change the chat relay channel
+1. Decide which channel you want the chat relay in.
+2. \@mention PoundBot with ``server chat here``
 
 ## Raid Alerts
 1. In Rust, type /discord "YourUsername#7263"
