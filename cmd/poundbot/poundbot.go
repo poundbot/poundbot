@@ -18,7 +18,6 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/discord"
 	"bitbucket.org/mrpoundsign/poundbot/messages"
 	"bitbucket.org/mrpoundsign/poundbot/rustconn"
-	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/storage/mongodb"
 	"github.com/spf13/viper"
 )
@@ -46,10 +45,11 @@ func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
 	}
 }
 
-func newServerConfig(cfg *viper.Viper) *rustconn.ServerConfig {
+func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDb) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),
+		Storage:  storage,
 	}
 }
 
@@ -122,12 +122,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	dConfig := newDiscordConfig(viper.Sub("discord"))
-	asConfig := newServerConfig(viper.Sub("http"))
-
-	var store storage.Storage
-
-	mongo, err := mongodb.NewMongoDB(mongodb.Config{
+	store, err := mongodb.NewMongoDB(mongodb.Config{
 		DialAddress: viper.GetString("mongo.dial-addr"),
 		Database:    viper.GetString("mongo.database"),
 	})
@@ -136,11 +131,10 @@ func main() {
 		log.Panicf("Could not connect to DB: %v\n", err)
 	}
 
-	store = mongo
-
 	store.Init()
 
-	asConfig.Storage = store
+	dConfig := newDiscordConfig(viper.Sub("discord"))
+	webConfig := newServerConfig(viper.Sub("http"), store)
 
 	ccache := chatcache.NewChatCache()
 
@@ -151,7 +145,7 @@ func main() {
 	}
 
 	// HTTP API server
-	server := rustconn.NewServer(asConfig,
+	server := rustconn.NewServer(webConfig,
 		rustconn.ServerChannels{
 			RaidNotify:  dr.RaidAlertChan,
 			DiscordAuth: dr.DiscordAuth,
