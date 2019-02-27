@@ -46,7 +46,7 @@ func executeTemplate(tmplName string, w io.Writer, data interface{}) error {
 
 var defaultTemplates = map[string]string{
 	"ServerKeyMessage.tmpl": "Your new server key is {{ .Key }}.",
-	"HelpHext.tmpl":         "No help text available.",
+	"HelpText.tmpl":         "No help text available.",
 }
 
 const PinPrompt = `
