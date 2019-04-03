@@ -8,27 +8,27 @@ import (
 )
 
 type ChatCache struct {
-	sync.RWMutex
+	channelM *sync.RWMutex
 	channels map[string](chan types.ChatMessage)
 }
 
 func NewChatCache() *ChatCache {
-	return &ChatCache{channels: make(map[string](chan types.ChatMessage))}
+	return &ChatCache{channels: make(map[string](chan types.ChatMessage)), channelM: &sync.RWMutex{}}
 }
 
-func (c *ChatCache) getChannel(name string) chan types.ChatMessage {
-	c.RLock()
+func (c ChatCache) getChannel(name string) chan types.ChatMessage {
+	c.channelM.RLock()
 	schan, ok := c.channels[name]
-	c.RUnlock()
+	c.channelM.RUnlock()
 	if !ok {
 		schan = make(chan types.ChatMessage)
-		c.Lock()
+		c.channelM.Lock()
 		c.channels[name] = schan
-		c.Unlock()
+		c.channelM.Unlock()
 	}
 	return schan
 }
 
-func (c *ChatCache) GetOutChannel(name string) chan types.ChatMessage {
-	return c.getChannel(fmt.Sprintf("%s-out", name))
+func (c ChatCache) GetOutChannel(name string) chan types.ChatMessage {
+	return c.getChannel(fmt.Sprintf("%s", name))
 }

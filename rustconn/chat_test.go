@@ -8,37 +8,45 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"context"
 
 	"github.com/stretchr/testify/assert"
 
-	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	ptime "bitbucket.org/mrpoundsign/poundbot/time"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
+
+type ChatCache struct {
+	channel chan types.ChatMessage
+}
+
+func (c ChatCache) GetOutChannel(name string) chan types.ChatMessage {
+	return c.channel
+}
 
 func TestChat_Handle(t *testing.T) {
 	ptime.Mock()
 	t.Parallel()
 
 	tests := []struct {
-		name   string
-		method string
-		s      *chat
-		body   string
-		rBody  string
-		status int
-		in     *types.ChatMessage
-		out    *types.ChatMessage
-		log    string
+		name     string
+		method   string
+		s        *chat
+		body     string
+		rBody    string
+		status   int
+		rMessage *types.ChatMessage
+		dMessage *types.ChatMessage
+		log      string
 	}{
 		{
 			name:   "chat GET",
 			method: http.MethodGet,
 			s:      &chat{},
 			status: http.StatusOK,
-			out: &types.ChatMessage{
+			dMessage: &types.ChatMessage{
 				SteamInfo:   types.SteamInfo{SteamID: 1234},
 				ClanTag:     "FoO",
 				DisplayName: "player",
@@ -61,7 +69,7 @@ func TestChat_Handle(t *testing.T) {
 				"Message":"hello there!"
 			}
 			`,
-			in: &types.ChatMessage{
+			rMessage: &types.ChatMessage{
 				SteamInfo:   types.SteamInfo{SteamID: 1234},
 				ClanTag:     "FoO",
 				DisplayName: "player",
@@ -88,20 +96,36 @@ func TestChat_Handle(t *testing.T) {
 		tt.s.logger.SetPrefix("[C] ")
 
 		t.Run(tt.name, func(t *testing.T) {
-			var in *types.ChatMessage
+			var messageFromRust *types.ChatMessage
 
-			tt.s.in = make(chan types.ChatMessage)
-			tt.s.ccache = chatcache.NewChatCache()
+			var wg sync.WaitGroup
 
-			if tt.out != nil {
-				// Create a channel to ensure the go function has started
-				sChan := make(chan interface{})
-				go func(ch chan types.ChatMessage, message types.ChatMessage) {
-					sChan <- true
-					ch <- message
-				}(tt.s.ccache.GetOutChannel("bloop"), *tt.out)
-				<-sChan
-				close(sChan)
+			tt.s.sleep = time.Second
+
+			if tt.dMessage != nil {
+				tt.s.ccache = ChatCache{channel: make(chan types.ChatMessage, 1)}
+				defer close(tt.s.ccache.GetOutChannel("bloop"))
+				tt.s.ccache.GetOutChannel("bloop") <- *tt.dMessage
+			}
+
+			// Collect any incoming messages
+			if tt.rMessage != nil {
+				tt.s.in = make(chan types.ChatMessage, 1)
+				defer close(tt.s.in)
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for {
+						select {
+						case result := <-tt.s.in:
+							messageFromRust = &result
+							return
+						case <-time.After(10 * time.Second):
+							return
+						}
+					}
+				}()
 			}
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
@@ -110,22 +134,6 @@ func TestChat_Handle(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-
-			var wg sync.WaitGroup
-
-			// Collect any incoming messages
-			if tt.in != nil {
-				wg.Add(1)
-				var thing types.ChatMessage
-				go func() {
-					defer wg.Done()
-					select {
-					case thing = <-tt.s.in:
-						in = &thing
-						break
-					}
-				}()
-			}
 
 			ctx := context.WithValue(context.Background(), contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyServerKey, "bloop")
@@ -141,7 +149,7 @@ func TestChat_Handle(t *testing.T) {
 
 			assert.Equal(t, tt.body, rr.Body.String(), "handler returned bad body")
 			assert.Equal(t, tt.status, rr.Code, "handler returned wrong status code")
-			assert.Equal(t, tt.in, in, "handler got wrong in message")
+			assert.Equal(t, tt.rMessage, messageFromRust, "handler got wrong message from rust")
 			assert.Equal(t, tt.log, logBuffer.String(), "log was incorrect")
 		})
 	}

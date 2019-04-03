@@ -145,13 +145,14 @@ func main() {
 	}
 
 	// HTTP API server
-	server := rustconn.NewServer(webConfig,
+	server := rustconn.NewServer(
+		webConfig,
 		rustconn.ServerChannels{
 			RaidNotify:  dr.RaidAlertChan,
 			DiscordAuth: dr.DiscordAuth,
 			AuthSuccess: dr.AuthSuccess,
 			ChatChan:    dr.ChatChan,
-			ChatCache:   ccache,
+			ChatCache:   *ccache,
 		},
 	)
 

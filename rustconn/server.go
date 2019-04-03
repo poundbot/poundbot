@@ -28,7 +28,7 @@ type ServerChannels struct {
 	DiscordAuth chan types.DiscordAuth
 	AuthSuccess chan types.DiscordAuth
 	ChatChan    chan types.ChatMessage
-	ChatCache   *chatcache.ChatCache
+	ChatCache   chatcache.ChatCache
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.

@@ -12,9 +12,13 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
+type chatChanneler interface {
+	GetOutChannel(name string) chan types.ChatMessage
+}
+
 // A Chat is for handling discord <-> rust chat
 type chat struct {
-	ccache *chatcache.ChatCache
+	ccache chatChanneler
 	in     chan types.ChatMessage
 	sleep  time.Duration
 	logger *log.Logger
@@ -25,7 +29,8 @@ type chat struct {
 // ls is the log symbol
 // in is the channel for server -> discord
 // out is the channel for discord -> server
-func NewChat(ls string, ccache *chatcache.ChatCache, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
+func NewChat(ls string, ccache chatcache.ChatCache, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
+
 	c := chat{ccache: ccache, in: in, sleep: 1 * time.Minute, logger: &log.Logger{}}
 
 	c.logger.SetPrefix(ls)

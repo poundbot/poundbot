@@ -16,7 +16,7 @@ pipelines:
           - cd "${PACKAGE_PATH}"
           - export GO111MODULE=on
           - go mod download
-          - GOMAXPROCS=4 go test ./... -tags integration -parallel 8 -timeout 2s
+          - GOMAXPROCS=4 go test ./... -tags integration -parallel 8 -timeout 10s -race
         services:
           - mongo
 
