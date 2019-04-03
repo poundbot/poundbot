@@ -381,7 +381,7 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 			}
 			account.Servers[serverID].Name = strings.Join(instructions[1:], " ")
 			c.as.UpdateServer(account.GuildSnowflake, account.Servers[serverID].Key, account.Servers[serverID])
-			c.sendServerKey(m.Author.ID, account.Servers[serverID].Key)
+			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d name set to %s", serverID, account.Servers[serverID].Name))
 			return
 		case "delete":
 			if len(account.Servers) <= serverID {
