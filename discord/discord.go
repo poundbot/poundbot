@@ -3,6 +3,7 @@ package discord
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,7 +27,7 @@ type RunnerConfig struct {
 type Client struct {
 	session       *discordgo.Session
 	as            storage.AccountsStore
-	cc            *chatcache.ChatCache
+	cc            chatcache.ChatCache
 	das           storage.DiscordAuthsStore
 	us            storage.UsersStore
 	token         string
@@ -38,7 +39,7 @@ type Client struct {
 	shutdown      bool
 }
 
-func Runner(token string, cc *chatcache.ChatCache, as storage.AccountsStore, das storage.DiscordAuthsStore, us storage.UsersStore) *Client {
+func Runner(token string, cc chatcache.ChatCache, as storage.AccountsStore, das storage.DiscordAuthsStore, us storage.UsersStore) *Client {
 	return &Client{
 		as:            as,
 		cc:            cc,
@@ -59,7 +60,7 @@ func (c *Client) Start() error {
 		c.session = session
 		c.session.AddHandler(c.messageCreate)
 		c.session.AddHandler(c.ready)
-		c.session.AddHandler(c.disconnected)
+		c.session.AddHandler(handler.Disconnected(c.status, logPrefix))
 		c.session.AddHandler(c.resumed)
 		c.session.AddHandler(handler.NewGuildCreate(c.as))
 		c.session.AddHandler(handler.NewGuildDelete(c.as))
@@ -194,13 +195,6 @@ func (c *Client) connect() {
 	}
 }
 
-// This function will be called (due to AddHandler above) when the bot receives
-// the "disconnect" event from Discord.
-func (c *Client) disconnected(s *discordgo.Session, event *discordgo.Disconnect) {
-	c.status <- false
-	log.Println(logPrefix + "[CONN] Disconnected!")
-}
-
 func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 	log.Println(logPrefix + "[CONN] Resumed!")
 	c.status <- true
@@ -228,17 +222,15 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-
-	var da types.DiscordAuth
-	var account types.Account
-	var server types.Server
 	var err error
 
 	// Detect PM
 	if m.GuildID == "" {
-		goto Interact
+		c.interact(s, m)
+		return
 	}
 
+	var account types.Account
 	err = c.as.GetByDiscordGuild(m.GuildID, &account)
 	if err != nil {
 		log.Printf(logPrefix+"Could not get account for %s\n", m.GuildID)
@@ -248,7 +240,8 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			goto Instruct
+			c.instruct(s, m, account)
+			return
 		}
 	}
 
@@ -256,36 +249,35 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		return
 	}
 
-	// TODO: Get the actual server
-	server = account.Servers[0]
+	// Find the server for the channel and send the message to it
+	for _, server := range account.Servers {
+		if server.ChatChanID == m.ChannelID {
+			go func(cm types.ChatMessage, cc chan types.ChatMessage) {
+				if len(cm.Message) > 128 {
+					cm.Message = truncateString(cm.Message, 128)
+					c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
+				}
+				cm.CreatedAt = time.Now().UTC()
+				select {
+				case cc <- cm:
+					return
+				case <-time.After(10 * time.Second):
+					return
+				}
 
-	if server.ChatChanID == m.ChannelID {
-		go func(cm types.ChatMessage, cc chan types.ChatMessage) {
-			if len(cm.Message) > 128 {
-				cm.Message = truncateString(cm.Message, 128)
-				c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
-			}
-			cm.CreatedAt = time.Now().UTC()
-			select {
-			case cc <- cm:
-				return
-			case <-time.After(10 * time.Second):
-				return
-			}
-
-		}(types.ChatMessage{
-			ServerKey:   server.Key,
-			DisplayName: m.Author.Username,
-			Message:     m.Message.Content,
-			Source:      types.ChatSourceDiscord,
-		}, c.cc.GetOutChannel(server.Key))
+			}(types.ChatMessage{
+				ServerKey:   server.Key,
+				DisplayName: m.Author.Username,
+				Message:     m.Message.Content,
+				Source:      types.ChatSourceDiscord,
+			}, c.cc.GetOutChannel(server.Key))
+		}
 	}
+}
 
-	// Break out and do not interact.
-	return
-
-Interact:
-	err = c.getDiscordAuth(m.Author.ID, &da)
+func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
+	var da types.DiscordAuth
+	err := c.getDiscordAuth(m.Author.ID, &da)
 	if err != nil {
 		return
 	}
@@ -304,49 +296,131 @@ Interact:
 	}
 
 	return
+}
 
-Instruct:
+func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, account types.Account) {
 	log.Printf("Instruct: %s, %s", account.GuildSnowflake, m.ContentWithMentionsReplaced())
-	message := strings.Trim(
+	parts := strings.Fields(
 		strings.Replace(m.Content, fmt.Sprintf("<@%s>", s.State.User.ID), "", -1),
-		"\n ",
 	)
 
-	switch message {
+	if m.Author.ID != account.OwnerSnowflake {
+		return
+	}
+
+	if len(parts) == 0 {
+		return
+	}
+
+	command := parts[0]
+	parts = parts[1:]
+
+	switch command {
 	case "help":
 		c.sendPrivateMessage(m.Author.ID, messages.HelpText())
 		break
-	case "server init":
-		if len(account.Servers) > 0 {
-			c.sendPrivateMessage(m.Author.ID, "You already have a server")
+	case "server":
+		if len(parts) == 0 {
+			c.session.ChannelMessageSend(m.ChannelID, "TODO: Server Usage. See `help`.")
 			return
 		}
 
-		account.Servers = []types.Server{
-			types.Server{Key: uuid.NewV4().String(), ChatChanID: m.ChannelID, RaidDelay: "1m"},
+		switch parts[0] {
+		case "list":
+			out := "**Server List**\nID : Name : RaidDelay : Key\n----"
+			for i, server := range account.Servers {
+				out = fmt.Sprintf("%s\n%d : %s : %s : ||`%s`||", out, i, server.RaidDelay, server.Name, server.Key)
+			}
+			c.sendPrivateMessage(m.Author.ID, out)
+			return
+		case "add":
+			if len(parts) < 2 {
+				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server add <name>`")
+				return
+			}
+			server := types.Server{
+				Name:       strings.Join(parts[1:], " "),
+				Key:        uuid.NewV4().String(),
+				ChatChanID: m.ChannelID,
+				RaidDelay:  "1m",
+			}
+			c.as.AddServer(account.GuildSnowflake, server)
+			c.sendServerKey(m.Author.ID, server.Key)
+			return
 		}
 
-		c.as.AddServer(account.GuildSnowflake, account.Servers[0])
-		c.sendServerKey(m.Author.ID, account.Servers[0].Key)
-		return
-	case "server reset":
-		if len(account.Servers) < 1 {
-			c.sendPrivateMessage(m.Author.ID, "You don't have a server defined. Try *help*")
+		serverID := 0
+		instructions := parts
+		serverID, err := strconv.Atoi(instructions[0])
+		if err == nil {
+			instructions = instructions[1:]
+		} else if len(account.Servers) > 1 {
+			c.session.ChannelMessageSend(m.ChannelID, "You have multiple servers. Use server `#`.")
 			return
 		}
-		oldKey := account.Servers[0].Key
-		account.Servers[0].Key = uuid.NewV4().String()
-		c.as.UpdateServer(account.GuildSnowflake, oldKey, account.Servers[0])
-		c.sendServerKey(m.Author.ID, account.Servers[0].Key)
-		return
-	case "server chat here":
-		if len(account.Servers) < 1 {
-			c.sendPrivateMessage(m.Author.ID, "You don't have a server defined. Try *help*")
+
+		switch instructions[0] {
+		case "reset":
+			if len(account.Servers) <= serverID {
+				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
+				return
+			}
+			oldKey := account.Servers[serverID].Key
+			account.Servers[serverID].Key = uuid.NewV4().String()
+			c.as.UpdateServer(account.GuildSnowflake, oldKey, account.Servers[serverID])
+			c.sendServerKey(m.Author.ID, account.Servers[serverID].Key)
+			return
+		case "rename":
+			if len(account.Servers) <= serverID {
+				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
+				return
+			}
+			if len(instructions) < 2 {
+				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server rename [id] <name>`")
+				return
+			}
+			account.Servers[serverID].Name = strings.Join(instructions[1:], " ")
+			c.as.UpdateServer(account.GuildSnowflake, account.Servers[serverID].Key, account.Servers[serverID])
+			c.sendServerKey(m.Author.ID, account.Servers[serverID].Key)
+			return
+		case "delete":
+			if len(account.Servers) <= serverID {
+				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
+				return
+			}
+			c.as.RemoveServer(account.GuildSnowflake, account.Servers[serverID].Key)
+			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d(%s) removed", serverID, account.Servers[serverID].Name))
+			return
+		case "chathere":
+			if len(account.Servers) <= serverID {
+				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
+				return
+			}
+			account.Servers[serverID].ChatChanID = m.ChannelID
+			c.as.UpdateServer(account.GuildSnowflake, account.Servers[serverID].Key, account.Servers[serverID])
+			return
+		case "raiddelay":
+			if len(account.Servers) <= serverID {
+				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
+				return
+			}
+			if len(instructions) != 2 {
+				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server rename [id] <name>`")
+				return
+			}
+			_, err := time.ParseDuration(instructions[1])
+			if err != nil {
+				c.session.ChannelMessageSend(m.ChannelID, "Invalid duration format. Examples:\n`1m` = 1 minute, `1h` = 1 hour, `1s` = 1 second")
+				return
+			}
+
+			account.Servers[serverID].RaidDelay = instructions[1]
+			c.as.UpdateServer(account.GuildSnowflake, account.Servers[serverID].Key, account.Servers[serverID])
+
 			return
 		}
-		account.Servers[0].ChatChanID = m.ChannelID
-		c.as.UpdateServer(account.GuildSnowflake, account.Servers[0].Key, account.Servers[0])
-		return
+
+		c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Invalid command %s. Try `help`", instructions[0]))
 	}
 }
 

@@ -1,11 +1,12 @@
 package types
 
 import (
-	"strconv"
 	"errors"
+	"strconv"
 )
 
 type Server struct {
+	Name         string
 	Key          string
 	Address      string
 	Clans        []Clan

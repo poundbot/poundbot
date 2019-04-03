@@ -25,7 +25,6 @@ type Config struct {
 func NewMongoDB(mc Config) (*MongoDb, error) {
 	sess, err := mgo.Dial(mc.DialAddress)
 	if err != nil {
-		sess.Close()
 		return nil, err
 	}
 	return &MongoDb{session: sess, dbname: mc.Database}, nil

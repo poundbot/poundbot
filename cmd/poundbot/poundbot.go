@@ -139,7 +139,7 @@ func main() {
 	ccache := chatcache.NewChatCache()
 
 	// Discord server
-	dr := discord.Runner(dConfig.Token, ccache, store.Accounts(), store.DiscordAuths(), store.Users())
+	dr := discord.Runner(dConfig.Token, *ccache, store.Accounts(), store.DiscordAuths(), store.Users())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)
 	}
