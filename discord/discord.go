@@ -105,15 +105,13 @@ func (c *Client) runner() {
 					}
 
 				case t := <-c.RaidAlertChan:
-					var u types.User
-
-					err := c.us.Get(t.SteamID, &u)
+					raUser, err := c.us.Get(t.SteamID)
 					if err != nil {
 						log.Printf(logRunnerPrefix + "[COMM] User not found trying to send raid alert")
 						break
 					}
 
-					user, err := c.session.User(u.Snowflake)
+					user, err := c.session.User(raUser.Snowflake)
 					if err != nil {
 						log.Printf(logRunnerPrefix+"[COMM] Error finding user %d: %d\n", t.SteamID, err)
 						break
@@ -230,8 +228,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		return
 	}
 
-	var account types.Account
-	err = c.as.GetByDiscordGuild(m.GuildID, &account)
+	account, err := c.as.GetByDiscordGuild(m.GuildID)
 	if err != nil {
 		log.Printf(logPrefix+"Could not get account for %s\n", m.GuildID)
 		return
@@ -276,8 +273,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 }
 
 func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
-	var da types.DiscordAuth
-	err := c.getDiscordAuth(m.Author.ID, &da)
+	da, err := c.getDiscordAuth(m.Author.ID)
 	if err != nil {
 		return
 	}
@@ -459,8 +455,8 @@ func (c *Client) getUserByName(guildSnowflake, name string) (discordgo.User, err
 	return discordgo.User{}, fmt.Errorf("discord user not found %s", name)
 }
 
-func (c *Client) getDiscordAuth(snowflake string, da *types.DiscordAuth) error {
-	return c.das.GetSnowflake(snowflake, da)
+func (c *Client) getDiscordAuth(snowflake string) (types.DiscordAuth, error) {
+	return c.das.GetSnowflake(snowflake)
 }
 
 func pinString(pin int) string {

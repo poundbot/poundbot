@@ -41,12 +41,11 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// da.logger.Printf("User Auth Request: %v from %v\n", t, r.Body)
 
-	var u types.User
-	err = da.us.Get(t.SteamID, &u)
+	user, err := da.us.Get(t.SteamID)
 	if err == nil {
 		handleError(w, types.RESTError{
 			StatusCode: http.StatusMethodNotAllowed,
-			Error:      fmt.Sprintf("%s is linked to you.", u.DiscordName),
+			Error:      fmt.Sprintf("%s is linked to you.", user.DiscordName),
 		})
 		return
 	} else if t.DiscordName == "check" {

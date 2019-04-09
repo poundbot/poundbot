@@ -26,18 +26,27 @@ func (_m *RaidAlertsStore) AddInfo(alertIn time.Duration, ed types.EntityDeath) 
 	return r0
 }
 
-// GetReady provides a mock function with given fields: _a0
-func (_m *RaidAlertsStore) GetReady(_a0 *[]types.RaidAlert) error {
-	ret := _m.Called(_a0)
+// GetReady provides a mock function with given fields:
+func (_m *RaidAlertsStore) GetReady() ([]types.RaidAlert, error) {
+	ret := _m.Called()
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*[]types.RaidAlert) error); ok {
-		r0 = rf(_a0)
+	var r0 []types.RaidAlert
+	if rf, ok := ret.Get(0).(func() []types.RaidAlert); ok {
+		r0 = rf()
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]types.RaidAlert)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Remove provides a mock function with given fields: _a0

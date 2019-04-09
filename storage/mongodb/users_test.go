@@ -58,8 +58,7 @@ func TestUsers_Get(t *testing.T) {
 
 			users.collection.Insert(baseUser)
 
-			var got types.User
-			err := users.Get(tt.args.steamID, &got)
+			got, err := users.Get(tt.args.steamID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Users.Get() error = %v, wantErr %v", err, tt.wantErr)
 				return

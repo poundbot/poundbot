@@ -1,6 +1,8 @@
 package mongodb
 
 import (
+	"fmt"
+
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -11,12 +13,19 @@ type DiscordAuths struct {
 	collection *mgo.Collection
 }
 
-func (d DiscordAuths) Get(discordName string, da *types.DiscordAuth) error {
-	return d.collection.Find(bson.M{"discordname": discordName}).One(&da)
+func (d DiscordAuths) Get(discordName string) (types.DiscordAuth, error) {
+	var da types.DiscordAuth
+	err := d.collection.Find(bson.M{"discordname": discordName}).One(&da)
+	return da, err
 }
 
-func (d DiscordAuths) GetSnowflake(snowflake string, da *types.DiscordAuth) error {
-	return d.collection.Find(bson.M{"snowflake": snowflake}).One(&da)
+func (d DiscordAuths) GetSnowflake(snowflake string) (types.DiscordAuth, error) {
+	var da types.DiscordAuth
+	err := d.collection.Find(bson.M{"snowflake": snowflake}).One(&da)
+	if err != nil {
+		return types.DiscordAuth{}, fmt.Errorf("mongodb could not find snowflake %s (%s)", snowflake, err)
+	}
+	return da, nil
 }
 
 // Remove implements db.DiscordAuthsStore.Remove

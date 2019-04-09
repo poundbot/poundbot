@@ -18,12 +18,11 @@ type RaidAlerts struct {
 
 // AddInfo implements storage.RaidAlertsStore.AddInfo
 func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
-	var u types.User
 	for _, steamID := range ed.Owners {
-		err := r.users.Get(steamID, &u)
+		user, err := r.users.Get(steamID)
 		if err == nil {
 			_, err := r.collection.Upsert(
-				u.SteamInfo,
+				user.SteamInfo,
 				bson.M{
 					"$setOnInsert": bson.M{
 						"alertat": time.Now().UTC().Add(alertIn),
@@ -45,7 +44,8 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 }
 
 // GetReady implements storage.RaidAlertsStore.GetReady
-func (r RaidAlerts) GetReady(alerts *[]types.RaidAlert) error {
+func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
+	var alerts []types.RaidAlert
 	// change := mgo.Change{Remove: true}
 	err := r.collection.Find(
 		bson.M{
@@ -53,8 +53,8 @@ func (r RaidAlerts) GetReady(alerts *[]types.RaidAlert) error {
 				"$lte": time.Now().UTC(),
 			},
 		},
-	).All(alerts)
-	return err
+	).All(&alerts)
+	return alerts, err
 }
 
 // Remove implements storage.RaidAlertsStore.Remove

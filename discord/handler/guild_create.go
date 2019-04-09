@@ -18,17 +18,16 @@ func NewGuildCreate(as storage.AccountsStore) func(*discordgo.Session, *discordg
 }
 
 func (g *guildCreate) guildCreate(s *discordgo.Session, gc *discordgo.GuildCreate) {
-	var a types.Account
-	err := g.as.GetByDiscordGuild(gc.ID, &a)
+	account, err := g.as.GetByDiscordGuild(gc.ID)
 	if err == nil {
-		a.OwnerSnowflake = gc.OwnerID
+		account.OwnerSnowflake = gc.OwnerID
 		return
 	} else if err.Error() != "not found" {
 		log.Printf("Error: GuildCreate: %v", err)
 		return
 	} else {
-		a.BaseAccount = types.BaseAccount{GuildSnowflake: gc.ID, OwnerSnowflake: gc.OwnerID}
+		account.BaseAccount = types.BaseAccount{GuildSnowflake: gc.ID, OwnerSnowflake: gc.OwnerID}
 	}
 
-	g.as.UpsertBase(a.BaseAccount)
+	g.as.UpsertBase(account.BaseAccount)
 }

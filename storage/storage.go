@@ -19,7 +19,7 @@ import (
 //
 // SetClanIn sets the clan tag on all users who have the provided steam IDs.
 type UsersStore interface {
-	Get(steamID uint64, u *types.User) error
+	Get(steamID uint64) (types.User, error)
 	UpsertBase(baseUser types.BaseUser) error
 }
 
@@ -30,8 +30,8 @@ type UsersStore interface {
 //
 // Remove removes a discord auth
 type DiscordAuthsStore interface {
-	Get(discordName string, da *types.DiscordAuth) error
-	GetSnowflake(snowflake string, da *types.DiscordAuth) error
+	Get(discordName string) (types.DiscordAuth, error)
+	GetSnowflake(snowflake string) (types.DiscordAuth, error)
 	Upsert(types.DiscordAuth) error
 	Remove(types.SteamInfo) error
 }
@@ -45,7 +45,7 @@ type DiscordAuthsStore interface {
 //
 // Remove deletes a raid alert
 type RaidAlertsStore interface {
-	GetReady(*[]types.RaidAlert) error
+	GetReady() ([]types.RaidAlert, error)
 	AddInfo(alertIn time.Duration, ed types.EntityDeath) error
 	Remove(types.RaidAlert) error
 }
@@ -53,8 +53,8 @@ type RaidAlertsStore interface {
 // AccountsStore is for accounts storage
 type AccountsStore interface {
 	All(*[]types.Account) error
-	GetByDiscordGuild(snowflake string, account *types.Account) error
-	GetByServerKey(serverKey string, account *types.Account) error
+	GetByDiscordGuild(snowflake string) (types.Account, error)
+	GetByServerKey(serverKey string) (types.Account, error)
 	UpsertBase(types.BaseAccount) error
 	Remove(snowflake string) error
 

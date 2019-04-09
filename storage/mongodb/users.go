@@ -14,9 +14,10 @@ type Users struct {
 }
 
 // Get implements db.UsersStore.Get
-func (u Users) Get(steamID uint64, user *types.User) error {
+func (u Users) Get(steamID uint64) (types.User, error) {
+	var user types.User
 	err := u.collection.Find(bson.M{"steamid": steamID}).One(&user)
-	return err
+	return user, err
 }
 
 // UpsertBase implements db.UsersStore.UpsertBase

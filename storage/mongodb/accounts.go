@@ -19,12 +19,16 @@ func (s Accounts) All(accounts *[]types.Account) error {
 	return s.collection.Find(bson.M{}).All(accounts)
 }
 
-func (s Accounts) GetByDiscordGuild(key string, account *types.Account) error {
-	return s.collection.Find(bson.M{accountsKeyField: key}).One(&account)
+func (s Accounts) GetByDiscordGuild(key string) (types.Account, error) {
+	var account types.Account
+	err := s.collection.Find(bson.M{accountsKeyField: key}).One(&account)
+	return account, err
 }
 
-func (s Accounts) GetByServerKey(key string, account *types.Account) error {
-	return s.collection.Find(bson.M{serverKeyField: key}).One(&account)
+func (s Accounts) GetByServerKey(key string) (types.Account, error) {
+	var account types.Account
+	err := s.collection.Find(bson.M{serverKeyField: key}).One(&account)
+	return account, err
 }
 
 func (s Accounts) UpsertBase(account types.BaseAccount) error {

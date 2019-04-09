@@ -121,11 +121,11 @@ func TestAccounts_GetByDiscordGuild(t *testing.T) {
 				coll.C.Insert(account)
 			}
 
-			var account types.Account
-			if err := accounts.GetByDiscordGuild(tt.key, &account); (err != nil) != tt.wantErr {
+			got, err := accounts.GetByDiscordGuild(tt.key)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Accounts.GetByDiscordGuild() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			assert.Equal(t, tt.want, account, "Account is not what we expected")
+			assert.Equal(t, tt.want, got, "Account is not what we expected")
 		})
 	}
 }
@@ -175,11 +175,11 @@ func TestAccounts_GetByServerKey(t *testing.T) {
 				coll.C.Insert(account)
 			}
 
-			var account types.Account
-			if err := accounts.GetByServerKey(tt.args.key, &account); (err != nil) != tt.wantErr {
+			got, err := accounts.GetByServerKey(tt.args.key)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Accounts.GetByDiscordGuild() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			assert.Equal(t, tt.want, account, "Account is not what we expected")
+			assert.Equal(t, tt.want, got, "Account is not what we expected")
 		})
 	}
 }

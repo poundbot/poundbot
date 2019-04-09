@@ -7,7 +7,6 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestRaidAlerter_Run(t *testing.T) {
@@ -50,17 +49,15 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 				mockRA = &mocks.RaidAlertsStore{}
 
-				mockRA.On("GetReady", mock.AnythingOfType("*[]types.RaidAlert")).
-					Return(func(args *[]types.RaidAlert) error {
+				mockRA.On("GetReady").
+					Return(func() []types.RaidAlert {
 						if first {
 							first = false
-							*args = []types.RaidAlert{rn}
-						} else {
-							*args = []types.RaidAlert{}
+							return []types.RaidAlert{rn}
 						}
 
-						return nil
-					})
+						return []types.RaidAlert{}
+					}, nil)
 
 				mockRA.On("Remove", rn).Return(nil).Once()
 

@@ -157,13 +157,12 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 				coll.C.Insert(alert)
 			}
 
-			var alerts []types.RaidAlert
-
-			if err := raidAlerts.GetReady(&alerts); (err != nil) != tt.wantErr {
+			got, err := raidAlerts.GetReady()
+			if (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.GetReady() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			assert.Equal(t, tt.want, alerts)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

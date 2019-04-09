@@ -53,32 +53,46 @@ func (_m *AccountsStore) All(_a0 *[]types.Account) error {
 	return r0
 }
 
-// GetByDiscordGuild provides a mock function with given fields: snowflake, account
-func (_m *AccountsStore) GetByDiscordGuild(snowflake string, account *types.Account) error {
-	ret := _m.Called(snowflake, account)
+// GetByDiscordGuild provides a mock function with given fields: snowflake
+func (_m *AccountsStore) GetByDiscordGuild(snowflake string) (types.Account, error) {
+	ret := _m.Called(snowflake)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *types.Account) error); ok {
-		r0 = rf(snowflake, account)
+	var r0 types.Account
+	if rf, ok := ret.Get(0).(func(string) types.Account); ok {
+		r0 = rf(snowflake)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(types.Account)
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(snowflake)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
-// GetByServerKey provides a mock function with given fields: serverKey, account
-func (_m *AccountsStore) GetByServerKey(serverKey string, account *types.Account) error {
-	ret := _m.Called(serverKey, account)
+// GetByServerKey provides a mock function with given fields: serverKey
+func (_m *AccountsStore) GetByServerKey(serverKey string) (types.Account, error) {
+	ret := _m.Called(serverKey)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *types.Account) error); ok {
-		r0 = rf(serverKey, account)
+	var r0 types.Account
+	if rf, ok := ret.Get(0).(func(string) types.Account); ok {
+		r0 = rf(serverKey)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(types.Account)
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(serverKey)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Remove provides a mock function with given fields: snowflake
@@ -151,13 +165,13 @@ func (_m *AccountsStore) SetClans(serverKey string, clans []types.Clan) error {
 	return r0
 }
 
-// UpdateServer provides a mock function with given fields: snowflake, server
-func (_m *AccountsStore) UpdateServer(snowflake string, server types.Server) error {
-	ret := _m.Called(snowflake, server)
+// UpdateServer provides a mock function with given fields: snowflake, oldKey, server
+func (_m *AccountsStore) UpdateServer(snowflake string, oldKey string, server types.Server) error {
+	ret := _m.Called(snowflake, oldKey, server)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, types.Server) error); ok {
-		r0 = rf(snowflake, server)
+	if rf, ok := ret.Get(0).(func(string, string, types.Server) error); ok {
+		r0 = rf(snowflake, oldKey, server)
 	} else {
 		r0 = ret.Error(0)
 	}

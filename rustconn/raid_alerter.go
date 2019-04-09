@@ -11,7 +11,7 @@ const raLogPrefix = "[RAIDALERT]"
 
 // A RaidStore stores raid information
 type RaidStore interface {
-	GetReady(*[]types.RaidAlert) error
+	GetReady() ([]types.RaidAlert, error)
 	Remove(types.RaidAlert) error
 }
 
@@ -43,14 +43,13 @@ func (r *RaidAlerter) Run() {
 			log.Println(raLogPrefix + "[WARN] Shutting down RaidAlerter")
 			return
 		case <-time.After(r.SleepTime):
-			var results []types.RaidAlert
-			err := r.RaidStore.GetReady(&results)
+			alerts, err := r.RaidStore.GetReady()
 			if err != nil && err.Error() != "not found" {
 				log.Printf("[ERROR] Get Raid Alerts Error: %s\n", err)
 				continue
 			}
 
-			for _, result := range results {
+			for _, result := range alerts {
 				r.RaidNotify <- result
 				r.RaidStore.Remove(result)
 			}

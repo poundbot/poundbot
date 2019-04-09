@@ -11,32 +11,46 @@ type DiscordAuthsStore struct {
 	mock.Mock
 }
 
-// Get provides a mock function with given fields: discordName, da
-func (_m *DiscordAuthsStore) Get(discordName string, da *types.DiscordAuth) error {
-	ret := _m.Called(discordName, da)
+// Get provides a mock function with given fields: discordName
+func (_m *DiscordAuthsStore) Get(discordName string) (types.DiscordAuth, error) {
+	ret := _m.Called(discordName)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *types.DiscordAuth) error); ok {
-		r0 = rf(discordName, da)
+	var r0 types.DiscordAuth
+	if rf, ok := ret.Get(0).(func(string) types.DiscordAuth); ok {
+		r0 = rf(discordName)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(types.DiscordAuth)
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(discordName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
-// GetSnowflake provides a mock function with given fields: snowflake, da
-func (_m *DiscordAuthsStore) GetSnowflake(snowflake string, da *types.DiscordAuth) error {
-	ret := _m.Called(snowflake, da)
+// GetSnowflake provides a mock function with given fields: snowflake
+func (_m *DiscordAuthsStore) GetSnowflake(snowflake string) (types.DiscordAuth, error) {
+	ret := _m.Called(snowflake)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *types.DiscordAuth) error); ok {
-		r0 = rf(snowflake, da)
+	var r0 types.DiscordAuth
+	if rf, ok := ret.Get(0).(func(string) types.DiscordAuth); ok {
+		r0 = rf(snowflake)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(types.DiscordAuth)
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(snowflake)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Remove provides a mock function with given fields: _a0

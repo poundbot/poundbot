@@ -6,9 +6,8 @@ import (
 
 	"context"
 
-	"github.com/blang/semver"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/blang/semver"
 )
 
 type ServerAuth struct {
@@ -34,9 +33,7 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 				return
 			}
 
-			var account types.Account
-
-			err = sa.as.GetByServerKey(s[1], &account)
+			account, err := sa.as.GetByServerKey(s[1])
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
