@@ -28,6 +28,8 @@ func NewDiscordAuth(logPrefix string, das storage.DiscordAuthsStore, us storage.
 // Handle takes Discord verification requests from the Rust server
 // and sends them to the DiscordAuthsStore and DiscordAuth channel
 func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
+	account := r.Context().Value(contextKeyAccount).(types.Account)
+
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 	var t types.DiscordAuth
@@ -54,6 +56,8 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	t.GuildSnowflake = account.GuildSnowflake
 
 	err = da.das.Upsert(t)
 	if err == nil {

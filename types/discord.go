@@ -8,8 +8,9 @@ type DiscordInfo struct {
 type Ack func(bool)
 
 type DiscordAuth struct {
-	BaseUser   `bson:",inline"`
-	Pin        int
-	SentToUser bool
-	Ack        Ack `bson:"-" json:"-"`
+	GuildSnowflake string
+	BaseUser       `bson:",inline"`
+	Pin            int
+	SentToUser     bool
+	Ack            Ack `bson:"-" json:"-"`
 }

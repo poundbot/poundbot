@@ -127,7 +127,7 @@ func (c *Client) runner() {
 					}
 
 				case t := <-c.DiscordAuth:
-					dUser, err := c.getUserByName(t.DiscordInfo.DiscordName)
+					dUser, err := c.getUserByName(t.GuildSnowflake, t.DiscordInfo.DiscordName)
 					if err != nil {
 						log.Printf(logRunnerPrefix+"[COMM] User %s not found\n", t.DiscordInfo.DiscordName)
 						err = c.das.Remove(t.SteamInfo)
@@ -444,23 +444,15 @@ func (c *Client) sendServerKey(snowflake, key string) (m *discordgo.Message, err
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error
-func (c *Client) getUserByName(name string) (user discordgo.User, err error) {
-
-	guilds, err := c.session.UserGuilds(100, "", "")
+func (c *Client) getUserByName(guildSnowflake, name string) (discordgo.User, error) {
+	users, err := c.session.GuildMembers(guildSnowflake, "", 1000)
 	if err != nil {
-		return discordgo.User{}, fmt.Errorf("discord user not found %s", name)
+		return discordgo.User{}, fmt.Errorf("discord user not found %s in %s", name, guildSnowflake)
 	}
 
-	for _, guild := range guilds {
-		users, err := c.session.GuildMembers(guild.ID, "", 1000)
-		if err != nil {
-			return user, err
-		}
-
-		for _, user := range users {
-			if strings.ToLower(user.User.String()) == strings.ToLower(name) {
-				return *user.User, nil
-			}
+	for _, user := range users {
+		if strings.ToLower(user.User.String()) == strings.ToLower(name) {
+			return *user.User, nil
 		}
 	}
 
