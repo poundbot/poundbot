@@ -2,17 +2,18 @@ package rustconn
 
 import (
 	"bytes"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-	"log"
 
 	"context"
 
 	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
 	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/globalsign/mgo/bson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -34,7 +35,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 			e:      &entityDeath{},
 			method: http.MethodPost,
 			status: http.StatusBadRequest,
-			log:    "[C] [request-1] Invalid JSON: EOF\n",
+			log:    "[C] [request-1](5cafadc080e1a9498fea8f03:server1) Invalid JSON: EOF\n",
 		},
 		{
 			name:   "POST entity death",
@@ -50,10 +51,11 @@ func TestEntityDeath_Handle(t *testing.T) {
 			}
 			`,
 			ed: &types.EntityDeath{
-				Name:      "foo",
-				GridPos:   "A10",
-				Owners:    []uint64{1, 2, 3},
-				Timestamp: types.Timestamp{CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)},
+				ServerName: "server1",
+				Name:       "foo",
+				GridPos:    "A10",
+				Owners:     []uint64{1, 2, 3},
+				Timestamp:  types.Timestamp{CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)},
 			},
 		},
 	}
@@ -83,9 +85,12 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			ctx := context.WithValue(context.Background(), contextKeyServerKey, "bloop")
 			ctx = context.WithValue(ctx, contextKeyRequestUUID, "request-1")
-			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{Servers: []types.Server{
-				{ChatChanID: "1234", Key: "bloop"},
-			}})
+			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
+				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"), //bson.NewObjectId(),
+				Servers: []types.Server{
+					{ChatChanID: "1234", Key: "bloop", Name: "server1"},
+				},
+			})
 
 			req = req.WithContext(ctx)
 

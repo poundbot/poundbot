@@ -3,6 +3,8 @@ package types
 import (
 	"errors"
 	"strconv"
+
+	"github.com/globalsign/mgo/bson"
 )
 
 type Server struct {
@@ -21,6 +23,7 @@ type BaseAccount struct {
 }
 
 type Account struct {
+	ID          bson.ObjectId `bson:"mid,omitempty"`
 	BaseAccount `bson:",inline" json:",inline"`
 	Servers     []Server
 	Timestamp   `bson:",inline" json:",inline"`
@@ -60,37 +63,37 @@ func ClanFromServerClan(sc ServerClan) (*Clan, error) {
 	if err != nil {
 		return nil, err
 	}
-	clan.Members = *nuints
+	clan.Members = nuints
 
 	nuints, err = convStringAToUnintA(sc.Moderators)
 	if err != nil {
 		return nil, err
 	}
-	clan.Moderators = *nuints
+	clan.Moderators = nuints
 
 	nuints, err = convStringAToUnintA(sc.Invited)
 	if err != nil {
 		return nil, err
 	}
-	clan.Invited = *nuints
+	clan.Invited = nuints
 
 	return &clan, nil
 }
 
-func (a Account) ServerFromKey(key string) (*Server, error) {
+func (a Account) ServerFromKey(key string) (Server, error) {
 	for i := range a.Servers {
 		if a.Servers[i].Key == key {
-			return &a.Servers[i], nil
+			return a.Servers[i], nil
 		}
 	}
-	return nil, errors.New("server not found")
+	return Server{}, errors.New("server not found")
 }
 
-func convStringAToUnintA(in []string) (*[]uint64, error) {
+func convStringAToUnintA(in []string) ([]uint64, error) {
 	var out []uint64
 	var l = len(in)
 	if l == 0 {
-		return &out, nil
+		return out, nil
 	}
 
 	out = make([]uint64, len(in))
@@ -102,5 +105,5 @@ func convStringAToUnintA(in []string) (*[]uint64, error) {
 		out[i] = newuint
 	}
 
-	return &out, nil
+	return out, nil
 }

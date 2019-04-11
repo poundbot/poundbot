@@ -8,11 +8,12 @@ import (
 )
 
 type EntityDeath struct {
-	ServerKey string
-	Name      string
-	GridPos   string
-	Owners    []uint64
-	Timestamp `bson:",inline" json:",inline"`
+	ServerName string
+	ServerKey  string
+	Name       string
+	GridPos    string
+	Owners     []uint64
+	Timestamp  `bson:",inline" json:",inline"`
 }
 
 type RaidInventory struct {
@@ -23,6 +24,7 @@ type RaidInventory struct {
 type RaidAlert struct {
 	SteamInfo     `bson:",inline"`
 	ServerName    string
+	ServerKey     string
 	GridPositions []string
 	Items         map[string]int
 	AlertAt       time.Time

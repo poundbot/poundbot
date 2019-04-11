@@ -25,7 +25,8 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 				user.SteamInfo,
 				bson.M{
 					"$setOnInsert": bson.M{
-						"alertat": time.Now().UTC().Add(alertIn),
+						"alertat":    time.Now().UTC().Add(alertIn),
+						"servername": ed.ServerName,
 					},
 					"$inc": bson.M{
 						fmt.Sprintf("items.%s", ed.Name): 1,

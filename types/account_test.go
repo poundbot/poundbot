@@ -9,9 +9,6 @@ import (
 func Test_convStringAToUnintA(t *testing.T) {
 	t.Parallel()
 
-	// Helper function to return empty array of uints
-	empty := func() *[]uint64 { var e []uint64; return &e }
-
 	type args struct {
 		in []string
 	}
@@ -19,11 +16,11 @@ func Test_convStringAToUnintA(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *[]uint64
+		want    []uint64
 		wantErr bool
 	}{
-		{"all uint64s", args{in: []string{"1001", "2801"}}, &[]uint64{1001, 2801}, false},
-		{"empty array", args{in: []string{}}, empty(), false},
+		{"all uint64s", args{in: []string{"1001", "2801"}}, []uint64{1001, 2801}, false},
+		{"empty array", args{in: []string{}}, nil, false},
 		{"negatives", args{in: []string{"1001", "-2801"}}, nil, true},
 		{"empty strings", args{in: []string{"", "2801"}}, nil, true},
 	}
