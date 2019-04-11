@@ -4,7 +4,7 @@
 # -----
 # \${BITBUCKET_REPO_OWNER}
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: golang:1.11.2
+image: golang:1.12.3
 
 pipelines:
   default:
