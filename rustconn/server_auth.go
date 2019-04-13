@@ -22,9 +22,14 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 				panic(err)
 			}
 			version, err := semver.Make(r.Header.Get("X-PoundBotConnector-Version"))
-			if err != nil || version.LT(minVersion) {
+			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("PoundBotConnector must be updated. Please download the latest version at https://bitbucket.org/mrpoundsign/poundbot/downloads/."))
+				w.Write([]byte("Could not read PoundBotversion. Please download the latest version at https://bitbucket.org/mrpoundsign/poundbot/downloads/."))
+				return
+			}
+			if version.LT(minVersion) {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("PoundBot must be updated. Please download the latest version at https://bitbucket.org/mrpoundsign/poundbot/downloads/."))
 				return
 			}
 			s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
