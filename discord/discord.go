@@ -306,24 +306,41 @@ func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, account types.Account) {
-	log.Printf("Instruct: %s, %s", account.GuildSnowflake, m.ContentWithMentionsReplaced())
+	log.Printf(
+		"Instruct: ID:\"%s\", Author:\"%s\", Guild:\"%s\", Owner:\"%s\", Message: \"%s\"",
+		account.ID, m.Author.ID, account.GuildSnowflake, account.OwnerSnowflake, m.ContentWithMentionsReplaced(),
+	)
 	parts := strings.Fields(
-		strings.Replace(m.Content, fmt.Sprintf("<@%s>", s.State.User.ID), "", -1),
+		strings.Replace(
+			strings.Replace(m.Content, fmt.Sprintf("<@%s>", s.State.User.ID), "", -1),
+			fmt.Sprintf("<@!%s>", s.State.User.ID), "", -1,
+		),
 	)
 
-	if m.Author.ID != account.OwnerSnowflake {
-		return
-	}
-
 	if len(parts) == 0 {
+		log.Println("Mention without instruction")
 		return
 	}
 
 	command := parts[0]
 	parts = parts[1:]
 
+	log.Printf("command '%s'", command)
+
+	if command == "help" {
+		log.Printf("Sending help to %s", m.Author.ID)
+		c.sendPrivateMessage(m.Author.ID, messages.HelpText())
+		return
+	}
+
+	if m.Author.ID != account.OwnerSnowflake {
+		log.Println("Message is not from owner")
+		return
+	}
+
 	switch command {
 	case "help":
+		log.Printf("Sending help to %s", m.Author.ID)
 		c.sendPrivateMessage(m.Author.ID, messages.HelpText())
 		break
 	case "server":
@@ -427,6 +444,7 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 			return
 		}
 
+		log.Printf("Invalid command %s", command)
 		c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Invalid command %s. Try `help`", instructions[0]))
 	}
 }
