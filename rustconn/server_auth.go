@@ -17,19 +17,16 @@ type ServerAuth struct {
 func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			minVersion, err := semver.Make("0.3.0")
-			if err != nil {
-				panic(err)
-			}
+			minVersion := semver.Version{Major: 1}
 			version, err := semver.Make(r.Header.Get("X-PoundBotConnector-Version"))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Could not read PoundBotversion. Please download the latest version at https://bitbucket.org/mrpoundsign/poundbot/downloads/."))
+				w.Write([]byte("Could not read PoundBotversion. Please download the latest version at" + upgradeURL))
 				return
 			}
 			if version.LT(minVersion) {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("PoundBot must be updated. Please download the latest version at https://bitbucket.org/mrpoundsign/poundbot/downloads/."))
+				w.Write([]byte("PoundBot must be updated. Please download the latest version at" + upgradeURL))
 				return
 			}
 			s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)

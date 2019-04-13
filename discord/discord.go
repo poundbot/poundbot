@@ -152,7 +152,12 @@ func (c *Client) runner() {
 					if t.ClanTag != "" {
 						clan = fmt.Sprintf("[%s] ", t.ClanTag)
 					}
-					_, err := c.session.ChannelMessageSend(t.ChannelID, fmt.Sprintf("☢️ @%s **%s%s**: %s", t.Timestamp.CreatedAt.Format("2006-01-02 15:04:05 MST"), clan, t.DisplayName, t.Message))
+					_, err := c.session.ChannelMessageSend(
+						t.ChannelID,
+						fmt.Sprintf("☢️ @%s **%s%s**: %s",
+							t.Timestamp.CreatedAt.Format("01-02 15:04 MST"),
+							clan, t.DisplayName, t.Message),
+					)
 					if err != nil {
 						log.Printf(logRunnerPrefix+"[COMM] Error sending to channel: %v\n", err)
 					}

@@ -10,6 +10,7 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	ptime "bitbucket.org/mrpoundsign/poundbot/time"
 	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/blang/semver"
 )
 
 type chatChanneler interface {
@@ -18,10 +19,11 @@ type chatChanneler interface {
 
 // A Chat is for handling discord <-> rust chat
 type chat struct {
-	ccache chatChanneler
-	in     chan types.ChatMessage
-	sleep  time.Duration
-	logger *log.Logger
+	ccache     chatChanneler
+	in         chan types.ChatMessage
+	sleep      time.Duration
+	logger     *log.Logger
+	minVersion semver.Version
 }
 
 // NewChat initializes a chat handler and returns it
@@ -31,7 +33,13 @@ type chat struct {
 // out is the channel for discord -> server
 func NewChat(ls string, ccache chatcache.ChatCache, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
 
-	c := chat{ccache: ccache, in: in, sleep: 1 * time.Minute, logger: &log.Logger{}}
+	c := chat{
+		ccache:     ccache,
+		in:         in,
+		sleep:      1 * time.Minute,
+		logger:     &log.Logger{},
+		minVersion: semver.Version{Major: 1, Patch: 1},
+	}
 
 	c.logger.SetPrefix(ls)
 	c.logger.SetOutput(os.Stdout)
@@ -50,9 +58,25 @@ func NewChat(ls string, ccache chatcache.ChatCache, in chan types.ChatMessage) f
 func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
+	version, err := semver.Make(r.Header.Get("X-PoundBotBetterChat-Version"))
+	if err == nil && version.LT(c.minVersion) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("PoundBotBetterChat must be updated. Please download the latest version at " + upgradeURL))
+		return
+	}
+
 	serverKey := r.Context().Value(contextKeyServerKey).(string)
 	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
 	account := r.Context().Value(contextKeyAccount).(types.Account)
+	server, err := account.ServerFromKey(serverKey)
+	if err != nil {
+		c.logger.Printf("[%s](%s:%s) Can't find server: %s", requestUUID, account.ID.Hex(), serverKey, err.Error())
+		handleError(w, types.RESTError{
+			Error:      "Error finding server identity",
+			StatusCode: http.StatusInternalServerError,
+		})
+		return
+	}
 
 	switch r.Method {
 	case http.MethodPost:
@@ -60,10 +84,18 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		var m types.ChatMessage
 		err := decoder.Decode(&m)
 		if err != nil {
-			c.logger.Printf("[%s] Invalid JSON: %s", requestUUID, err.Error())
+			c.logger.Printf("[%s](%s:%s) Invalid JSON: %s", requestUUID, account.ID.Hex(), server.Name, err.Error())
+			handleError(w, types.RESTError{
+				Error:      "Invalid request",
+				StatusCode: http.StatusBadRequest,
+			})
 			return
 		}
 
+		clan := server.UsersClan(m.SteamID)
+		if clan != nil {
+			m.ClanTag = clan.Tag
+		}
 		m.Source = types.ChatSourceRust
 
 		if m.CreatedAt.Equal(time.Time{}) {

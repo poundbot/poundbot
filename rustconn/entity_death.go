@@ -9,15 +9,17 @@ import (
 
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/blang/semver"
 )
 
 type entityDeath struct {
-	ras    storage.RaidAlertsStore
-	logger *log.Logger
+	ras        storage.RaidAlertsStore
+	logger     *log.Logger
+	minVersion semver.Version
 }
 
 func NewEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
-	ed := entityDeath{ras: ras, logger: &log.Logger{}}
+	ed := entityDeath{ras: ras, logger: &log.Logger{}, minVersion: semver.Version{Major: 1}}
 	ed.logger.SetPrefix(logPrefix)
 	ed.logger.SetOutput(os.Stdout)
 	return ed.Handle
@@ -27,6 +29,14 @@ func NewEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.R
 // to the RaidAlertsStore and RaidAlerts channel
 func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	version, err := semver.Make(r.Header.Get("X-PoundBotRaidAlerts-Version"))
+	if err == nil && version.LT(e.minVersion) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("PoundBotRaidAlerts must be updated. Please download the latest version at " + upgradeURL))
+		return
+	}
+
 	serverKey := r.Context().Value(contextKeyServerKey).(string)
 	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
 	account := r.Context().Value(contextKeyAccount).(types.Account)

@@ -14,6 +14,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const upgradeURL = "https://bitbucket.org/mrpoundsign/poundbot/wiki/RustPlugins#Upgrading"
+
 var logPrefix = "[RC]"
 
 // ServerConfig contains the base Server configuration

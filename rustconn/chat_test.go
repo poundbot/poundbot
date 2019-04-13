@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
+
 	"context"
 
 	"github.com/stretchr/testify/assert"
@@ -83,9 +85,10 @@ func TestChat_Handle(t *testing.T) {
 			name:   "chat POST bad json",
 			method: http.MethodPost,
 			s:      &chat{},
-			status: http.StatusOK,
+			status: http.StatusBadRequest,
+			body:   "{\"StatusCode\":400,\"Error\":\"Invalid request\"}\n",
 			rBody:  "not JSON",
-			log:    "[C] [request-1] Invalid JSON: invalid character 'o' in literal null (expecting 'u')\n",
+			log:    "[C] [request-1](5cafadc080e1a9498fea8f03:server-name) Invalid JSON: invalid character 'o' in literal null (expecting 'u')\n",
 		},
 	}
 
@@ -137,9 +140,12 @@ func TestChat_Handle(t *testing.T) {
 
 			ctx := context.WithValue(context.Background(), contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyServerKey, "bloop")
-			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{Servers: []types.Server{
-				{ChatChanID: "1234", Key: "bloop"},
-			}})
+			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
+				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"),
+				Servers: []types.Server{
+					{ChatChanID: "1234", Key: "bloop", Name: "server-name"},
+				},
+			})
 
 			req = req.WithContext(ctx)
 			handler := http.HandlerFunc(tt.s.Handle)

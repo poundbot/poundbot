@@ -48,6 +48,26 @@ type Clan struct {
 	Invited     []uint64
 }
 
+func (a Account) ServerFromKey(key string) (Server, error) {
+	for i := range a.Servers {
+		if a.Servers[i].Key == key {
+			return a.Servers[i], nil
+		}
+	}
+	return Server{}, errors.New("server not found")
+}
+
+func (s Server) UsersClan(steamID uint64) *Clan {
+	for _, serverClan := range s.Clans {
+		for _, member := range serverClan.Members {
+			if member == steamID {
+				return &serverClan
+			}
+		}
+	}
+	return nil
+}
+
 // ClanFromServerClan Converts strings to uints
 func ClanFromServerClan(sc ServerClan) (*Clan, error) {
 	var clan = Clan{}
@@ -78,15 +98,6 @@ func ClanFromServerClan(sc ServerClan) (*Clan, error) {
 	clan.Invited = nuints
 
 	return &clan, nil
-}
-
-func (a Account) ServerFromKey(key string) (Server, error) {
-	for i := range a.Servers {
-		if a.Servers[i].Key == key {
-			return a.Servers[i], nil
-		}
-	}
-	return Server{}, errors.New("server not found")
 }
 
 func convStringAToUnintA(in []string) ([]uint64, error) {
