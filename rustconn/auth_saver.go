@@ -36,6 +36,7 @@ func NewAuthSaver(da DiscordAuthsStore, u UsersStore, as chan types.DiscordAuth,
 
 // Run writes users sent in through the AuthSuccess channel
 func (a *AuthSaver) Run() {
+	defer log.Println(asLogSymbol + "AuthServer Stopped.")
 	log.Println(asLogSymbol + "Starting AuthServer")
 	for {
 		select {

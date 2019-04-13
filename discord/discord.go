@@ -76,15 +76,14 @@ func (c *Client) Start() error {
 
 // Stop stops the runner
 func (c *Client) Stop() {
-	log.Println(logPrefix + "[CONN] Disconnecting")
+	log.Println(logPrefix + "[CONN] Disconnecting...")
 	c.shutdown = true
 	c.session.Close()
 }
 
 func (c *Client) runner() {
-	defer func() {
-		log.Println(logRunnerPrefix + " Runner Exiting")
-	}()
+	defer log.Println(logRunnerPrefix + " Runner exited")
+
 	connectedState := false
 
 	for {
@@ -167,9 +166,8 @@ func (c *Client) runner() {
 			if connectedState {
 				log.Println(logRunnerPrefix + "[CONN] Received connected message")
 				break Connecting
-			} else {
-				log.Println(logRunnerPrefix + "[CONN] Received disconnected message")
 			}
+			log.Println(logRunnerPrefix + "[CONN] Received disconnected message")
 		}
 	}
 
