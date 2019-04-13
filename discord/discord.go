@@ -10,6 +10,7 @@ import (
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
 	"bitbucket.org/mrpoundsign/poundbot/discord/handler"
 	"bitbucket.org/mrpoundsign/poundbot/messages"
+	"bitbucket.org/mrpoundsign/poundbot/pbclock"
 	"bitbucket.org/mrpoundsign/poundbot/storage"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 
@@ -19,6 +20,8 @@ import (
 
 const logPrefix = "[DISCORD]"
 const logRunnerPrefix = logPrefix + "[RUNNER]"
+
+var iclock = pbclock.Clock
 
 type RunnerConfig struct {
 	Token string
@@ -155,7 +158,7 @@ func (c *Client) runner() {
 					_, err := c.session.ChannelMessageSend(
 						t.ChannelID,
 						fmt.Sprintf("☢️ @%s **%s%s**: %s",
-							t.Timestamp.CreatedAt.Format("01-02 15:04 MST"),
+							iclock().Now().UTC().Format("01-02 15:04 MST"),
 							clan, t.DisplayName, t.Message),
 					)
 					if err != nil {
@@ -253,11 +256,17 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	for _, server := range account.Servers {
 		if server.ChatChanID == m.ChannelID {
 			go func(cm types.ChatMessage, cc chan types.ChatMessage) {
+				user, err := c.us.GetSnowflake(m.Author.ID)
+				if err == nil {
+					clan := server.UsersClan(user.SteamID)
+					if clan != nil {
+						cm.ClanTag = clan.Tag
+					}
+				}
 				if len(cm.Message) > 128 {
 					cm.Message = truncateString(cm.Message, 128)
 					c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
 				}
-				cm.CreatedAt = time.Now().UTC()
 				select {
 				case cc <- cm:
 					return
@@ -269,7 +278,6 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				ServerKey:   server.Key,
 				DisplayName: m.Author.Username,
 				Message:     m.Message.Content,
-				Source:      types.ChatSourceDiscord,
 			}, c.cc.GetOutChannel(server.Key))
 		}
 	}

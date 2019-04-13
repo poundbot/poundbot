@@ -1,4 +1,4 @@
-package time
+package pbclock
 
 import "github.com/benbjohnson/clock"
 

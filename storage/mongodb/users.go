@@ -20,6 +20,12 @@ func (u Users) Get(steamID uint64) (types.User, error) {
 	return user, err
 }
 
+func (u Users) GetSnowflake(snowflake string) (types.User, error) {
+	var user types.User
+	err := u.collection.Find(bson.M{"snowflake": snowflake}).One(&user)
+	return user, err
+}
+
 // UpsertBase implements db.UsersStore.UpsertBase
 func (u Users) UpsertBase(user types.BaseUser) error {
 	_, err := u.collection.Upsert(

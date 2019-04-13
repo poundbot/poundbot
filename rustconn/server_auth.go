@@ -1,6 +1,7 @@
 package rustconn
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -29,6 +30,7 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 				w.Write([]byte("PoundBot must be updated. Please download the latest version at" + upgradeURL))
 				return
 			}
+
 			s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 			if len(s) != 2 {
 				w.WriteHeader(http.StatusBadRequest)
@@ -39,6 +41,11 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
+			}
+
+			err = sa.as.Touch(s[1])
+			if err != nil {
+				log.Printf("Error updating %s:%s touch", account.ID, s[1])
 			}
 
 			ctx := context.WithValue(r.Context(), contextKeyServerKey, s[1])

@@ -8,13 +8,29 @@ import (
 	"time"
 
 	"bitbucket.org/mrpoundsign/poundbot/chatcache"
-	ptime "bitbucket.org/mrpoundsign/poundbot/time"
+	"bitbucket.org/mrpoundsign/poundbot/pbclock"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/blang/semver"
 )
 
+var iclock = pbclock.Clock
+
 type chatChanneler interface {
 	GetOutChannel(name string) chan types.ChatMessage
+}
+
+type discordChat struct {
+	ClanTag     string
+	DisplayName string
+	Message     string
+}
+
+func newDiscordChat(cm types.ChatMessage) discordChat {
+	return discordChat{
+		ClanTag:     cm.ClanTag,
+		DisplayName: cm.DisplayName,
+		Message:     cm.Message,
+	}
 }
 
 // A Chat is for handling discord <-> rust chat
@@ -96,11 +112,6 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		if clan != nil {
 			m.ClanTag = clan.Tag
 		}
-		m.Source = types.ChatSourceRust
-
-		if m.CreatedAt.Equal(time.Time{}) {
-			m.CreatedAt = ptime.Clock().Now().UTC()
-		}
 
 		for _, s := range account.Servers {
 			if s.Key == serverKey {
@@ -118,7 +129,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		ch := c.ccache.GetOutChannel(serverKey)
 		select {
 		case m := <-ch:
-			b, err := json.Marshal(m)
+			b, err := json.Marshal(newDiscordChat(m))
 			if err != nil {
 				c.logger.Printf("[%s] %s", requestUUID, err.Error())
 				return

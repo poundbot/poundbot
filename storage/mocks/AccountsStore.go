@@ -165,6 +165,20 @@ func (_m *AccountsStore) SetClans(serverKey string, clans []types.Clan) error {
 	return r0
 }
 
+// Touch provides a mock function with given fields: serverKey
+func (_m *AccountsStore) Touch(serverKey string) error {
+	ret := _m.Called(serverKey)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(serverKey)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateServer provides a mock function with given fields: snowflake, oldKey, server
 func (_m *AccountsStore) UpdateServer(snowflake string, oldKey string, server types.Server) error {
 	ret := _m.Called(snowflake, oldKey, server)

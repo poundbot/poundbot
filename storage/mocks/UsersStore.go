@@ -32,6 +32,27 @@ func (_m *UsersStore) Get(steamID uint64) (types.User, error) {
 	return r0, r1
 }
 
+// GetSnowflake provides a mock function with given fields: snowflake
+func (_m *UsersStore) GetSnowflake(snowflake string) (types.User, error) {
+	ret := _m.Called(snowflake)
+
+	var r0 types.User
+	if rf, ok := ret.Get(0).(func(string) types.User); ok {
+		r0 = rf(snowflake)
+	} else {
+		r0 = ret.Get(0).(types.User)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(snowflake)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // UpsertBase provides a mock function with given fields: baseUser
 func (_m *UsersStore) UpsertBase(baseUser types.BaseUser) error {
 	ret := _m.Called(baseUser)

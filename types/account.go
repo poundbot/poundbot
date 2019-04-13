@@ -15,6 +15,7 @@ type Server struct {
 	ChatChanID   string
 	ServerChanID string
 	RaidDelay    string
+	Timestamp
 }
 
 type BaseAccount struct {

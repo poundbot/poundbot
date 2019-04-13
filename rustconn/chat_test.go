@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	ptime "bitbucket.org/mrpoundsign/poundbot/time"
+	"bitbucket.org/mrpoundsign/poundbot/pbclock"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 )
 
@@ -29,7 +29,7 @@ func (c ChatCache) GetOutChannel(name string) chan types.ChatMessage {
 }
 
 func TestChat_Handle(t *testing.T) {
-	ptime.Mock()
+	pbclock.Mock()
 	t.Parallel()
 
 	tests := []struct {
@@ -53,10 +53,8 @@ func TestChat_Handle(t *testing.T) {
 				ClanTag:     "FoO",
 				DisplayName: "player",
 				Message:     "hello there!",
-				Source:      "discord",
-				Timestamp:   types.Timestamp{CreatedAt: ptime.Clock().Now().UTC()},
 			},
-			body: "{\"SteamID\":1234,\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\",\"Source\":\"discord\",\"CreatedAt\":\"1970-01-01T00:00:00Z\"}",
+			body: "{\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\"}",
 		},
 		{
 			name:   "chat POST",
@@ -76,9 +74,7 @@ func TestChat_Handle(t *testing.T) {
 				ClanTag:     "FoO",
 				DisplayName: "player",
 				Message:     "hello there!",
-				Source:      "rust",
 				ChannelID:   "1234",
-				Timestamp:   types.Timestamp{CreatedAt: ptime.Clock().Now().UTC()},
 			},
 		},
 		{

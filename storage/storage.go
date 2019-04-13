@@ -20,6 +20,7 @@ import (
 // SetClanIn sets the clan tag on all users who have the provided steam IDs.
 type UsersStore interface {
 	Get(steamID uint64) (types.User, error)
+	GetSnowflake(snowflake string) (types.User, error)
 	UpsertBase(baseUser types.BaseUser) error
 }
 
@@ -67,6 +68,7 @@ type AccountsStore interface {
 	SetClans(serverKey string, clans []types.Clan) error
 
 	RemoveNotInDiscordGuildList(guildIDs []string) error
+	Touch(serverKey string) error
 }
 
 // Storage is a complete implementation of the data store for users,

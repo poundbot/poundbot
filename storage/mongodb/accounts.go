@@ -1,8 +1,7 @@
 package mongodb
 
 import (
-	"time"
-
+	"bitbucket.org/mrpoundsign/poundbot/pbclock"
 	"bitbucket.org/mrpoundsign/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -10,6 +9,8 @@ import (
 
 const accountsKeyField = "guildsnowflake"
 const serverKeyField = "servers.key"
+
+var iclock = pbclock.Clock
 
 type Accounts struct {
 	collection *mgo.Collection
@@ -35,7 +36,7 @@ func (s Accounts) UpsertBase(account types.BaseAccount) error {
 	_, err := s.collection.Upsert(
 		bson.M{accountsKeyField: account.GuildSnowflake},
 		bson.M{
-			"$setOnInsert": bson.M{"createdat": time.Now().UTC()},
+			"$setOnInsert": types.NewTimestamp(),
 			"$set":         account,
 		},
 	)
@@ -62,19 +63,18 @@ func (s Accounts) RemoveClan(serverKey, clanTag string) error {
 	)
 }
 
-func (s Accounts) SetClans(key string, clans []types.Clan) error {
+func (s Accounts) SetClans(serverKey string, clans []types.Clan) error {
 	return s.collection.Update(
-		bson.M{serverKeyField: key},
+		bson.M{serverKeyField: serverKey},
 		bson.M{"$set": bson.M{"servers.$.clans": clans}},
 	)
 }
 
 func (s Accounts) AddServer(snowflake string, server types.Server) error {
+	server.CreatedAt = iclock().Now().UTC()
 	return s.collection.Update(
 		bson.M{accountsKeyField: snowflake},
-		bson.M{
-			"$push": bson.M{"servers": server},
-		},
+		bson.M{"$push": bson.M{"servers": server}},
 	)
 }
 
@@ -98,9 +98,7 @@ func (s Accounts) UpdateServer(snowflake, oldKey string, server types.Server) er
 func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
 	_, err := s.collection.UpdateAll(
 		bson.M{
-			accountsKeyField: bson.M{
-				"$nin": guildIDs,
-			},
+			accountsKeyField: bson.M{"$nin": guildIDs},
 		},
 		bson.M{"$set": bson.M{"disabled": true}},
 	)
@@ -111,11 +109,22 @@ func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
 
 	_, err = s.collection.UpdateAll(
 		bson.M{
-			accountsKeyField: bson.M{
-				"$in": guildIDs,
-			},
+			accountsKeyField: bson.M{"$in": guildIDs},
 		},
 		bson.M{"$set": bson.M{"disabled": false}},
 	)
 	return err
+}
+
+func (s Accounts) Touch(serverKey string) error {
+	now := iclock().Now().UTC()
+	return s.collection.Update(
+		bson.M{serverKeyField: serverKey},
+		bson.M{
+			"$set": bson.M{
+				"updatedat":           now,
+				"servers.$.updatedat": now,
+			},
+		},
+	)
 }
