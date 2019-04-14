@@ -3,8 +3,8 @@ package rustconn
 import (
 	"testing"
 
-	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/storage/mocks"
+	"github.com/poundbot/poundbot/types"
 )
 
 func TestAuthSaver_Run(t *testing.T) {

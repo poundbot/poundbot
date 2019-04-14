@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
 )
 

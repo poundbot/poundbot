@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/chatcache"
-	"bitbucket.org/mrpoundsign/poundbot/storage"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/chatcache"
+	"github.com/poundbot/poundbot/storage"
+	"github.com/poundbot/poundbot/types"
 	"github.com/gorilla/mux"
 )
 
-const upgradeURL = "https://bitbucket.org/mrpoundsign/poundbot/wiki/RustPlugins#Upgrading"
+const upgradeURL = "https://github.com/poundbot/poundbot/wiki/RustPlugins#Upgrading"
 
 var logPrefix = "[RC]"
 

@@ -3,7 +3,7 @@ package mongodb
 import (
 	"log"
 
-	"bitbucket.org/mrpoundsign/poundbot/storage"
+	"github.com/poundbot/poundbot/storage"
 	"github.com/globalsign/mgo"
 )
 

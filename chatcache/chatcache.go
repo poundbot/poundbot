@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/types"
 )
 
 type ChatCache struct {

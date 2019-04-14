@@ -3,7 +3,7 @@ package mongodb
 import (
 	"fmt"
 
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )

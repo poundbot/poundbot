@@ -11,8 +11,8 @@ import (
 
 	"context"
 
-	"bitbucket.org/mrpoundsign/poundbot/storage/mocks"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/storage/mocks"
+	"github.com/poundbot/poundbot/types"
 	"github.com/globalsign/mgo/bson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

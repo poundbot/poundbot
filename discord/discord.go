@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/chatcache"
-	"bitbucket.org/mrpoundsign/poundbot/discord/handler"
-	"bitbucket.org/mrpoundsign/poundbot/messages"
-	"bitbucket.org/mrpoundsign/poundbot/pbclock"
-	"bitbucket.org/mrpoundsign/poundbot/storage"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/chatcache"
+	"github.com/poundbot/poundbot/discord/handler"
+	"github.com/poundbot/poundbot/messages"
+	"github.com/poundbot/poundbot/pbclock"
+	"github.com/poundbot/poundbot/storage"
+	"github.com/poundbot/poundbot/types"
 
 	"github.com/bwmarrin/discordgo"
 	uuid "github.com/satori/go.uuid"

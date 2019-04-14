@@ -16,8 +16,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"bitbucket.org/mrpoundsign/poundbot/pbclock"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/pbclock"
+	"github.com/poundbot/poundbot/types"
 )
 
 type ChatCache struct {

@@ -1,3 +1,5 @@
+bitbucket.org/mrpoundsign/poundbot v0.2.2 h1:Gu4c7nJxA7emNfIHD08XZncHy5Qu+eZQbbECWOYcNsU=
+bitbucket.org/mrpoundsign/poundbot v0.2.2/go.mod h1:joPP+wSRFMq+qfTlzi9nLjNLzB8skeJB7gKPqX1Jr2w=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=

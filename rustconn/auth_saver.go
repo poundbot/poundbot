@@ -3,7 +3,7 @@ package rustconn
 import (
 	"log"
 
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/types"
 )
 
 const asLogSymbol = "[AUTH] "

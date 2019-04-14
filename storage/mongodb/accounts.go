@@ -1,8 +1,8 @@
 package mongodb
 
 import (
-	"bitbucket.org/mrpoundsign/poundbot/pbclock"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/pbclock"
+	"github.com/poundbot/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )

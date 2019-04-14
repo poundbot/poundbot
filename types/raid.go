@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/messages"
+	"github.com/poundbot/poundbot/messages"
 )
 
 type EntityDeath struct {

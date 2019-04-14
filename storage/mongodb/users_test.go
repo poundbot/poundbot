@@ -5,8 +5,8 @@ package mongodb
 import (
 	"testing"
 
-	"bitbucket.org/mrpoundsign/poundbot/storage/mongodb/mongotest"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/storage/mongodb/mongotest"
+	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -14,11 +14,11 @@ import (
 	"sync"
 	"syscall"
 
-	"bitbucket.org/mrpoundsign/poundbot/chatcache"
-	"bitbucket.org/mrpoundsign/poundbot/discord"
-	"bitbucket.org/mrpoundsign/poundbot/messages"
-	"bitbucket.org/mrpoundsign/poundbot/rustconn"
-	"bitbucket.org/mrpoundsign/poundbot/storage/mongodb"
+	"github.com/poundbot/poundbot/chatcache"
+	"github.com/poundbot/poundbot/discord"
+	"github.com/poundbot/poundbot/messages"
+	"github.com/poundbot/poundbot/rustconn"
+	"github.com/poundbot/poundbot/storage/mongodb"
 	"github.com/spf13/viper"
 )
 

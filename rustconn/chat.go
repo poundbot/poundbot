@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/chatcache"
-	"bitbucket.org/mrpoundsign/poundbot/pbclock"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/chatcache"
+	"github.com/poundbot/poundbot/pbclock"
+	"github.com/poundbot/poundbot/types"
 	"github.com/blang/semver"
 )
 

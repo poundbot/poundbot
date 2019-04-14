@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"bitbucket.org/mrpoundsign/poundbot/storage"
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/storage"
+	"github.com/poundbot/poundbot/types"
 )
 
 type discordAuth struct {

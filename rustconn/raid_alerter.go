@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/types"
 )
 
 const raLogPrefix = "[RAIDALERT]"

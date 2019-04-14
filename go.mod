@@ -1,6 +1,7 @@
-module bitbucket.org/mrpoundsign/poundbot
+module github.com/poundbot/poundbot
 
 require (
+	bitbucket.org/mrpoundsign/poundbot v0.2.2 // indirect
 	github.com/benbjohnson/clock v0.0.0-20161215174838-7dc76406b6d3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bwmarrin/discordgo v0.19.0

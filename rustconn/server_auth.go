@@ -7,7 +7,7 @@ import (
 
 	"context"
 
-	"bitbucket.org/mrpoundsign/poundbot/storage"
+	"github.com/poundbot/poundbot/storage"
 	"github.com/blang/semver"
 )
 

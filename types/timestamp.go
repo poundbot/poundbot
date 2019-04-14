@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/pbclock"
+	"github.com/poundbot/poundbot/pbclock"
 )
 
 var iclock = pbclock.Clock

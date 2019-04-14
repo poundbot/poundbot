@@ -3,7 +3,7 @@ package storage
 import (
 	"time"
 
-	"bitbucket.org/mrpoundsign/poundbot/types"
+	"github.com/poundbot/poundbot/types"
 )
 
 // UsersStore is for accessing the user store.
