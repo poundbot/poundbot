@@ -353,7 +353,7 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 		case "list":
 			out := "**Server List**\nID : Name : RaidDelay : Key\n----"
 			for i, server := range account.Servers {
-				out = fmt.Sprintf("%s\n%d : %s : %s : ||`%s`||", out, i, server.RaidDelay, server.Name, server.Key)
+				out = fmt.Sprintf("%s\n%d : %s : %s : ||`%s`||", out, i+1, server.RaidDelay, server.Name, server.Key)
 			}
 			c.sendPrivateMessage(m.Author.ID, out)
 			return
@@ -377,6 +377,7 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 		instructions := parts
 		serverID, err := strconv.Atoi(instructions[0])
 		if err == nil {
+			serverID--
 			instructions = instructions[1:]
 		} else if len(account.Servers) > 1 {
 			c.session.ChannelMessageSend(m.ChannelID, "You have multiple servers. Use server `#`.")
@@ -429,7 +430,7 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 				return
 			}
 			if len(instructions) != 2 {
-				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server rename [id] <name>`")
+				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server [ID] rename <name>`")
 				return
 			}
 			_, err := time.ParseDuration(instructions[1])
@@ -445,7 +446,10 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 		}
 
 		log.Printf("Invalid command %s", command)
-		c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Invalid command %s. Try `help`", instructions[0]))
+		c.session.ChannelMessageSend(
+			m.ChannelID,
+			fmt.Sprintf("Invalid command %s. Are you using the ID from `server list`?", instructions[0]),
+		)
 	}
 }
 
