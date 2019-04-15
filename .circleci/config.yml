@@ -11,7 +11,7 @@ jobs: # basic units of work in a run
 
     environment: # environment variables for the build itself
       TEST_RESULTS: /tmp/test-results # path to where test results will be saved
-      GO111MODULE: on
+      GO111MODULE: "on"
       GOMAXPROCS: 4
 
     steps: # steps that comprise the `build` job
