@@ -220,7 +220,6 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-
 	// Ignore all messages created by the bot itself
 	// This isn't required in this specific example but it's a good practice.
 	if m.Author.ID == s.State.User.ID {
@@ -243,6 +242,15 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
+			if account.OwnerSnowflake == "" {
+				guild, err := s.Guild(m.GuildID)
+				if err != nil {
+					// TODO handle not finding the guild here
+					return
+				}
+				account.OwnerSnowflake = guild.OwnerID
+				c.as.UpsertBase(account.BaseAccount)
+			}
 			c.instruct(s, m, account)
 			return
 		}
