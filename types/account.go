@@ -15,7 +15,7 @@ type Server struct {
 	ChatChanID   string
 	ServerChanID string
 	RaidDelay    string
-	Timestamp
+	Timestamp    `bson:",inline"`
 }
 
 type BaseAccount struct {
