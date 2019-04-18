@@ -159,7 +159,7 @@ func (c *Client) runner() {
 						t.ChannelID,
 						fmt.Sprintf("☢️ @%s **%s%s**: %s",
 							iclock().Now().UTC().Format("01-02 15:04 MST"),
-							clan, t.DisplayName, t.Message),
+							clan, escapeDiscordString(t.DisplayName), escapeDiscordString(t.Message)),
 					)
 					if err != nil {
 						log.Printf(logRunnerPrefix+"[COMM] Error sending to channel: %v\n", err)
@@ -497,12 +497,27 @@ func pinString(pin int) string {
 }
 
 func truncateString(str string, num int) string {
-	bnoden := str
+	output := str
 	if len(str) > num {
-		if num > 3 {
-			num -= 3
+		if num > 1 {
+			num--
 		}
-		bnoden = str[0:num] + "..."
+		output = str[0:num] + "…"
 	}
-	return bnoden
+	return output
+}
+
+func escapeDiscordString(s string) string {
+	r := strings.NewReplacer(
+		"@everyone", "@\u200Beveryone",
+		"@here", "@\u200Bhere",
+		"\\", "\\\\",
+		"`", "\\`",
+		"||", "\\||",
+		"*", "\\*",
+		"~~", "\\~~",
+		"_", "\\_",
+		"<@", "\\<@",
+	)
+	return r.Replace(s)
 }
