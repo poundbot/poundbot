@@ -209,9 +209,9 @@ func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.Println(logPrefix + "[CONN] Ready!")
 	s.UpdateStatus(0, "I'm a real boy!")
-	guilds := make([]string, len(s.State.Guilds))
+	guilds := make([]types.BaseAccount, len(s.State.Guilds))
 	for i, guild := range s.State.Guilds {
-		guilds[i] = guild.ID
+		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
 	}
 	c.as.RemoveNotInDiscordGuildList(guilds)
 	c.status <- true
@@ -236,7 +236,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 	account, err := c.as.GetByDiscordGuild(m.GuildID)
 	if err != nil {
-		log.Printf(logPrefix+"Could not get account for %s\n", m.GuildID)
+		log.Printf(logPrefix+" Could not get account for guild %s\n", m.GuildID)
 		return
 	}
 

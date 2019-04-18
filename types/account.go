@@ -24,10 +24,11 @@ type BaseAccount struct {
 }
 
 type Account struct {
-	ID          bson.ObjectId `bson:"mid,omitempty"`
+	ID          bson.ObjectId `bson:"_id,omitempty"`
 	BaseAccount `bson:",inline" json:",inline"`
 	Servers     []Server
 	Timestamp   `bson:",inline" json:",inline"`
+	Disabled    bool
 }
 
 // A ServerClan is a clan a Rust server sends

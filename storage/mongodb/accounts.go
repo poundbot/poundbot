@@ -1,10 +1,13 @@
 package mongodb
 
 import (
-	"github.com/poundbot/poundbot/pbclock"
-	"github.com/poundbot/poundbot/types"
+	"fmt"
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/poundbot/poundbot/pbclock"
+	"github.com/poundbot/poundbot/types"
 )
 
 const accountsKeyField = "guildsnowflake"
@@ -95,7 +98,36 @@ func (s Accounts) UpdateServer(snowflake, oldKey string, server types.Server) er
 	)
 }
 
-func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
+func (s Accounts) RemoveNotInDiscordGuildList(guilds []types.BaseAccount) error {
+	insertTS := types.NewTimestamp()
+	insertTS.CreatedAt = iclock().Now().UTC()
+	guildIDs := make([]string, len(guilds))
+
+	type doc struct {
+		types.BaseAccount `bson:",inline"`
+		Disabled          bool
+		UpdatedAt         time.Time
+	}
+
+	for i, guild := range guilds {
+		// Collect the IDs for disabling later
+		guildIDs[i] = guild.GuildSnowflake
+
+		_, err := s.collection.Upsert(
+			bson.M{
+				accountsKeyField: guild.GuildSnowflake,
+			},
+			bson.M{
+				"$setOnInsert": bson.M{"createdat": insertTS.CreatedAt},
+				"$set":         doc{BaseAccount: guild, Disabled: false, UpdatedAt: insertTS.UpdatedAt},
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("error updating guild: %s", err)
+		}
+	}
+
+	// Now disable all the guilds not in the list
 	_, err := s.collection.UpdateAll(
 		bson.M{
 			accountsKeyField: bson.M{"$nin": guildIDs},
@@ -103,16 +135,6 @@ func (s Accounts) RemoveNotInDiscordGuildList(guildIDs []string) error {
 		bson.M{"$set": bson.M{"disabled": true}},
 	)
 
-	if err != nil {
-		return err
-	}
-
-	_, err = s.collection.UpdateAll(
-		bson.M{
-			accountsKeyField: bson.M{"$in": guildIDs},
-		},
-		bson.M{"$set": bson.M{"disabled": false}},
-	)
 	return err
 }
 

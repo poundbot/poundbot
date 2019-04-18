@@ -67,7 +67,7 @@ type AccountsStore interface {
 	RemoveClan(serverKey, clanTag string) error
 	SetClans(serverKey string, clans []types.Clan) error
 
-	RemoveNotInDiscordGuildList(guildIDs []string) error
+	RemoveNotInDiscordGuildList(guildIDs []types.BaseAccount) error
 	Touch(serverKey string) error
 }
 
