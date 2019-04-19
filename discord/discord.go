@@ -107,7 +107,7 @@ func (c *Client) runner() {
 					}
 
 				case t := <-c.RaidAlertChan:
-					raUser, err := c.us.Get(t.SteamID)
+					raUser, err := c.us.Get(t.GameUserID)
 					if err != nil {
 						log.Printf(logRunnerPrefix + "[COMM] User not found trying to send raid alert")
 						break
@@ -115,7 +115,7 @@ func (c *Client) runner() {
 
 					user, err := c.session.User(raUser.Snowflake)
 					if err != nil {
-						log.Printf(logRunnerPrefix+"[COMM] Error finding user %d: %d\n", t.SteamID, err)
+						log.Printf(logRunnerPrefix+"[COMM] Error finding user %s: %d\n", t.GameUserID, err)
 						break
 					}
 
@@ -132,7 +132,7 @@ func (c *Client) runner() {
 						log.Printf(logRunnerPrefix+"[COMM] User %s not found\n", t.DiscordInfo.DiscordName)
 						err = c.das.Remove(t.SteamInfo)
 						if err != nil {
-							log.Printf(logRunnerPrefix+"[DB] - Error removing SteamID %d from the database\n", t.SteamInfo.SteamID)
+							log.Printf(logRunnerPrefix+"[DB] - Error removing GameUserID %s from the database\n", t.SteamInfo.GameUserID)
 						}
 						break
 					}
@@ -141,7 +141,7 @@ func (c *Client) runner() {
 
 					err = c.das.Upsert(t)
 					if err != nil {
-						log.Printf(logRunnerPrefix+"[DB] - Error upserting SteamID %d from the database\n", t.SteamInfo.SteamID)
+						log.Printf(logRunnerPrefix+"[DB] - Error upserting GameUserID %s from the database\n", t.SteamInfo.GameUserID)
 						break
 					}
 
@@ -266,7 +266,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			go func(cm types.ChatMessage, cc chan types.ChatMessage) {
 				user, err := c.us.GetSnowflake(m.Author.ID)
 				if err == nil {
-					clan := server.UsersClan(user.SteamID)
+					clan := server.UsersClan(user.GameUserID)
 					if clan != nil {
 						cm.ClanTag = clan.Tag
 					}

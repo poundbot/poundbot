@@ -16,7 +16,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 	var rn = types.RaidAlert{
 		SteamInfo: types.SteamInfo{
-			SteamID: 1234,
+			GameUserID: "1234",
 		},
 	}
 	var rnResult types.RaidAlert

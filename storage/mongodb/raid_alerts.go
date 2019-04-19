@@ -18,8 +18,8 @@ type RaidAlerts struct {
 
 // AddInfo implements storage.RaidAlertsStore.AddInfo
 func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
-	for _, steamID := range ed.Owners {
-		user, err := r.users.Get(steamID)
+	for _, GameUserID := range ed.Owners {
+		user, err := r.users.Get(GameUserID)
 		if err == nil {
 			_, err := r.collection.Upsert(
 				user.SteamInfo,

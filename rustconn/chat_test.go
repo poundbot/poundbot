@@ -49,7 +49,7 @@ func TestChat_Handle(t *testing.T) {
 			s:      &chat{},
 			status: http.StatusOK,
 			dMessage: &types.ChatMessage{
-				SteamInfo:   types.SteamInfo{SteamID: 1234},
+				SteamInfo:   types.SteamInfo{GameUserID: "1234"},
 				ClanTag:     "FoO",
 				DisplayName: "player",
 				Message:     "hello there!",
@@ -63,14 +63,14 @@ func TestChat_Handle(t *testing.T) {
 			status: http.StatusOK,
 			rBody: `
 			{
-				"SteamId":1234,
+				"GameUserID":1234,
 				"ClanTag":"FoO",
 				"DisplayName":"player",
 				"Message":"hello there!"
 			}
 			`,
 			rMessage: &types.ChatMessage{
-				SteamInfo:   types.SteamInfo{SteamID: 1234},
+				SteamInfo:   types.SteamInfo{GameUserID: "1234"},
 				ClanTag:     "FoO",
 				DisplayName: "player",
 				Message:     "hello there!",

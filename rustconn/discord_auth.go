@@ -41,7 +41,7 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// da.logger.Printf("User Auth Request: %v from %v\n", t, r.Body)
 
-	user, err := da.us.Get(t.SteamID)
+	user, err := da.us.Get(t.GameUserID)
 	if err == nil {
 		handleError(w, types.RESTError{
 			StatusCode: http.StatusMethodNotAllowed,

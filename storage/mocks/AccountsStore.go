@@ -124,11 +124,11 @@ func (_m *AccountsStore) RemoveClan(serverKey string, clanTag string) error {
 }
 
 // RemoveNotInDiscordGuildList provides a mock function with given fields: guildIDs
-func (_m *AccountsStore) RemoveNotInDiscordGuildList(guildIDs []string) error {
+func (_m *AccountsStore) RemoveNotInDiscordGuildList(guildIDs []types.BaseAccount) error {
 	ret := _m.Called(guildIDs)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]string) error); ok {
+	if rf, ok := ret.Get(0).(func([]types.BaseAccount) error); ok {
 		r0 = rf(guildIDs)
 	} else {
 		r0 = ret.Error(0)

@@ -11,7 +11,7 @@ import (
 )
 
 var baseUser = types.BaseUser{
-	SteamInfo:   types.SteamInfo{SteamID: 1000},
+	SteamInfo:   types.SteamInfo{GameUserID: "1000"},
 	DisplayName: "Player 1",
 	DiscordInfo: types.DiscordInfo{
 		DiscordName: "Da Player 1",
@@ -31,7 +31,7 @@ func TestUsers_Get(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		steamID uint64
+		GameUserID string
 	}
 	tests := []struct {
 		name    string
@@ -41,12 +41,12 @@ func TestUsers_Get(t *testing.T) {
 	}{
 		{
 			name: "found",
-			args: args{steamID: 1000},
+			args: args{GameUserID: "1000"},
 			want: &types.User{BaseUser: baseUser},
 		},
 		{
 			name:    "not found",
-			args:    args{steamID: 1001},
+			args:    args{GameUserID: "1001"},
 			want:    &types.User{},
 			wantErr: true,
 		},
@@ -58,7 +58,7 @@ func TestUsers_Get(t *testing.T) {
 
 			users.collection.Insert(baseUser)
 
-			got, err := users.Get(tt.args.steamID)
+			got, err := users.Get(tt.args.GameUserID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Users.Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -81,7 +81,7 @@ func TestUsers_UpsertBase(t *testing.T) {
 	}{
 		{
 			name:      "insert",
-			user:      types.User{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{SteamID: 1002}}},
+			user:      types.User{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{GameUserID: "1002"}}},
 			wantCount: 2,
 		},
 		{

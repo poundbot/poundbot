@@ -11,20 +11,20 @@ type UsersStore struct {
 	mock.Mock
 }
 
-// Get provides a mock function with given fields: steamID
-func (_m *UsersStore) Get(steamID uint64) (types.User, error) {
-	ret := _m.Called(steamID)
+// Get provides a mock function with given fields: gameUserID
+func (_m *UsersStore) Get(gameUserID string) (types.User, error) {
+	ret := _m.Called(gameUserID)
 
 	var r0 types.User
-	if rf, ok := ret.Get(0).(func(uint64) types.User); ok {
-		r0 = rf(steamID)
+	if rf, ok := ret.Get(0).(func(string) types.User); ok {
+		r0 = rf(gameUserID)
 	} else {
 		r0 = ret.Get(0).(types.User)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(uint64) error); ok {
-		r1 = rf(steamID)
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(gameUserID)
 	} else {
 		r1 = ret.Error(1)
 	}

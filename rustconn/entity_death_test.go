@@ -11,9 +11,9 @@ import (
 
 	"context"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage/mocks"
 	"github.com/poundbot/poundbot/types"
-	"github.com/globalsign/mgo/bson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -54,7 +54,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 				ServerName: "server1",
 				Name:       "foo",
 				GridPos:    "A10",
-				Owners:     []uint64{1, 2, 3},
+				Owners:     []string{"1", "2", "3"},
 				Timestamp:  types.Timestamp{CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)},
 			},
 		},

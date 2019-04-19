@@ -413,8 +413,8 @@ func TestAccounts_AddClan(t *testing.T) {
 			want: types.Account{
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers: []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{
-					types.Clan{Tag: "bloops", Members: []uint64{}, Moderators: []uint64{}, Invited: []uint64{}},
-					types.Clan{Tag: "bloops2", Members: []uint64{}, Moderators: []uint64{}, Invited: []uint64{}},
+					types.Clan{Tag: "bloops", Members: []string{}, Moderators: []string{}, Invited: []string{}},
+					types.Clan{Tag: "bloops2", Members: []string{}, Moderators: []string{}, Invited: []string{}},
 				}}},
 			},
 			args: args{key: "guildsnowflake2", clan: types.Clan{Tag: "bloops2"}},
@@ -465,7 +465,7 @@ func TestAccounts_RemoveClan(t *testing.T) {
 			want: types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
-				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "bloops2", Members: []uint64{}, Moderators: []uint64{}, Invited: []uint64{}}}}},
+				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "bloops2", Members: []string{}, Moderators: []string{}, Invited: []string{}}}}},
 			},
 			args: args{key: "guildsnowflake2", clanTag: "bloops"},
 		},
@@ -512,7 +512,7 @@ func TestAccounts_SetClans(t *testing.T) {
 			want: types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
-				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "foo", Members: []uint64{}, Moderators: []uint64{}, Invited: []uint64{}}}}},
+				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "foo", Members: []string{}, Moderators: []string{}, Invited: []string{}}}}},
 			},
 			args: args{key: "guildsnowflake2", clans: []types.Clan{types.Clan{Tag: "foo"}}},
 		},

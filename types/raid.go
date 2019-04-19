@@ -12,7 +12,7 @@ type EntityDeath struct {
 	ServerKey  string
 	Name       string
 	GridPos    string
-	Owners     []uint64
+	Owners     []string
 	Timestamp  `bson:",inline" json:",inline"`
 }
 

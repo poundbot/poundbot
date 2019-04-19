@@ -108,7 +108,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		clan := server.UsersClan(m.SteamID)
+		clan := server.UsersClan(m.GameUserID)
 		if clan != nil {
 			m.ClanTag = clan.Tag
 		}

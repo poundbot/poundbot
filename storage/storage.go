@@ -10,7 +10,7 @@ import (
 //
 // Get gets a user from store.
 //
-// UpsertBase updates or creats a user in the store
+// UpsertBase updates or creates a user in the store
 //
 // RemoveClan removes a clan tag from all users e.g. when a clan is removed.
 //
@@ -19,7 +19,7 @@ import (
 //
 // SetClanIn sets the clan tag on all users who have the provided steam IDs.
 type UsersStore interface {
-	Get(steamID uint64) (types.User, error)
+	Get(gameUserID string) (types.User, error)
 	GetSnowflake(snowflake string) (types.User, error)
 	UpsertBase(baseUser types.BaseUser) error
 }

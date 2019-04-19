@@ -3,7 +3,7 @@ package types
 // SteamInfo steam id translater between server and DB
 // also used as a selector on the DB
 type SteamInfo struct {
-	SteamID uint64
+	GameUserID string
 }
 
 // BaseUser core user information for upserts

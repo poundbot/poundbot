@@ -78,7 +78,7 @@ func (m MongoDb) Init() {
 	// accountsColl := mongoDB.C(accountsCollection)
 
 	index := mgo.Index{
-		Key:        []string{"steamid"},
+		Key:        []string{"GameUserID"},
 		Unique:     true,
 		DropDups:   true,
 		Background: false,

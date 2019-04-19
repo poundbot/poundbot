@@ -17,7 +17,6 @@ func Test_pinString(t *testing.T) {
 	}{
 		{"one", args{pin: 1}, "0001"},
 		{"nine hundred", args{pin: 900}, "0900"},
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -2,7 +2,6 @@ package types
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/globalsign/mgo/bson"
 )
@@ -43,26 +42,26 @@ type ServerClan struct {
 
 type Clan struct {
 	Tag         string
-	OwnerID     uint64
+	OwnerID     string
 	Description string
-	Members     []uint64
-	Moderators  []uint64
-	Invited     []uint64
+	Members     []string
+	Moderators  []string
+	Invited     []string
 }
 
-func (a Account) ServerFromKey(key string) (Server, error) {
+func (a Account) ServerFromKey(apiKey string) (Server, error) {
 	for i := range a.Servers {
-		if a.Servers[i].Key == key {
+		if a.Servers[i].Key == apiKey {
 			return a.Servers[i], nil
 		}
 	}
 	return Server{}, errors.New("server not found")
 }
 
-func (s Server) UsersClan(steamID uint64) *Clan {
+func (s Server) UsersClan(GameUserID string) *Clan {
 	for _, serverClan := range s.Clans {
 		for _, member := range serverClan.Members {
-			if member == steamID {
+			if member == GameUserID {
 				return &serverClan
 			}
 		}
@@ -75,48 +74,13 @@ func ClanFromServerClan(sc ServerClan) (*Clan, error) {
 	var clan = Clan{}
 	clan.Tag = sc.Tag
 	clan.Description = sc.Description
-	i, err := strconv.ParseUint(sc.Owner, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-	clan.OwnerID = i
+	clan.OwnerID = sc.Owner
 
-	nuints, err := convStringAToUnintA(sc.Members)
-	if err != nil {
-		return nil, err
-	}
-	clan.Members = nuints
+	clan.Members = sc.Members
 
-	nuints, err = convStringAToUnintA(sc.Moderators)
-	if err != nil {
-		return nil, err
-	}
-	clan.Moderators = nuints
+	clan.Moderators = sc.Moderators
 
-	nuints, err = convStringAToUnintA(sc.Invited)
-	if err != nil {
-		return nil, err
-	}
-	clan.Invited = nuints
+	clan.Invited = sc.Invited
 
 	return &clan, nil
-}
-
-func convStringAToUnintA(in []string) ([]uint64, error) {
-	var out []uint64
-	var l = len(in)
-	if l == 0 {
-		return out, nil
-	}
-
-	out = make([]uint64, len(in))
-	for i, conv := range in {
-		newuint, err := strconv.ParseUint(conv, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		out[i] = newuint
-	}
-
-	return out, nil
 }

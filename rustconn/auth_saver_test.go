@@ -29,7 +29,7 @@ func TestAuthSaver_Run(t *testing.T) {
 		{
 			name: "With AuthSuccess",
 			a: func() *AuthSaver {
-				result := types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{SteamID: 1001}}}
+				result := types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{GameUserID: "1001"}}}
 				mockU = &mocks.UsersStore{}
 				mockU.On("UpsertBase", result.BaseUser).Return(nil)
 
@@ -38,8 +38,8 @@ func TestAuthSaver_Run(t *testing.T) {
 
 				return NewAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
 			},
-			with: &types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{SteamID: 1001}}},
-			want: &types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{SteamID: 1001}}},
+			with: &types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{GameUserID: "1001"}}},
+			want: &types.DiscordAuth{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{GameUserID: "1001"}}},
 		},
 		// TODO: Add test cases.
 	}

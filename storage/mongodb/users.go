@@ -3,9 +3,9 @@ package mongodb
 import (
 	"time"
 
-	"github.com/poundbot/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/poundbot/poundbot/types"
 )
 
 // A Users implements db.UsersStore
@@ -14,9 +14,9 @@ type Users struct {
 }
 
 // Get implements db.UsersStore.Get
-func (u Users) Get(steamID uint64) (types.User, error) {
+func (u Users) Get(gameUserID string) (types.User, error) {
 	var user types.User
-	err := u.collection.Find(bson.M{"steamid": steamID}).One(&user)
+	err := u.collection.Find(bson.M{"GameUserID": gameUserID}).One(&user)
 	return user, err
 }
 
