@@ -4,6 +4,7 @@ require (
 	github.com/benbjohnson/clock v0.0.0-20161215174838-7dc76406b6d3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bwmarrin/discordgo v0.19.0
+	github.com/eminetto/mongo-migrate v0.1.2
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/gorilla/mux v1.7.1
 	github.com/kr/pretty v0.1.0 // indirect
@@ -14,6 +15,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.3.0
+	github.com/xakep666/mongo-migrate v0.1.0 // indirect
 	golang.org/x/crypto v0.0.0-20190404164418-38d8ce5564a5 // indirect
 	golang.org/x/sys v0.0.0-20190410235845-0ad05ae3009d // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
