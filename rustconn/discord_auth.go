@@ -53,6 +53,9 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dAuth.upgrade()
+	dAuth.PlayerID = fmt.Sprintf("%s:%s", game, dAuth.PlayerID)
+
 	user, err := da.us.Get(dAuth.PlayerID)
 	if err == nil {
 		handleError(w, types.RESTError{
@@ -67,9 +70,6 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	dAuth.upgrade()
-	dAuth.PlayerID = fmt.Sprintf("%s:%s", game, dAuth.PlayerID)
 
 	dAuth.GuildSnowflake = account.GuildSnowflake
 
