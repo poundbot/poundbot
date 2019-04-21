@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/poundbot/poundbot/storage"
-	"github.com/poundbot/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/poundbot/poundbot/storage"
+	"github.com/poundbot/poundbot/types"
 )
 
 // A RaidAlerts implements storage.RaidAlertsStore
@@ -18,28 +18,29 @@ type RaidAlerts struct {
 
 // AddInfo implements storage.RaidAlertsStore.AddInfo
 func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
-	for _, GameUserID := range ed.Owners {
-		user, err := r.users.Get(GameUserID)
-		if err == nil {
-			_, err := r.collection.Upsert(
-				user.SteamInfo,
-				bson.M{
-					"$setOnInsert": bson.M{
-						"alertat":    time.Now().UTC().Add(alertIn),
-						"servername": ed.ServerName,
-					},
-					"$inc": bson.M{
-						fmt.Sprintf("items.%s", ed.Name): 1,
-					},
-					"$addToSet": bson.M{
-						"gridpositions": ed.GridPos,
-					},
-				},
-			)
-			if err != nil {
-				return err
-			}
+	for _, pid := range ed.OwnerIDs {
+		// Checking if the user exists, just bail if not
+		_, err := r.users.Get(pid)
+		if err != nil {
+			continue
 		}
+
+		_, err = r.collection.Upsert(
+			bson.M{"playerid": pid},
+			bson.M{
+				"$setOnInsert": bson.M{
+					"alertat":    time.Now().UTC().Add(alertIn),
+					"servername": ed.ServerName,
+					"serverkey":  ed.ServerKey,
+				},
+				"$inc": bson.M{
+					fmt.Sprintf("items.%s", ed.Name): 1,
+				},
+				"$addToSet": bson.M{
+					"gridpositions": ed.GridPos,
+				},
+			},
+		)
 	}
 	return nil
 }
@@ -60,5 +61,5 @@ func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 
 // Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidAlert) error {
-	return r.collection.Remove(alert.SteamInfo)
+	return r.collection.Remove(alert)
 }

@@ -11,11 +11,9 @@ import (
 )
 
 var baseUser = types.BaseUser{
-	SteamInfo:   types.SteamInfo{GameUserID: "1000"},
-	DisplayName: "Player 1",
+	GamesInfo: types.GamesInfo{PlayerIDs: []string{"pid1"}},
 	DiscordInfo: types.DiscordInfo{
-		DiscordName: "Da Player 1",
-		Snowflake:   "9879438734974398",
+		Snowflake: "did1",
 	},
 }
 
@@ -31,7 +29,7 @@ func TestUsers_Get(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		GameUserID string
+		gameUserID string
 	}
 	tests := []struct {
 		name    string
@@ -41,12 +39,12 @@ func TestUsers_Get(t *testing.T) {
 	}{
 		{
 			name: "found",
-			args: args{GameUserID: "1000"},
+			args: args{gameUserID: "pid1"},
 			want: &types.User{BaseUser: baseUser},
 		},
 		{
 			name:    "not found",
-			args:    args{GameUserID: "1001"},
+			args:    args{gameUserID: "notfound"},
 			want:    &types.User{},
 			wantErr: true,
 		},
@@ -58,7 +56,7 @@ func TestUsers_Get(t *testing.T) {
 
 			users.collection.Insert(baseUser)
 
-			got, err := users.Get(tt.args.GameUserID)
+			got, err := users.Get(tt.args.gameUserID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Users.Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -70,23 +68,36 @@ func TestUsers_Get(t *testing.T) {
 	}
 }
 
-func TestUsers_UpsertBase(t *testing.T) {
+type player struct {
+	id  string
+	did string
+}
+
+func (p player) GetPlayerID() string {
+	return p.id
+}
+
+func (p player) GetDiscordID() string {
+	return p.did
+}
+
+func TestUsers_UpsertPlayer(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name      string
-		user      types.User
+		player    player
 		wantCount int
 		wantErr   bool
 	}{
 		{
 			name:      "insert",
-			user:      types.User{BaseUser: types.BaseUser{SteamInfo: types.SteamInfo{GameUserID: "1002"}}},
+			player:    player{id: "pid2", did: "did2"},
 			wantCount: 2,
 		},
 		{
 			name:      "upsert",
-			user:      types.User{BaseUser: baseUser},
+			player:    player{id: "pid2", did: "did1"},
 			wantCount: 1,
 		},
 	}
@@ -100,7 +111,7 @@ func TestUsers_UpsertBase(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			err = users.UpsertBase(tt.user.BaseUser)
+			err = users.UpsertPlayer(tt.player)
 			if err != nil {
 				t.Fatal(err)
 			}

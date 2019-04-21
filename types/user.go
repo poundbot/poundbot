@@ -1,16 +1,15 @@
 package types
 
-// SteamInfo steam id translater between server and DB
+// GamesInfo steam id translater between server and DB
 // also used as a selector on the DB
-type SteamInfo struct {
-	GameUserID string
+type GamesInfo struct {
+	PlayerIDs []string
 }
 
 // BaseUser core user information for upserts
 type BaseUser struct {
-	SteamInfo   `bson:",inline" json:",inline"`
+	GamesInfo   `bson:",inline" json:",inline"`
 	DiscordInfo `bson:",inline" json:",inline"`
-	DisplayName string
 }
 
 // User full user model

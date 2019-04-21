@@ -49,7 +49,7 @@ func TestChat_Handle(t *testing.T) {
 			s:      &chat{},
 			status: http.StatusOK,
 			dMessage: &types.ChatMessage{
-				SteamInfo:   types.SteamInfo{GameUserID: "1234"},
+				PlayerID:    "1234",
 				ClanTag:     "FoO",
 				DisplayName: "player",
 				Message:     "hello there!",
@@ -63,14 +63,35 @@ func TestChat_Handle(t *testing.T) {
 			status: http.StatusOK,
 			rBody: `
 			{
-				"GameUserID":1234,
+				"PlayerID":"1234",
 				"ClanTag":"FoO",
 				"DisplayName":"player",
 				"Message":"hello there!"
 			}
 			`,
 			rMessage: &types.ChatMessage{
-				SteamInfo:   types.SteamInfo{GameUserID: "1234"},
+				PlayerID:    "game:1234",
+				ClanTag:     "FoO",
+				DisplayName: "player",
+				Message:     "hello there!",
+				ChannelID:   "1234",
+			},
+		},
+		{
+			name:   "old chat POST",
+			method: http.MethodPost,
+			s:      &chat{},
+			status: http.StatusOK,
+			rBody: `
+			{
+				"SteamID":1234,
+				"ClanTag":"FoO",
+				"DisplayName":"player",
+				"Message":"hello there!"
+			}
+			`,
+			rMessage: &types.ChatMessage{
+				PlayerID:    "game:1234",
 				ClanTag:     "FoO",
 				DisplayName: "player",
 				Message:     "hello there!",
@@ -136,6 +157,7 @@ func TestChat_Handle(t *testing.T) {
 
 			ctx := context.WithValue(context.Background(), contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyServerKey, "bloop")
+			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
 				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"),
 				Servers: []types.Server{

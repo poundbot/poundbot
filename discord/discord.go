@@ -107,41 +107,43 @@ func (c *Client) runner() {
 					}
 
 				case t := <-c.RaidAlertChan:
-					raUser, err := c.us.Get(t.GameUserID)
-					if err != nil {
-						log.Printf(logRunnerPrefix + "[COMM] User not found trying to send raid alert")
-						break
-					}
+					go func() {
+						raUser, err := c.us.Get(t.PlayerID)
+						if err != nil {
+							log.Printf(logRunnerPrefix + "[COMM] User not found trying to send raid alert")
+							return
+						}
 
-					user, err := c.session.User(raUser.Snowflake)
-					if err != nil {
-						log.Printf(logRunnerPrefix+"[COMM] Error finding user %s: %d\n", t.GameUserID, err)
-						break
-					}
+						user, err := c.session.User(raUser.Snowflake)
+						if err != nil {
+							log.Printf(logRunnerPrefix+"[COMM] Error finding user %s: %d\n", t.PlayerID, err)
+							return
+						}
 
-					channel, err := c.session.UserChannelCreate(user.ID)
-					if err != nil {
-						log.Printf(logRunnerPrefix+"[COMM] Error creating user channel: %v", err)
-					} else {
-						c.session.ChannelMessageSend(channel.ID, t.String())
-					}
+						channel, err := c.session.UserChannelCreate(user.ID)
+						if err != nil {
+							log.Printf(logRunnerPrefix+"[COMM] Error creating user channel: %v", err)
+						} else {
+							c.session.ChannelMessageSend(channel.ID, t.String())
+						}
+					}()
 
 				case t := <-c.DiscordAuth:
 					dUser, err := c.getUserByName(t.GuildSnowflake, t.DiscordInfo.DiscordName)
 					if err != nil {
 						log.Printf(logRunnerPrefix+"[COMM] User %s not found\n", t.DiscordInfo.DiscordName)
-						err = c.das.Remove(t.SteamInfo)
+						err = c.das.Remove(t)
 						if err != nil {
-							log.Printf(logRunnerPrefix+"[DB] - Error removing GameUserID %s from the database\n", t.SteamInfo.GameUserID)
+							log.Printf(logRunnerPrefix+"[DB] - Error removing PlayerID %s from the database: %v\n", t.PlayerID, err)
 						}
 						break
 					}
 
-					t.BaseUser.Snowflake = dUser.ID
+					t.Snowflake = dUser.ID
 
 					err = c.das.Upsert(t)
 					if err != nil {
-						log.Printf(logRunnerPrefix+"[DB] - Error upserting GameUserID %s from the database\n", t.SteamInfo.GameUserID)
+						log.Printf(logRunnerPrefix+"[DB] - Error upserting PlayerID %s from the database: %v\n", t.PlayerID, err)
 						break
 					}
 
@@ -266,7 +268,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			go func(cm types.ChatMessage, cc chan types.ChatMessage) {
 				user, err := c.us.GetSnowflake(m.Author.ID)
 				if err == nil {
-					clan := server.UsersClan(user.GameUserID)
+					clan := server.UsersClan(user.PlayerIDs)
 					if clan != nil {
 						cm.ClanTag = clan.Tag
 					}

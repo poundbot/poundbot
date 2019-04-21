@@ -9,8 +9,16 @@ type Ack func(bool)
 
 type DiscordAuth struct {
 	GuildSnowflake string
-	BaseUser       `bson:",inline"`
+	PlayerID       string
+	DiscordInfo    `bson:",inline"`
 	Pin            int
-	SentToUser     bool
 	Ack            Ack `bson:"-" json:"-"`
+}
+
+func (d DiscordAuth) GetPlayerID() string {
+	return d.PlayerID
+}
+
+func (d DiscordAuth) GetDiscordID() string {
+	return d.Snowflake
 }

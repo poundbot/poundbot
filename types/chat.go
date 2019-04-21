@@ -1,7 +1,7 @@
 package types
 
 type ChatMessage struct {
-	SteamInfo   `bson:",inline" json:",inline"`
+	PlayerID    string
 	DiscordInfo `bson:",inline" json:"-"`
 	ServerKey   string `json:"-"`
 	ClanTag     string

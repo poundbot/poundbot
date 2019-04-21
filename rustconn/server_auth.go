@@ -7,8 +7,8 @@ import (
 
 	"context"
 
-	"github.com/poundbot/poundbot/storage"
 	"github.com/blang/semver"
+	"github.com/poundbot/poundbot/storage"
 )
 
 type ServerAuth struct {
@@ -22,7 +22,7 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 			version, err := semver.Make(r.Header.Get("X-PoundBotConnector-Version"))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("Could not read PoundBotversion. Please download the latest version at" + upgradeURL))
+				w.Write([]byte("Could not read PoundBot version. Please download the latest version at" + upgradeURL))
 				return
 			}
 			if version.LT(minVersion) {
@@ -35,6 +35,12 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 			if len(s) != 2 {
 				w.WriteHeader(http.StatusBadRequest)
 				return
+			}
+
+			game := r.Header.Get("X-PoundBot-Game")
+			// TOGO: Eventually remove this
+			if game == "" {
+				game = "rust"
 			}
 
 			account, err := sa.as.GetByServerKey(s[1])
@@ -50,6 +56,7 @@ func (sa ServerAuth) Handle(next http.Handler) http.Handler {
 
 			ctx := context.WithValue(r.Context(), contextKeyServerKey, s[1])
 			ctx = context.WithValue(ctx, contextKeyAccount, account)
+			ctx = context.WithValue(ctx, contextKeyGame, game)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		},

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
-	"github.com/gorilla/mux"
 )
 
 type clan struct {
@@ -26,6 +26,7 @@ func NewClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) 
 // Handle manages individual clan REST requests form the Rust server
 func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	game := r.Context().Value(contextKeyGame).(string)
 	account := r.Context().Value(contextKeyAccount).(types.Account)
 	serverKey := r.Context().Value(contextKeyServerKey).(string)
 	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
@@ -48,22 +49,15 @@ func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		c.logger.Printf("[%s] Updating clan %s for %s:%s\n", requestUUID, tag, account.ID, server.Name)
 		decoder := json.NewDecoder(r.Body)
-		var t types.ServerClan
-		err := decoder.Decode(&t)
+		var clan types.Clan
+		err := decoder.Decode(&clan)
 		if err != nil {
 			c.logger.Println(err.Error())
 			return
 		}
 
-		clan, err := types.ClanFromServerClan(t)
-		if err != nil {
-			handleError(w, types.RESTError{
-				StatusCode: http.StatusBadRequest,
-				Error:      "Error processing clan data",
-			})
-			return
-		}
+		clan.SetGame(game)
 
-		c.as.AddClan(serverKey, *clan)
+		c.as.AddClan(serverKey, clan)
 	}
 }

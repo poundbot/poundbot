@@ -13,12 +13,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 	t.Parallel()
 
 	var mockRA *mocks.RaidAlertsStore
-
-	var rn = types.RaidAlert{
-		SteamInfo: types.SteamInfo{
-			GameUserID: "1234",
-		},
-	}
+	var rn = types.RaidAlert{PlayerID: "1234"}
 	var rnResult types.RaidAlert
 
 	tests := []struct {

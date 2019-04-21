@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/globalsign/mgo/bson"
 )
@@ -17,6 +18,19 @@ type Server struct {
 	Timestamp    `bson:",inline"`
 }
 
+func (s Server) UsersClan(PlayerIDs []string) *Clan {
+	for _, serverClan := range s.Clans {
+		for _, member := range serverClan.Members {
+			for _, id := range PlayerIDs {
+				if member == id {
+					return &serverClan
+				}
+			}
+		}
+	}
+	return nil
+}
+
 type BaseAccount struct {
 	GuildSnowflake string
 	OwnerSnowflake string
@@ -30,25 +44,6 @@ type Account struct {
 	Disabled    bool
 }
 
-// A ServerClan is a clan a Rust server sends
-type ServerClan struct {
-	Tag         string
-	Owner       string
-	Description string
-	Members     []string
-	Moderators  []string
-	Invited     []string
-}
-
-type Clan struct {
-	Tag         string
-	OwnerID     string
-	Description string
-	Members     []string
-	Moderators  []string
-	Invited     []string
-}
-
 func (a Account) ServerFromKey(apiKey string) (Server, error) {
 	for i := range a.Servers {
 		if a.Servers[i].Key == apiKey {
@@ -58,29 +53,28 @@ func (a Account) ServerFromKey(apiKey string) (Server, error) {
 	return Server{}, errors.New("server not found")
 }
 
-func (s Server) UsersClan(GameUserID string) *Clan {
-	for _, serverClan := range s.Clans {
-		for _, member := range serverClan.Members {
-			if member == GameUserID {
-				return &serverClan
-			}
-		}
-	}
-	return nil
+// Clan is a clan from the game
+type Clan struct {
+	Tag         string
+	Owner       string
+	Description string
+	Members     []string
+	Moderators  []string
+	Invited     []string
 }
 
-// ClanFromServerClan Converts strings to uints
-func ClanFromServerClan(sc ServerClan) (*Clan, error) {
-	var clan = Clan{}
-	clan.Tag = sc.Tag
-	clan.Description = sc.Description
-	clan.OwnerID = sc.Owner
+// SetGame adds game name to all IDs
+func (c *Clan) SetGame(game string) {
+	c.Owner = fmt.Sprintf("%s:%s", game, c.Owner)
+	for i := range c.Members {
+		c.Members[i] = fmt.Sprintf("%s:%s", game, c.Members[i])
+	}
 
-	clan.Members = sc.Members
+	for i := range c.Moderators {
+		c.Moderators[i] = fmt.Sprintf("%s:%s", game, c.Moderators[i])
+	}
 
-	clan.Moderators = sc.Moderators
-
-	clan.Invited = sc.Invited
-
-	return &clan, nil
+	for i := range c.Invited {
+		c.Invited[i] = fmt.Sprintf("%s:%s", game, c.Invited[i])
+	}
 }

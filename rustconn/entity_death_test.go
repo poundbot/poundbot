@@ -46,6 +46,34 @@ func TestEntityDeath_Handle(t *testing.T) {
 			{
 				"Name": "foo",
 				"GridPos": "A10",
+				"OwnerIDs": ["1", "2", "3"],
+				"CreatedAt": "2001-02-03T04:05:06Z"
+			}
+			`,
+			ed: &types.EntityDeath{
+				ServerName: "server1",
+				Name:       "foo",
+				GridPos:    "A10",
+				OwnerIDs:   []string{"game:1", "game:2", "game:3"},
+				Timestamp:  types.Timestamp{CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)},
+			},
+		},
+		{
+			name:   "old API POST empty request",
+			e:      &entityDeath{},
+			method: http.MethodPost,
+			status: http.StatusBadRequest,
+			log:    "[C] [request-1](5cafadc080e1a9498fea8f03:server1) Invalid JSON: EOF\n",
+		},
+		{
+			name:   "old API POST entity death",
+			e:      &entityDeath{},
+			method: http.MethodPost,
+			status: http.StatusOK,
+			rBody: `
+			{
+				"Name": "foo",
+				"GridPos": "A10",
 				"Owners": [1, 2, 3],
 				"CreatedAt": "2001-02-03T04:05:06Z"
 			}
@@ -54,7 +82,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 				ServerName: "server1",
 				Name:       "foo",
 				GridPos:    "A10",
-				Owners:     []string{"1", "2", "3"},
+				OwnerIDs:   []string{"game:1", "game:2", "game:3"},
 				Timestamp:  types.Timestamp{CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)},
 			},
 		},
@@ -85,6 +113,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			ctx := context.WithValue(context.Background(), contextKeyServerKey, "bloop")
 			ctx = context.WithValue(ctx, contextKeyRequestUUID, "request-1")
+			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
 				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"), //bson.NewObjectId(),
 				Servers: []types.Server{

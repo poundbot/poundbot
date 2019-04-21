@@ -12,7 +12,7 @@ type EntityDeath struct {
 	ServerKey  string
 	Name       string
 	GridPos    string
-	Owners     []string
+	OwnerIDs   []string
 	Timestamp  `bson:",inline" json:",inline"`
 }
 
@@ -22,7 +22,7 @@ type RaidInventory struct {
 }
 
 type RaidAlert struct {
-	SteamInfo     `bson:",inline"`
+	PlayerID      string
 	ServerName    string
 	ServerKey     string
 	GridPositions []string

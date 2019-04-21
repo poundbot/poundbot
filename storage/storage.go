@@ -6,6 +6,11 @@ import (
 	"github.com/poundbot/poundbot/types"
 )
 
+type UserInfoGetter interface {
+	GetPlayerID() string
+	GetDiscordID() string
+}
+
 // UsersStore is for accessing the user store.
 //
 // Get gets a user from store.
@@ -19,9 +24,9 @@ import (
 //
 // SetClanIn sets the clan tag on all users who have the provided steam IDs.
 type UsersStore interface {
-	Get(gameUserID string) (types.User, error)
+	Get(PlayerID string) (types.User, error)
 	GetSnowflake(snowflake string) (types.User, error)
-	UpsertBase(baseUser types.BaseUser) error
+	UpsertPlayer(info UserInfoGetter) error
 }
 
 // DiscordAuthsStore is for accessing the discord -> user authentications
@@ -34,7 +39,7 @@ type DiscordAuthsStore interface {
 	Get(discordName string) (types.DiscordAuth, error)
 	GetSnowflake(snowflake string) (types.DiscordAuth, error)
 	Upsert(types.DiscordAuth) error
-	Remove(types.SteamInfo) error
+	Remove(UserInfoGetter) error
 }
 
 // RaidAlertsStore is for accessing raid information. The raid information

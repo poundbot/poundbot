@@ -10,8 +10,7 @@ func init() {
 	migrate.Register(func(db *mgo.Database) error { //Up
 		_, err := db.C("accounts").UpdateAll(
 			bson.M{"servers": bson.M{"$exists": true}},
-			bson.M{"$unset": bson.M{"servers.$[].timestamp": 1}},
-		)
+			bson.M{"$unset": bson.M{"servers.$[].clans": 1}})
 		return err
 
 	}, func(db *mgo.Database) error { //Down

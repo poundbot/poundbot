@@ -2,15 +2,16 @@ package rustconn
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/poundbot/poundbot/chatcache"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/types"
-	"github.com/blang/semver"
 )
 
 var iclock = pbclock.Clock
@@ -23,6 +24,18 @@ type discordChat struct {
 	ClanTag     string
 	DisplayName string
 	Message     string
+}
+
+type deprecatedChat struct {
+	types.ChatMessage
+	SteamID uint64
+}
+
+func (d *deprecatedChat) upgrade() {
+	if d.SteamID == 0 {
+		return
+	}
+	d.PlayerID = fmt.Sprintf("%d", d.SteamID)
 }
 
 func newDiscordChat(cm types.ChatMessage) discordChat {
@@ -81,6 +94,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	game := r.Context().Value(contextKeyGame).(string)
 	serverKey := r.Context().Value(contextKeyServerKey).(string)
 	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
 	account := r.Context().Value(contextKeyAccount).(types.Account)
@@ -97,7 +111,8 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		decoder := json.NewDecoder(r.Body)
-		var m types.ChatMessage
+		var m deprecatedChat
+
 		err := decoder.Decode(&m)
 		if err != nil {
 			c.logger.Printf("[%s](%s:%s) Invalid JSON: %s", requestUUID, account.ID.Hex(), server.Name, err.Error())
@@ -108,7 +123,10 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		clan := server.UsersClan(m.GameUserID)
+		m.upgrade()
+		m.PlayerID = fmt.Sprintf("%s:%s", game, m.PlayerID)
+
+		clan := server.UsersClan([]string{m.PlayerID})
 		if clan != nil {
 			m.ClanTag = clan.Tag
 		}
@@ -117,7 +135,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 			if s.Key == serverKey {
 				m.ChannelID = s.ChatChanID
 				select {
-				case c.in <- m:
+				case c.in <- m.ChatMessage:
 					return
 				case <-time.After(c.sleep):
 					return

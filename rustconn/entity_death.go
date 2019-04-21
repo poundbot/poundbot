@@ -2,15 +2,33 @@ package rustconn
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
-	"github.com/blang/semver"
 )
+
+type deprecatedEntityDeath struct {
+	types.EntityDeath
+	Owners []int64
+}
+
+func (d *deprecatedEntityDeath) upgrade() {
+	if len(d.Owners) == 0 {
+		return
+	}
+
+	d.OwnerIDs = make([]string, len(d.Owners))
+
+	for i := range d.Owners {
+		d.OwnerIDs[i] = fmt.Sprintf("%d", d.Owners[i])
+	}
+}
 
 type entityDeath struct {
 	ras        storage.RaidAlertsStore
@@ -37,6 +55,7 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	game := r.Context().Value(contextKeyGame).(string)
 	serverKey := r.Context().Value(contextKeyServerKey).(string)
 	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
 	account := r.Context().Value(contextKeyAccount).(types.Account)
@@ -51,7 +70,7 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	var ed types.EntityDeath
+	var ed deprecatedEntityDeath
 	err = decoder.Decode(&ed)
 	if err != nil {
 		e.logger.Printf("[%s](%s:%s) Invalid JSON: %s", requestUUID, account.ID.Hex(), server.Name, err.Error())
@@ -60,6 +79,12 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 			StatusCode: http.StatusBadRequest,
 		})
 		return
+	}
+
+	ed.upgrade()
+
+	for i := range ed.OwnerIDs {
+		ed.OwnerIDs[i] = fmt.Sprintf("%s:%s", game, ed.OwnerIDs[i])
 	}
 
 	if ed.ServerName == "" {
@@ -72,5 +97,5 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 			alertAt = sAlertAt
 		}
 	}
-	e.ras.AddInfo(alertAt, ed)
+	e.ras.AddInfo(alertAt, ed.EntityDeath)
 }

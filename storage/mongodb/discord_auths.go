@@ -3,9 +3,10 @@ package mongodb
 import (
 	"fmt"
 
-	"github.com/poundbot/poundbot/types"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/poundbot/poundbot/storage"
+	"github.com/poundbot/poundbot/types"
 )
 
 // A DiscordAuths implements db.DiscordAuthsStore
@@ -29,12 +30,15 @@ func (d DiscordAuths) GetSnowflake(snowflake string) (types.DiscordAuth, error) 
 }
 
 // Remove implements db.DiscordAuthsStore.Remove
-func (d DiscordAuths) Remove(si types.SteamInfo) error {
-	return d.collection.Remove(si)
+func (d DiscordAuths) Remove(u storage.UserInfoGetter) error {
+	return d.collection.Remove(bson.M{"playerid": u.GetPlayerID()})
 }
 
 // Upsert implements db.DiscordAuthsStore.Upsert
 func (d DiscordAuths) Upsert(da types.DiscordAuth) error {
-	_, err := d.collection.Upsert(da.SteamInfo, da)
+	_, err := d.collection.Upsert(
+		bson.M{"playerid": da.PlayerID},
+		da,
+	)
 	return err
 }

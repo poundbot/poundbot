@@ -3,8 +3,8 @@ package mongodb
 import (
 	"log"
 
-	"github.com/poundbot/poundbot/storage"
 	"github.com/globalsign/mgo"
+	"github.com/poundbot/poundbot/storage"
 )
 
 const (
@@ -75,15 +75,22 @@ func (m MongoDb) Init() {
 	mongoDB := m.session.DB(m.dbname)
 	userColl := mongoDB.C(usersCollection)
 	discordAuthColl := mongoDB.C(discordAuthsCollection)
-	// accountsColl := mongoDB.C(accountsCollection)
+	accountColl := mongoDB.C(accountsCollection)
 
-	index := mgo.Index{
-		Key:        []string{"GameUserID"},
-		Unique:     true,
-		DropDups:   true,
-		Background: false,
-		Sparse:     false,
-	}
-	userColl.EnsureIndex(index)
-	discordAuthColl.EnsureIndex(index)
+	userColl.EnsureIndex(mgo.Index{
+		Key:      []string{"playerids"},
+		Unique:   true,
+		DropDups: true,
+	})
+
+	discordAuthColl.EnsureIndex(mgo.Index{
+		Key:      []string{"playerid"},
+		Unique:   true,
+		DropDups: true,
+	})
+
+	accountColl.EnsureIndex(mgo.Index{
+		Key:    []string{"servers.key"},
+		Unique: false,
+	})
 }
