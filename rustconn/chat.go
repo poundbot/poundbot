@@ -65,7 +65,7 @@ func NewChat(ls string, ccache chatcache.ChatCache, in chan types.ChatMessage) f
 	c := chat{
 		ccache:     ccache,
 		in:         in,
-		sleep:      1 * time.Minute,
+		sleep:      10 * time.Second,
 		logger:     &log.Logger{},
 		minVersion: semver.Version{Major: 1, Patch: 1},
 	}
