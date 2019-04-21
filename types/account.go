@@ -18,17 +18,18 @@ type Server struct {
 	Timestamp    `bson:",inline"`
 }
 
-func (s Server) UsersClan(PlayerIDs []string) *Clan {
-	for _, serverClan := range s.Clans {
-		for _, member := range serverClan.Members {
-			for _, id := range PlayerIDs {
+func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
+	for _, clan := range s.Clans {
+
+		for _, member := range clan.Members {
+			for _, id := range playerIDs {
 				if member == id {
-					return &serverClan
+					return true, clan
 				}
 			}
 		}
 	}
-	return nil
+	return false, Clan{}
 }
 
 type BaseAccount struct {

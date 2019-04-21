@@ -126,8 +126,8 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		m.upgrade()
 		m.PlayerID = fmt.Sprintf("%s:%s", game, m.PlayerID)
 
-		clan := server.UsersClan([]string{m.PlayerID})
-		if clan != nil {
+		found, clan := server.UsersClan([]string{m.PlayerID})
+		if found {
 			m.ClanTag = clan.Tag
 		}
 

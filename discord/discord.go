@@ -268,8 +268,8 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			go func(cm types.ChatMessage, cc chan types.ChatMessage) {
 				user, err := c.us.GetSnowflake(m.Author.ID)
 				if err == nil {
-					clan := server.UsersClan(user.PlayerIDs)
-					if clan != nil {
+					found, clan := server.UsersClan(user.PlayerIDs)
+					if found {
 						cm.ClanTag = clan.Tag
 					}
 				}
@@ -289,6 +289,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				DisplayName: m.Author.Username,
 				Message:     m.Message.Content,
 			}, c.cc.GetOutChannel(server.Key))
+			return
 		}
 	}
 }
