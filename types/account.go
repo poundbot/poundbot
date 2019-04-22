@@ -56,26 +56,20 @@ func (a Account) ServerFromKey(apiKey string) (Server, error) {
 
 // Clan is a clan from the game
 type Clan struct {
-	Tag         string
-	Owner       string
-	Description string
-	Members     []string
-	Moderators  []string
-	Invited     []string
+	Tag        string
+	OwnerID    string
+	Members    []string
+	Moderators []string
 }
 
 // SetGame adds game name to all IDs
 func (c *Clan) SetGame(game string) {
-	c.Owner = fmt.Sprintf("%s:%s", game, c.Owner)
+	c.OwnerID = fmt.Sprintf("%s:%s", game, c.OwnerID)
 	for i := range c.Members {
 		c.Members[i] = fmt.Sprintf("%s:%s", game, c.Members[i])
 	}
 
 	for i := range c.Moderators {
 		c.Moderators[i] = fmt.Sprintf("%s:%s", game, c.Moderators[i])
-	}
-
-	for i := range c.Invited {
-		c.Invited[i] = fmt.Sprintf("%s:%s", game, c.Invited[i])
 	}
 }
