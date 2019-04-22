@@ -1,11 +1,11 @@
-package handler
+package discord
 
 import (
 	"log"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
-	"github.com/bwmarrin/discordgo"
 )
 
 type guildCreate struct {
@@ -17,7 +17,7 @@ func NewGuildCreate(as storage.AccountsStore) func(*discordgo.Session, *discordg
 	return gc.guildCreate
 }
 
-func (g *guildCreate) guildCreate(s *discordgo.Session, gc *discordgo.GuildCreate) {
+func (g guildCreate) guildCreate(s *discordgo.Session, gc *discordgo.GuildCreate) {
 	account, err := g.as.GetByDiscordGuild(gc.ID)
 	if err == nil {
 		account.OwnerSnowflake = gc.OwnerID

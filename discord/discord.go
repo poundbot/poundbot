@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/poundbot/poundbot/chatcache"
-	"github.com/poundbot/poundbot/discord/handler"
 	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/storage"
@@ -63,10 +62,10 @@ func (c *Client) Start() error {
 		c.session = session
 		c.session.AddHandler(c.messageCreate)
 		c.session.AddHandler(c.ready)
-		c.session.AddHandler(handler.Disconnected(c.status, logPrefix))
+		c.session.AddHandler(Disconnected(c.status, logPrefix))
 		c.session.AddHandler(c.resumed)
-		c.session.AddHandler(handler.NewGuildCreate(c.as))
-		c.session.AddHandler(handler.NewGuildDelete(c.as))
+		c.session.AddHandler(NewGuildCreate(c.as))
+		c.session.AddHandler(NewGuildDelete(c.as))
 
 		c.status = make(chan bool)
 
@@ -501,34 +500,4 @@ func (c *Client) getUserByName(guildSnowflake, name string) (discordgo.User, err
 
 func (c *Client) getDiscordAuth(snowflake string) (types.DiscordAuth, error) {
 	return c.das.GetSnowflake(snowflake)
-}
-
-func pinString(pin int) string {
-	return fmt.Sprintf("%04d", pin)
-}
-
-func truncateString(str string, num int) string {
-	output := str
-	if len(str) > num {
-		if num > 1 {
-			num--
-		}
-		output = str[0:num] + "…"
-	}
-	return output
-}
-
-func escapeDiscordString(s string) string {
-	r := strings.NewReplacer(
-		"@everyone", "@\u200Beveryone",
-		"@here", "@\u200Bhere",
-		"\\", "\\\\",
-		"`", "\\`",
-		"||", "\\||",
-		"*", "\\*",
-		"~~", "\\~~",
-		"_", "\\_",
-		"<@", "\\<@",
-	)
-	return r.Replace(s)
 }

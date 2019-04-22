@@ -1,4 +1,4 @@
-package handler
+package discord
 
 import (
 	"log"
