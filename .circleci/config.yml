@@ -30,6 +30,11 @@ jobs: # basic units of work in a run
       # we've added it here for the sake of explanation.
       - run: go mod download
 
+      - save_cache: # Store cache in the /go/pkg directory
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
+
       - run:
           name: Run unit tests
           # Store the results of our tests in the $TEST_RESULTS directory
@@ -43,3 +48,4 @@ jobs: # basic units of work in a run
 
       - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: /tmp/test-results
+          destination: go-test
