@@ -9,14 +9,14 @@ jobs: # basic units of work in a run
       - image: circleci/mongo
 
     environment: # environment variables for the build itself
-      TEST_RESULTS: /tmp/test-results # path to where test results will be saved
+      TEST_RESULTS: /tmp/test-reports # path to where test results will be saved
       GO111MODULE: "on"
       GOMAXPROCS: 4
 
     steps: # steps that comprise the `build` job
-      - run: GO111MODULE="off" go get github.com/jstemmer/go-junit-report
+      # - run: GO111MODULE="off" go get github.com/jstemmer/go-junit-report
       - checkout # check out source code to working directory
-      - run: mkdir -p $TEST_RESULTS # create the test results directory
+      - run: mkdir -p $TEST_RESULTS/unit # create the test results directory
 
       - restore_cache:
           keys:
@@ -33,15 +33,14 @@ jobs: # basic units of work in a run
 
       - run:
           name: Run unit tests
+
           # Store the results of our tests in the $TEST_RESULTS directory
           command: |
-            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-            go test ./... -tags integration -v -parallel 4 -timeout 10s -race | tee ${TEST_RESULTS}/go-test.out
+            gotestsum --junitfile ${TEST_RESULTS}/gotestsum-report.xml -- ./... -tags integration -timeout 10s -race
 
       - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: /tmp/test-results
+          path: /tmp/test-reports
           destination: raw-test-output
 
       - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
-          path: /tmp/test-results
-          destination: go-test
+          path: /tmp/test-reports
