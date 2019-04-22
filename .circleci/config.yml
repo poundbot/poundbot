@@ -14,9 +14,8 @@ jobs: # basic units of work in a run
       GOMAXPROCS: 4
 
     steps: # steps that comprise the `build` job
-      - run: go get github.com/jstemmer/go-junit-report
+      - run: GO111MODULE="off" go get github.com/jstemmer/go-junit-report
       - checkout # check out source code to working directory
-      - run: go mod tidy
       - run: mkdir -p $TEST_RESULTS # create the test results directory
 
       - restore_cache:
