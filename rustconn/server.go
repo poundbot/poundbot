@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/chatcache"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
-	"github.com/gorilla/mux"
 )
 
-const upgradeURL = "https://github.com/poundbot/poundbot/wiki/RustPlugins#Upgrading"
+const upgradeURL = "https://umod.org/plugins/pound-bot"
 
 var logPrefix = "[RC]"
 
