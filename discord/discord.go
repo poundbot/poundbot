@@ -209,10 +209,16 @@ func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 // the "ready" event from Discord.
 func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.Println(logPrefix + "[CONN] Ready!")
-	s.UpdateStatus(0, "I'm a real boy!")
+	s.UpdateStatus(0, "!pb help")
 	guilds := make([]types.BaseAccount, len(s.State.Guilds))
-	for i, guild := range s.State.Guilds {
+	for i := range s.State.Guilds {
+		guild, err := s.Guild(s.State.Guilds[i].ID)
+		if err != nil {
+			log.Printf("Could not get guild for %s", s.State.Guilds[i].ID)
+			continue
+		}
 		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
+		log.Print(guilds[i])
 	}
 	c.as.RemoveNotInDiscordGuildList(guilds)
 	c.status <- true
@@ -342,8 +348,6 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 
 	command := parts[0]
 	parts = parts[1:]
-
-	log.Printf("command '%s'", command)
 
 	if command == "help" {
 		log.Printf("Sending help to %s", m.Author.ID)
