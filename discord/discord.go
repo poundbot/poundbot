@@ -363,7 +363,7 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 		case "list":
 			out := "**Server List**\nID : Name : RaidDelay : Key\n----"
 			for i, server := range account.Servers {
-				out = fmt.Sprintf("%s\n%d : %s : %s : ||`%s`||", out, i+1, server.RaidDelay, server.Name, server.Key)
+				out = fmt.Sprintf("%s\n%d : %s : %s : ||`%s`||", out, i+1, server.Name, server.RaidDelay, server.Key)
 			}
 			c.sendPrivateMessage(m.Author.ID, out)
 			return
