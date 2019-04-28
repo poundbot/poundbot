@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/types"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 )
 
@@ -89,10 +91,14 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 
 	switch parts[0] {
 	case "list":
-		out := "**Server List**\nID : Name : RaidDelay : Key\n----"
+		buf := new(bytes.Buffer)
+		w := tabwriter.NewWriter(buf, 0, 0, 3, ' ', 0)
+		fmt.Fprintln(w, "`ID\tName\tRaid Delay\tKey`\t")
 		for i, server := range account.Servers {
-			out = fmt.Sprintf("%s\n%d : %s : %s : ||`%s`||", out, i+1, server.Name, server.RaidDelay, server.Key)
+			fmt.Fprintf(w, "`%d\t%s\t%s\t|`||`%s`||\t\n", i+1, server.Name, server.RaidDelay, server.Key)
 		}
+		w.Flush()
+		out := buf.String()
 		return instructResponse{message: out}
 	case "add":
 		if len(parts) < 2 {
