@@ -35,6 +35,7 @@ func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
 type BaseAccount struct {
 	GuildSnowflake string
 	OwnerSnowflake string
+	CommandPrefix  string
 }
 
 type Account struct {
@@ -52,6 +53,13 @@ func (a Account) ServerFromKey(apiKey string) (Server, error) {
 		}
 	}
 	return Server{}, errors.New("server not found")
+}
+
+func (a Account) GetCommandPrefix() string {
+	if a.CommandPrefix == "" {
+		return "!pb"
+	}
+	return a.CommandPrefix
 }
 
 // Clan is a clan from the game

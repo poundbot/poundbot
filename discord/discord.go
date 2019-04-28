@@ -240,18 +240,26 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		return
 	}
 
+	if account.OwnerSnowflake == "" {
+		log.Printf("setting owner for %s", m.GuildID)
+		guild, err := s.Guild(m.GuildID)
+		if err != nil {
+			// TODO handle not finding the guild here
+			return
+		}
+		account.OwnerSnowflake = guild.OwnerID
+		c.as.UpsertBase(account.BaseAccount)
+	}
+
+	// Detect prefix
+	if strings.HasPrefix(m.Message.Content, account.GetCommandPrefix()) {
+		m.Message.Content = strings.TrimPrefix(m.Message.Content, account.GetCommandPrefix())
+		c.instruct(s, m, account)
+	}
+
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			if account.OwnerSnowflake == "" {
-				guild, err := s.Guild(m.GuildID)
-				if err != nil {
-					// TODO handle not finding the guild here
-					return
-				}
-				account.OwnerSnowflake = guild.OwnerID
-				c.as.UpsertBase(account.BaseAccount)
-			}
 			c.instruct(s, m, account)
 			return
 		}
@@ -439,11 +447,11 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 			}
 			server.Name = strings.Join(instructions[1:], " ")
 			c.as.UpdateServer(account.GuildSnowflake, server.Key, server)
-			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d name set to %s", serverID, server.Name))
+			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d name set to %s", serverID+1, server.Name))
 			return
 		case "delete":
 			if err := c.as.RemoveServer(account.GuildSnowflake, server.Key); err != nil {
-				c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error removing server. Please try again.", server.Name, serverID+1))
+				c.session.ChannelMessageSend(m.ChannelID, "Error removing server. Please try again.")
 			}
 			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %s (%d) removed", server.Name, serverID+1))
 			return
