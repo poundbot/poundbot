@@ -117,12 +117,7 @@ func (c *Client) runner() {
 							return
 						}
 
-						channel, err := c.session.UserChannelCreate(user.ID)
-						if err != nil {
-							log.Printf(logRunnerPrefix+"[COMM] Error creating user channel: %v", err)
-						} else {
-							c.session.ChannelMessageSend(channel.ID, t.String())
-						}
+						c.sendPrivateMessage(user.ID, t.String())
 					}()
 
 				case t := <-c.DiscordAuth:
@@ -131,7 +126,7 @@ func (c *Client) runner() {
 						log.Printf(logRunnerPrefix+"[COMM] User %s not found\n", t.DiscordInfo.DiscordName)
 						err = c.das.Remove(t)
 						if err != nil {
-							log.Printf(logRunnerPrefix+"[DB] - Error removing PlayerID %s from the database: %v\n", t.PlayerID, err)
+							log.Printf(logRunnerPrefix+"[DB] - Error removing discord auth for PlayerID %s from the database: %v\n", t.PlayerID, err)
 						}
 						break
 					}
@@ -178,8 +173,6 @@ func (c *Client) runner() {
 		}
 	}
 
-	// Wait for connected
-
 }
 
 func (c *Client) connect() {
@@ -216,7 +209,6 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 			continue
 		}
 		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
-		log.Print(guilds[i])
 	}
 	c.as.RemoveNotInDiscordGuildList(guilds)
 	c.status <- true
@@ -255,18 +247,32 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		c.as.UpsertBase(account.BaseAccount)
 	}
 
+	var response instructResponse
+	respond := false
+
 	// Detect prefix
 	if strings.HasPrefix(m.Message.Content, account.GetCommandPrefix()) {
 		m.Message.Content = strings.TrimPrefix(m.Message.Content, account.GetCommandPrefix())
-		instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c, c.as)
+		response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c.as)
+		respond = true
 	}
 
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c, c.as)
-			return
+			response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c.as)
+			respond = true
 		}
+	}
+
+	if respond {
+		switch response.responseType {
+		case instructResponsePrivate:
+			err = c.sendPrivateMessage(m.Author.ID, response.message)
+		case instructResponseChannel:
+			err = c.sendChannelMessage(m.Author.ID, response.message)
+		}
+		return
 	}
 
 	if len(account.Servers) == 0 {
@@ -346,11 +352,6 @@ func (c Client) sendPrivateMessage(snowflake, message string) error {
 	)
 
 	return err
-}
-
-func (c Client) sendServerKey(snowflake, name, key string) error {
-	message := messages.ServerKeyMessage(name, key)
-	return c.sendPrivateMessage(snowflake, message)
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error

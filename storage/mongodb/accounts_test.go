@@ -343,7 +343,6 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 			ID:          docs[0].ID,
 			Timestamp:   types.Timestamp{CreatedAt: iclock().Now().UTC().Truncate(time.Millisecond)},
 			BaseAccount: types.BaseAccount{GuildSnowflake: "guildsnowflake1"},
-			Servers:     []types.Server{},
 			Disabled:    true,
 		},
 		types.Account{
@@ -352,7 +351,6 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 				CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond),
 				UpdatedAt: iclock().Now().UTC().Truncate(time.Millisecond),
 			},
-			Servers:     []types.Server{},
 			BaseAccount: types.BaseAccount{GuildSnowflake: "guildsnowflake2"},
 			Disabled:    false,
 		},

@@ -20,7 +20,6 @@ type Server struct {
 
 func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
 	for _, clan := range s.Clans {
-
 		for _, member := range clan.Members {
 			for _, id := range playerIDs {
 				if member == id {
@@ -33,15 +32,16 @@ func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
 }
 
 type BaseAccount struct {
-	GuildSnowflake string
-	OwnerSnowflake string
-	CommandPrefix  string
+	GuildSnowflake  string
+	OwnerSnowflake  string
+	CommandPrefix   string
+	AdminSnowflakes []string `bson:",omitempty"`
 }
 
 type Account struct {
 	ID          bson.ObjectId `bson:"_id,omitempty"`
 	BaseAccount `bson:",inline" json:",inline"`
-	Servers     []Server
+	Servers     []Server `bson:",omitempty"`
 	Timestamp   `bson:",inline" json:",inline"`
 	Disabled    bool
 }
@@ -65,7 +65,7 @@ func (a Account) GetCommandPrefix() string {
 }
 
 func (a Account) GetAdminIDs() []string {
-	return []string{a.OwnerSnowflake}
+	return append(a.AdminSnowflakes, a.OwnerSnowflake)
 }
 
 // Clan is a clan from the game
