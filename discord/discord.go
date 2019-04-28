@@ -3,7 +3,6 @@ package discord
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/poundbot/poundbot/types"
 
 	"github.com/bwmarrin/discordgo"
-	uuid "github.com/satori/go.uuid"
 )
 
 const logPrefix = "[DISCORD]"
@@ -146,7 +144,7 @@ func (c *Client) runner() {
 						break
 					}
 
-					_, err = c.sendPrivateMessage(t.Snowflake, messages.PinPrompt)
+					err = c.sendPrivateMessage(t.Snowflake, messages.PinPrompt)
 					if err != nil {
 						log.Println(logRunnerPrefix + "[COMM] Could not send PIN request to user")
 					}
@@ -260,13 +258,13 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// Detect prefix
 	if strings.HasPrefix(m.Message.Content, account.GetCommandPrefix()) {
 		m.Message.Content = strings.TrimPrefix(m.Message.Content, account.GetCommandPrefix())
-		c.instruct(s, m, account)
+		instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c, c.as)
 	}
 
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			c.instruct(s, m, account)
+			instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c, c.as)
 			return
 		}
 	}
@@ -329,180 +327,28 @@ func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 	return
 }
 
-func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, account types.Account) {
-	log.Printf(
-		"Instruct: ID:\"%s\", Author:\"%s\", Guild:\"%s\", Owner:\"%s\", Message: \"%s\"",
-		account.ID, m.Author.ID, account.GuildSnowflake, account.OwnerSnowflake, m.ContentWithMentionsReplaced(),
-	)
-	parts := strings.Fields(
-		strings.Replace(
-			strings.Replace(m.Content, fmt.Sprintf("<@%s>", s.State.User.ID), "", -1),
-			fmt.Sprintf("<@!%s>", s.State.User.ID), "", -1,
-		),
-	)
-
-	if len(parts) == 0 {
-		log.Println("Mention without instruction")
-		return
-	}
-
-	command := parts[0]
-	parts = parts[1:]
-
-	if command == "help" {
-		log.Printf("Sending help to %s", m.Author.ID)
-		c.sendPrivateMessage(m.Author.ID, messages.HelpText())
-		return
-	}
-
-	if m.Author.ID != account.OwnerSnowflake {
-		log.Println("Message is not from owner")
-		return
-	}
-
-	switch command {
-	case "help":
-		log.Printf("Sending help to %s", m.Author.ID)
-		c.sendPrivateMessage(m.Author.ID, messages.HelpText())
-		break
-	case "server":
-		if len(parts) == 0 {
-			c.session.ChannelMessageSend(m.ChannelID, "TODO: Server Usage. See `help`.")
-			return
-		}
-
-		switch parts[0] {
-		case "list":
-			out := "**Server List**\nID : Name : RaidDelay : Key\n----"
-			for i, server := range account.Servers {
-				out = fmt.Sprintf("%s\n%d : %s : %s : ||`%s`||", out, i+1, server.Name, server.RaidDelay, server.Key)
-			}
-			c.sendPrivateMessage(m.Author.ID, out)
-			return
-		case "add":
-			if len(parts) < 2 {
-				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server add <name>`")
-				return
-			}
-			server := types.Server{
-				Name:       strings.Join(parts[1:], " "),
-				Key:        uuid.NewV4().String(),
-				ChatChanID: m.ChannelID,
-				RaidDelay:  "1m",
-			}
-			c.as.AddServer(account.GuildSnowflake, server)
-			c.sendServerKey(m.Author.ID, server.Name, server.Key)
-			return
-		}
-
-		var commands = []string{"reset", "rename", "delete", "chathere", "raiddelay"}
-		isCommand := func(s string) bool {
-			for _, command := range commands {
-				if s == command {
-					return true
-				}
-			}
-			return false
-		}
-
-		serverID := 0
-		instructions := parts
-
-		if !isCommand(instructions[0]) {
-			if len(instructions) < 2 || !isCommand(instructions[1]) {
-				c.session.ChannelMessageSend(m.ChannelID, "Could not find server command. See `help`.")
-				return
-			}
-
-			id, err := strconv.Atoi(instructions[0])
-			if err != nil {
-				c.session.ChannelMessageSend(m.ChannelID, "Server ID was not a number. See `server list`")
-				return
-			}
-			if id < 1 {
-				c.session.ChannelMessageSend(m.ChannelID, "Server ID was not a positive number. See `server list`")
-				return
-			}
-			serverID = id - 1
-			instructions = instructions[1:]
-		} else if len(account.Servers) > 1 {
-			c.session.ChannelMessageSend(m.ChannelID, "You must supply the server ID (number). See `server list` or `help")
-			return
-		}
-
-		if len(account.Servers) < serverID {
-			c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `server list` or `help")
-			return
-		}
-
-		server := account.Servers[serverID]
-
-		switch instructions[0] {
-		case "reset":
-			oldKey := server.Key
-			server.Key = uuid.NewV4().String()
-			c.as.UpdateServer(account.GuildSnowflake, oldKey, server)
-			c.sendServerKey(m.Author.ID, server.Name, server.Key)
-			return
-		case "rename":
-			if len(instructions) < 2 {
-				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server rename [id] <name>`")
-				return
-			}
-			server.Name = strings.Join(instructions[1:], " ")
-			c.as.UpdateServer(account.GuildSnowflake, server.Key, server)
-			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d name set to %s", serverID+1, server.Name))
-			return
-		case "delete":
-			if err := c.as.RemoveServer(account.GuildSnowflake, server.Key); err != nil {
-				c.session.ChannelMessageSend(m.ChannelID, "Error removing server. Please try again.")
-			}
-			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %s (%d) removed", server.Name, serverID+1))
-			return
-		case "chathere":
-			server.ChatChanID = m.ChannelID
-			c.as.UpdateServer(account.GuildSnowflake, server.Key, server)
-			return
-		case "raiddelay":
-			if len(instructions) != 2 {
-				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server [ID] rename <name>`")
-				return
-			}
-			_, err := time.ParseDuration(instructions[1])
-			if err != nil {
-				c.session.ChannelMessageSend(m.ChannelID, "Invalid duration format. Examples:\n`1m` = 1 minute, `1h` = 1 hour, `1s` = 1 second")
-				return
-			}
-
-			server.RaidDelay = instructions[1]
-			c.as.UpdateServer(account.GuildSnowflake, server.Key, server)
-
-			return
-		}
-
-		log.Printf("Invalid command %s", command)
-		c.session.ChannelMessageSend(
-			m.ChannelID,
-			fmt.Sprintf("Invalid command %s. Are you using the ID from `server list`?", instructions[0]),
-		)
-	}
+func (c Client) sendChannelMessage(channelID, message string) error {
+	_, err := c.session.ChannelMessageSend(channelID, message)
+	return err
 }
 
-func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Message, err error) {
+func (c Client) sendPrivateMessage(snowflake, message string) error {
 	channel, err := c.session.UserChannelCreate(snowflake)
 
 	if err != nil {
 		log.Printf(logRunnerPrefix+" Error creating user channel: %v", err)
-		return
+		return err
 	}
 
-	return c.session.ChannelMessageSend(
+	_, err = c.session.ChannelMessageSend(
 		channel.ID,
 		message,
 	)
+
+	return err
 }
 
-func (c *Client) sendServerKey(snowflake, name, key string) (m *discordgo.Message, err error) {
+func (c Client) sendServerKey(snowflake, name, key string) error {
 	message := messages.ServerKeyMessage(name, key)
 	return c.sendPrivateMessage(snowflake, message)
 }

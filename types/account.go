@@ -46,6 +46,7 @@ type Account struct {
 	Disabled    bool
 }
 
+// ServerFromKey finds a server for a given key. Errors if not found.
 func (a Account) ServerFromKey(apiKey string) (Server, error) {
 	for i := range a.Servers {
 		if a.Servers[i].Key == apiKey {
@@ -55,11 +56,16 @@ func (a Account) ServerFromKey(apiKey string) (Server, error) {
 	return Server{}, errors.New("server not found")
 }
 
+// GetCommandPrefix the Discord command prefix. Defaults to "!pb"
 func (a Account) GetCommandPrefix() string {
 	if a.CommandPrefix == "" {
 		return "!pb"
 	}
 	return a.CommandPrefix
+}
+
+func (a Account) GetAdminIDs() []string {
+	return []string{a.OwnerSnowflake}
 }
 
 // Clan is a clan from the game
