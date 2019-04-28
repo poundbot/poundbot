@@ -379,66 +379,79 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 				RaidDelay:  "1m",
 			}
 			c.as.AddServer(account.GuildSnowflake, server)
-			c.sendServerKey(m.Author.ID, server.Key)
+			c.sendServerKey(m.Author.ID, server.Name, server.Key)
 			return
+		}
+
+		var commands = []string{"reset", "rename", "delete", "chathere", "raiddelay"}
+		isCommand := func(s string) bool {
+			for _, command := range commands {
+				if s == command {
+					return true
+				}
+			}
+			return false
 		}
 
 		serverID := 0
 		instructions := parts
-		serverID, err := strconv.Atoi(instructions[0])
-		if err == nil {
-			serverID--
+
+		if !isCommand(instructions[0]) {
+			if len(instructions) < 2 || !isCommand(instructions[1]) {
+				c.session.ChannelMessageSend(m.ChannelID, "Could not find server command. See `help`.")
+				return
+			}
+
+			id, err := strconv.Atoi(instructions[0])
+			if err != nil {
+				c.session.ChannelMessageSend(m.ChannelID, "Server ID was not a number. See `server list`")
+				return
+			}
+			if id < 1 {
+				c.session.ChannelMessageSend(m.ChannelID, "Server ID was not a positive number. See `server list`")
+				return
+			}
+			serverID = id - 1
 			instructions = instructions[1:]
 		} else if len(account.Servers) > 1 {
-			c.session.ChannelMessageSend(m.ChannelID, "You have multiple servers. Use server `#`.")
+			c.session.ChannelMessageSend(m.ChannelID, "You must supply the server ID (number). See `server list` or `help")
 			return
 		}
 
+		if len(account.Servers) < serverID {
+			c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `server list` or `help")
+			return
+		}
+
+		server := account.Servers[serverID]
+
 		switch instructions[0] {
 		case "reset":
-			if len(account.Servers) <= serverID {
-				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
-				return
-			}
-			oldKey := account.Servers[serverID].Key
-			account.Servers[serverID].Key = uuid.NewV4().String()
-			c.as.UpdateServer(account.GuildSnowflake, oldKey, account.Servers[serverID])
-			c.sendServerKey(m.Author.ID, account.Servers[serverID].Key)
+			oldKey := server.Key
+			server.Key = uuid.NewV4().String()
+			c.as.UpdateServer(account.GuildSnowflake, oldKey, server)
+			c.sendServerKey(m.Author.ID, server.Name, server.Key)
 			return
 		case "rename":
-			if len(account.Servers) <= serverID {
-				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
-				return
-			}
 			if len(instructions) < 2 {
 				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server rename [id] <name>`")
 				return
 			}
-			account.Servers[serverID].Name = strings.Join(instructions[1:], " ")
-			c.as.UpdateServer(account.GuildSnowflake, account.Servers[serverID].Key, account.Servers[serverID])
-			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d name set to %s", serverID, account.Servers[serverID].Name))
+			server.Name = strings.Join(instructions[1:], " ")
+			c.as.UpdateServer(account.GuildSnowflake, server.Key, server)
+			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d name set to %s", serverID, server.Name))
 			return
 		case "delete":
-			if len(account.Servers) <= serverID {
-				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
-				return
+			if err := c.as.RemoveServer(account.GuildSnowflake, server.Key); err != nil {
+				c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Error removing server. Please try again.", server.Name, serverID+1))
 			}
-			c.as.RemoveServer(account.GuildSnowflake, account.Servers[serverID].Key)
-			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %d(%s) removed", serverID, account.Servers[serverID].Name))
+			c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Server %s (%d) removed", server.Name, serverID+1))
 			return
 		case "chathere":
-			if len(account.Servers) <= serverID {
-				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
-				return
-			}
-			account.Servers[serverID].ChatChanID = m.ChannelID
-			c.as.UpdateServer(account.GuildSnowflake, account.Servers[serverID].Key, account.Servers[serverID])
+			server.ChatChanID = m.ChannelID
+			c.as.UpdateServer(account.GuildSnowflake, server.Key, server)
 			return
 		case "raiddelay":
-			if len(account.Servers) <= serverID {
-				c.session.ChannelMessageSend(m.ChannelID, "Server not defined. Try `help`")
-				return
-			}
 			if len(instructions) != 2 {
 				c.session.ChannelMessageSend(m.ChannelID, "Usage: `server [ID] rename <name>`")
 				return
@@ -449,8 +462,8 @@ func (c *Client) instruct(s *discordgo.Session, m *discordgo.MessageCreate, acco
 				return
 			}
 
-			account.Servers[serverID].RaidDelay = instructions[1]
-			c.as.UpdateServer(account.GuildSnowflake, account.Servers[serverID].Key, account.Servers[serverID])
+			server.RaidDelay = instructions[1]
+			c.as.UpdateServer(account.GuildSnowflake, server.Key, server)
 
 			return
 		}
@@ -477,8 +490,8 @@ func (c *Client) sendPrivateMessage(snowflake, message string) (m *discordgo.Mes
 	)
 }
 
-func (c *Client) sendServerKey(snowflake, key string) (m *discordgo.Message, err error) {
-	message := messages.ServerKeyMessage(key)
+func (c *Client) sendServerKey(snowflake, name, key string) (m *discordgo.Message, err error) {
+	message := messages.ServerKeyMessage(name, key)
 	return c.sendPrivateMessage(snowflake, message)
 }
 

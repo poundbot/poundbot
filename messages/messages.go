@@ -54,12 +54,13 @@ Enter the PIN provided in-game to validate your account.
 Once you are validated, you will begin receiving raid alerts!
 `
 
-func ServerKeyMessage(key string) string {
+func ServerKeyMessage(name, key string) string {
 	type data struct {
-		Key string
+		Name string
+		Key  string
 	}
 	buf := new(bytes.Buffer)
-	executeTemplate("ServerKeyMessage.tmpl", buf, data{Key: key})
+	executeTemplate("ServerKeyMessage.tmpl", buf, data{Name: name, Key: key})
 	return buf.String()
 }
 
