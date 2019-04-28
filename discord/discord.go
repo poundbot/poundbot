@@ -270,7 +270,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		case instructResponsePrivate:
 			err = c.sendPrivateMessage(m.Author.ID, response.message)
 		case instructResponseChannel:
-			err = c.sendChannelMessage(m.Author.ID, response.message)
+			err = c.sendChannelMessage(m.ChannelID, response.message)
 		}
 		return
 	}

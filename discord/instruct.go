@@ -204,6 +204,10 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 	case "chathere":
 		server.ChatChanID = channelID
 		au.UpdateServer(guildID, server.Key, server)
+		return instructResponse{
+			responseType: instructResponseChannel,
+			message:      fmt.Sprintf("Server %d (%s) will chat here.", serverID+1, server.Name),
+		}
 	case "raiddelay":
 		if len(instructions) != 2 {
 			return instructResponse{
