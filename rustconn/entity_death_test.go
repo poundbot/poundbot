@@ -11,11 +11,11 @@ import (
 
 	"context"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage/mocks"
 	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestEntityDeath_Handle(t *testing.T) {
@@ -115,7 +115,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 			ctx = context.WithValue(ctx, contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
-				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"), //bson.NewObjectId(),
+				ID: primitive.ObjectIDHex("5cafadc080e1a9498fea8f03"), //bson.NewObjectId(),
 				Servers: []types.Server{
 					{ChatChanID: "1234", Key: "bloop", Name: "server1"},
 				},

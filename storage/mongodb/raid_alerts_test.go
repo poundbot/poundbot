@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"github.com/poundbot/poundbot/storage/mongodb/mongotest"
 	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +32,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		args      args
 		want      types.RaidAlert
 		atTimeNew bool
-		wantCount int
+		wantCount int64
 		wantErr   bool
 	}{
 		{
@@ -80,32 +80,34 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 
 			raidAlerts.users = users
 
-			coll.C.Insert(types.RaidAlert{
+			coll.C.InsertOne(nil, types.RaidAlert{
 				GridPositions: []string{"D8"},
 				PlayerID:      "2",
 				Items:         map[string]int{"thing": 2},
 				ServerKey:     "abcd",
 			})
 
-			usersColl.C.Insert(types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"2"}}})
-			usersColl.C.Insert(types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"3"}}})
+			usersColl.C.InsertOne(nil, types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"2"}}})
+			usersColl.C.InsertOne(nil, types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"3"}}})
 
 			if err := raidAlerts.AddInfo(tt.args.alertIn, tt.args.ed); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.AddInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if !tt.wantErr {
-				count, err := coll.C.Count()
+				count, err := coll.C.CountDocuments(nil, bson.M{})
 				if err != nil {
 					t.Fatal(err)
 				}
 				assert.Equal(t, tt.wantCount, count)
 
 				var rn types.RaidAlert
-				err = coll.C.Find(bson.M{"playerid": tt.want.PlayerID}).One(&rn)
+				result := coll.C.FindOne(nil, bson.M{"playerid": tt.want.PlayerID})
+				err = result.Decode(&rn)
 				if err != nil {
 					t.Fatal(err)
 				}
+				
 				alertAt := rn.AlertAt
 				rn.AlertAt = time.Time{}
 				assert.Equal(t, tt.want, rn)
@@ -139,8 +141,6 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 					PlayerID:      "1001",
 					AlertAt:       time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond),
 					ServerName:    "",
-					GridPositions: []string{},
-					Items:         map[string]int{},
 				},
 			},
 		},
@@ -159,7 +159,7 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 			defer coll.Close()
 
 			for _, alert := range tt.alerts {
-				coll.C.Insert(alert)
+				coll.C.InsertOne(nil, alert)
 			}
 
 			got, err := raidAlerts.GetReady()
@@ -180,7 +180,7 @@ func TestRaidAlerts_Remove(t *testing.T) {
 		name      string
 		args      args
 		alerts    []types.RaidAlert
-		wantCount int
+		wantCount int64
 		wantErr   bool
 	}{
 		{
@@ -209,15 +209,18 @@ func TestRaidAlerts_Remove(t *testing.T) {
 			raidAlerts, coll := NewRaidAlerts(t)
 			defer coll.Close()
 
-			for _, alert := range tt.alerts {
-				coll.C.Insert(alert)
+			alerts := make([]interface{}, len(tt.alerts))
+			for i := range tt.alerts {
+				alerts[i] = tt.alerts[i]
+				// coll.C.InsertOne(nil, alert)
 			}
+			coll.C.InsertMany(nil, alerts)
 
 			if err := raidAlerts.Remove(tt.args.alert); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.Remove() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			count, err := coll.C.Count()
+			count, err := coll.C.CountDocuments(nil, bson.M{})
 			if err != nil {
 				t.Fatal(err)
 			}

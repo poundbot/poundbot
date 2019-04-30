@@ -3,16 +3,19 @@ package mongodb
 import (
 	"fmt"
 	"time"
+	"errors"
 
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // A RaidAlerts implements storage.RaidAlertsStore
 type RaidAlerts struct {
-	collection *mgo.Collection
+	collection mongo.Collection
 	users      storage.UsersStore
 }
 
@@ -25,7 +28,11 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 			continue
 		}
 
-		_, err = r.collection.Upsert(
+		u := true
+		uo := options.UpdateOptions{Upsert: &u}
+
+		_, err = r.collection.UpdateOne(
+			nil,
 			bson.M{"playerid": pid},
 			bson.M{
 				"$setOnInsert": bson.M{
@@ -40,6 +47,7 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 					"gridpositions": ed.GridPos,
 				},
 			},
+			&uo,
 		)
 	}
 	return nil
@@ -48,18 +56,37 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 // GetReady implements storage.RaidAlertsStore.GetReady
 func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 	var alerts []types.RaidAlert
-	// change := mgo.Change{Remove: true}
-	err := r.collection.Find(
+
+	cur, err := r.collection.Find(
+		nil,
 		bson.M{
 			"alertat": bson.M{
 				"$lte": time.Now().UTC(),
 			},
 		},
-	).All(&alerts)
+	)
+	if err != nil {
+		return alerts, err
+	}
+	defer cur.Close(nil)
+
+	for cur.Next(nil) {
+		var ra types.RaidAlert
+		err := cur.Decode(&ra)
+		if err != nil {
+			return []types.RaidAlert{}, nil
+		}
+		alerts = append(alerts, ra)
+	}
+
 	return alerts, err
 }
 
 // Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidAlert) error {
-	return r.collection.Remove(alert)
+	dr, err := r.collection.DeleteOne(nil, alert)
+	if dr.DeletedCount != 1 {
+		return errors.New("not found")
+	}
+	return err
 }
