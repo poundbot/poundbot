@@ -4,6 +4,7 @@ package mongodb
 
 import (
 	"testing"
+	"context"
 
 	"github.com/poundbot/poundbot/storage/mongodb/mongotest"
 	"github.com/poundbot/poundbot/types"
@@ -56,7 +57,7 @@ func TestUsers_Get(t *testing.T) {
 			users, coll := NewUsers(t)
 			defer coll.Close()
 
-			users.collection.InsertOne(nil, baseUser)
+			users.collection.InsertOne(context.Background(), baseUser)
 
 			got, err := users.Get(tt.args.gameUserID)
 			if (err != nil) != tt.wantErr {
@@ -108,7 +109,7 @@ func TestUsers_UpsertPlayer(t *testing.T) {
 			users, coll := NewUsers(t)
 			defer coll.Close()
 
-			_, err := users.collection.InsertOne(nil, baseUser)
+			_, err := users.collection.InsertOne(context.Background(), baseUser)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -118,7 +119,7 @@ func TestUsers_UpsertPlayer(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			count, err := users.collection.CountDocuments(nil, bson.M{})
+			count, err := users.collection.CountDocuments(context.Background(), bson.M{})
 			if err != nil {
 				t.Fatal(err)
 			}

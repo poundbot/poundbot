@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"time"
+	"context"
 
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
@@ -19,14 +20,14 @@ type Users struct {
 // Get implements db.UsersStore.Get
 func (u Users) Get(gameUserID string) (types.User, error) {
 	var user types.User
-	result := u.collection.FindOne(nil, bson.M{"playerids": gameUserID})
+	result := u.collection.FindOne(context.Background(), bson.M{"playerids": gameUserID})
 	err := result.Decode(&user)
 	return user, err
 }
 
 func (u Users) GetSnowflake(snowflake string) (types.User, error) {
 	var user types.User
-	result := u.collection.FindOne(nil, bson.M{"snowflake": snowflake})
+	result := u.collection.FindOne(context.Background(), bson.M{"snowflake": snowflake})
 	err := result.Decode(&user)
 	return user, err
 }
@@ -34,7 +35,7 @@ func (u Users) GetSnowflake(snowflake string) (types.User, error) {
 func (u Users) UpsertPlayer(info storage.UserInfoGetter) error {
 	upsert := true
 	_, err := u.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{"snowflake": info.GetDiscordID()},
 		bson.M{
 			"$setOnInsert": bson.M{

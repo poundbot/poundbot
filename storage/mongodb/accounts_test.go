@@ -5,6 +5,7 @@ package mongodb
 import (
 	"testing"
 	"time"
+	"context"
 
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/storage/mongodb/mongotest"
@@ -69,7 +70,7 @@ func TestAccounts_All(t *testing.T) {
 			defer coll.Close()
 
 			for _, account := range tt.want {
-				coll.C.InsertOne(nil, account)
+				coll.C.InsertOne(context.Background(), account)
 			}
 
 			var res []types.Account
@@ -129,7 +130,7 @@ func TestAccounts_GetByDiscordGuild(t *testing.T) {
 			}
 
 			for _, account := range make {
-				coll.C.InsertOne(nil,account)
+				coll.C.InsertOne(context.Background(),account)
 			}
 
 			got, err := accounts.GetByDiscordGuild(tt.key)
@@ -187,7 +188,7 @@ func TestAccounts_GetByServerKey(t *testing.T) {
 			}
 
 			for _, account := range docs {
-				coll.C.InsertOne(nil, account)
+				coll.C.InsertOne(context.Background(), account)
 			}
 
 			got, err := accounts.GetByServerKey(tt.args.key)
@@ -229,7 +230,7 @@ func TestAccounts_UpsertBase(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			_, err := coll.C.InsertOne(nil, baseAccount)
+			_, err := coll.C.InsertOne(context.Background(), baseAccount)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -238,7 +239,7 @@ func TestAccounts_UpsertBase(t *testing.T) {
 				t.Fatalf("Accounts.UpsertBase() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			count, err := coll.C.CountDocuments(nil, bson.M{})
+			count, err := coll.C.CountDocuments(context.Background(), bson.M{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -293,7 +294,7 @@ func TestAccounts_Remove(t *testing.T) {
 			}
 
 			for _, account := range make {
-				_, err := coll.C.InsertOne(nil, account)
+				_, err := coll.C.InsertOne(context.Background(), account)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -302,7 +303,7 @@ func TestAccounts_Remove(t *testing.T) {
 				t.Errorf("Accounts.Remove() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			count, err := coll.C.CountDocuments(nil, bson.M{})
+			count, err := coll.C.CountDocuments(context.Background(), bson.M{})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -335,7 +336,7 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 	}
 
 	for _, doc := range docs {
-		_, err := coll.C.InsertOne(nil, doc)
+		_, err := coll.C.InsertOne(context.Background(), doc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -378,22 +379,22 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 		return
 	}
 
-	count, err := coll.C.CountDocuments(nil, bson.M{})
+	count, err := coll.C.CountDocuments(context.Background(), bson.M{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assert.Equal(t, int64(3), count, "Count is wrong")
 
-	cur, err := coll.C.Find(nil, bson.M{}, &options.FindOptions{Sort: bson.M{"guildsnowflake": 1}})
+	cur, err := coll.C.Find(context.Background(), bson.M{}, &options.FindOptions{Sort: bson.M{"guildsnowflake": 1}})
 	//.Sort(accountsKeyField)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cur.Close(nil)
+	defer cur.Close(context.Background())
 
 	docs = []types.Account{}
-	for cur.Next(nil) {
+	for cur.Next(context.Background()) {
 		var doc types.Account
 		err := cur.Decode(&doc)
 		if err != nil {
@@ -442,7 +443,7 @@ func TestAccounts_AddClan(t *testing.T) {
 			id := primitive.NewObjectID()
 			tt.want.ID = id
 
-			coll.C.InsertOne(nil, types.Account{
+			coll.C.InsertOne(context.Background(), types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "bloops"}}}},
@@ -453,7 +454,7 @@ func TestAccounts_AddClan(t *testing.T) {
 			}
 
 			var account types.Account
-			result := coll.C.FindOne(nil, bson.M{})
+			result := coll.C.FindOne(context.Background(), bson.M{})
 			err := result.Decode(&account)
 			if err != nil {
 				t.Error(err)
@@ -493,7 +494,7 @@ func TestAccounts_RemoveClan(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			coll.C.InsertOne(nil, types.Account{
+			coll.C.InsertOne(context.Background(), types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "bloops"}, types.Clan{Tag: "bloops2"}}}},
@@ -504,7 +505,7 @@ func TestAccounts_RemoveClan(t *testing.T) {
 			}
 
 			var account types.Account
-			result := coll.C.FindOne(nil, bson.M{})
+			result := coll.C.FindOne(context.Background(), bson.M{})
 			err := result.Decode(&account)
 			if err != nil {
 				t.Error(err)
@@ -549,7 +550,7 @@ func TestAccounts_SetClans(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			coll.C.InsertOne(nil, types.Account{
+			coll.C.InsertOne(context.Background(), types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers:   []types.Server{types.Server{Key: "guildsnowflake2"}},
@@ -560,7 +561,7 @@ func TestAccounts_SetClans(t *testing.T) {
 			}
 
 			var account types.Account
-			result := coll.C.FindOne(nil, bson.M{"servers.key": tt.args.key})
+			result := coll.C.FindOne(context.Background(), bson.M{"servers.key": tt.args.key})
 			result.Decode(&account)
 			
 			assert.Equal(t, tt.want, account)
@@ -594,13 +595,13 @@ func TestAccounts_AddServer(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			coll.C.InsertOne(nil, baseAccount)
+			coll.C.InsertOne(context.Background(), baseAccount)
 
 			if err := accounts.AddServer(tt.args.snowflake, tt.args.server); (err != nil) != tt.wantErr {
 				t.Errorf("Accounts.AddServer() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			var account types.Account
-			result := coll.C.FindOne(nil, bson.M{accountsKeyField: tt.args.snowflake})
+			result := coll.C.FindOne(context.Background(), bson.M{accountsKeyField: tt.args.snowflake})
 			err := result.Decode(&account)
 			if err != nil {
 				t.Error(err)

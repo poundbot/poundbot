@@ -63,7 +63,9 @@ func newDb(dbId int) (*mongo.Database, error) {
 		db = defaultDb
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	sess, err := mongo.Connect(ctx, options.Client().ApplyURI(dial))
 
 	// sess, err := mgo.Dial(dial)

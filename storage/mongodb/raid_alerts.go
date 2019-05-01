@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 	"errors"
+	"context"
 
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
@@ -32,7 +33,7 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 		uo := options.UpdateOptions{Upsert: &u}
 
 		_, err = r.collection.UpdateOne(
-			nil,
+			context.Background(),
 			bson.M{"playerid": pid},
 			bson.M{
 				"$setOnInsert": bson.M{
@@ -58,7 +59,7 @@ func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 	var alerts []types.RaidAlert
 
 	cur, err := r.collection.Find(
-		nil,
+		context.Background(),
 		bson.M{
 			"alertat": bson.M{
 				"$lte": time.Now().UTC(),
@@ -68,9 +69,9 @@ func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 	if err != nil {
 		return alerts, err
 	}
-	defer cur.Close(nil)
+	defer cur.Close(context.Background())
 
-	for cur.Next(nil) {
+	for cur.Next(context.Background()) {
 		var ra types.RaidAlert
 		err := cur.Decode(&ra)
 		if err != nil {
@@ -84,7 +85,7 @@ func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 
 // Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidAlert) error {
-	dr, err := r.collection.DeleteOne(nil, alert)
+	dr, err := r.collection.DeleteOne(context.Background(), alert)
 	if dr.DeletedCount != 1 {
 		return errors.New("not found")
 	}

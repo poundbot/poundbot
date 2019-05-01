@@ -32,14 +32,17 @@ type Config struct {
 
 // NewMongoDB returns a connected Mgo
 func NewMongoDB(mc Config) (*MongoDb, error) {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	sess, err := mongo.Connect(ctx, options.Client().ApplyURI(mc.DialAddress))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
+	sess, err := mongo.Connect(ctx, options.Client().ApplyURI(mc.DialAddress))
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, _ = context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel2 := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel2()
+
 	err = sess.Ping(ctx, readpref.Primary())
 	if err != nil {
 		return nil, err

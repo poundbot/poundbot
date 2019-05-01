@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -23,13 +24,13 @@ type Accounts struct {
 }
 
 func (s Accounts) All(accounts *[]types.Account) error {
-	cur, err := s.collection.Find(nil, bson.M{})
+	cur, err := s.collection.Find(context.Background(), bson.M{})
 	if err != nil {
 		return err
 	}
-	defer cur.Close(nil)
+	defer cur.Close(context.Background())
 
-	for cur.Next(nil) {
+	for cur.Next(context.Background()) {
 		var doc types.Account
 		err := cur.Decode(&doc)
 		if err != nil {
@@ -44,14 +45,14 @@ func (s Accounts) All(accounts *[]types.Account) error {
 
 func (s Accounts) GetByDiscordGuild(key string) (types.Account, error) {
 	var account types.Account
-	result := s.collection.FindOne(nil, bson.M{accountsKeyField: key})
+	result := s.collection.FindOne(context.Background(), bson.M{accountsKeyField: key})
 	err := result.Decode(&account)
 	return account, err
 }
 
 func (s Accounts) GetByServerKey(key string) (types.Account, error) {
 	var account types.Account
-	result := s.collection.FindOne(nil, bson.M{serverKeyField: key})
+	result := s.collection.FindOne(context.Background(), bson.M{serverKeyField: key})
 	err := result.Decode(&account)
 	return account, err
 }
@@ -59,7 +60,7 @@ func (s Accounts) GetByServerKey(key string) (types.Account, error) {
 func (s Accounts) UpsertBase(account types.BaseAccount) error {
 	upsert := true
 	_, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{accountsKeyField: account.GuildSnowflake},
 		bson.M{
 			"$setOnInsert": types.NewTimestamp(),
@@ -71,7 +72,7 @@ func (s Accounts) UpsertBase(account types.BaseAccount) error {
 }
 
 func (s Accounts) Remove(key string) error {
-	dr, err := s.collection.DeleteOne(nil, bson.M{accountsKeyField: key})
+	dr, err := s.collection.DeleteOne(context.Background(), bson.M{accountsKeyField: key})
 	if dr.DeletedCount != 1 {
 		return errors.New("not found")
 	}
@@ -81,7 +82,7 @@ func (s Accounts) Remove(key string) error {
 func (s Accounts) AddClan(serverKey string, clan types.Clan) error {
 	upsert := true
 	_, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{serverKeyField: serverKey},
 		bson.M{
 			"$push": bson.M{"servers.$.clans": clan},
@@ -93,7 +94,7 @@ func (s Accounts) AddClan(serverKey string, clan types.Clan) error {
 
 func (s Accounts) RemoveClan(serverKey, clanTag string) error {
 	ur, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{serverKeyField: serverKey, "servers.clans.tag": clanTag},
 		bson.M{"$pull": bson.M{"servers.$.clans": bson.M{"tag": clanTag}}},
 	)
@@ -105,7 +106,7 @@ func (s Accounts) RemoveClan(serverKey, clanTag string) error {
 
 func (s Accounts) SetClans(serverKey string, clans []types.Clan) error {
 	ur, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{serverKeyField: serverKey},
 		bson.M{"$set": bson.M{"servers.$.clans": clans}},
 	)
@@ -118,7 +119,7 @@ func (s Accounts) SetClans(serverKey string, clans []types.Clan) error {
 func (s Accounts) AddServer(snowflake string, server types.Server) error {
 	server.CreatedAt = iclock().Now().UTC()
 	_, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{accountsKeyField: snowflake},
 		bson.M{"$push": bson.M{"servers": server}},
 	)
@@ -127,7 +128,7 @@ func (s Accounts) AddServer(snowflake string, server types.Server) error {
 
 func (s Accounts) RemoveServer(snowflake, serverKey string) error {
 	ur, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{serverKeyField: serverKey},
 		bson.M{"$pull": bson.M{"servers": bson.M{"key": serverKey}}},
 	)
@@ -139,7 +140,7 @@ func (s Accounts) RemoveServer(snowflake, serverKey string) error {
 
 func (s Accounts) UpdateServer(snowflake, oldKey string, server types.Server) error {
 	_, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{
 			accountsKeyField: snowflake,
 			serverKeyField:   oldKey,
@@ -165,7 +166,7 @@ func (s Accounts) RemoveNotInDiscordGuildList(guilds []types.BaseAccount) error 
 		guildIDs[i] = guild.GuildSnowflake
 
 		_, err := s.collection.UpdateOne(
-			nil,
+			context.Background(),
 			bson.M{
 				accountsKeyField: guild.GuildSnowflake,
 			},
@@ -182,7 +183,7 @@ func (s Accounts) RemoveNotInDiscordGuildList(guilds []types.BaseAccount) error 
 
 	// Now disable all the guilds not in the list
 	_, err := s.collection.UpdateMany(
-		nil,
+		context.Background(),
 		bson.M{
 			accountsKeyField: bson.M{"$nin": guildIDs},
 		},
@@ -195,7 +196,7 @@ func (s Accounts) RemoveNotInDiscordGuildList(guilds []types.BaseAccount) error 
 func (s Accounts) Touch(serverKey string) error {
 	now := iclock().Now().UTC()
 	_, err := s.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{serverKeyField: serverKey},
 		bson.M{
 			"$set": bson.M{

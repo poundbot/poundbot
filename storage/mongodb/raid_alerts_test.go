@@ -5,6 +5,7 @@ package mongodb
 import (
 	"testing"
 	"time"
+	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"github.com/poundbot/poundbot/storage/mongodb/mongotest"
@@ -80,29 +81,29 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 
 			raidAlerts.users = users
 
-			coll.C.InsertOne(nil, types.RaidAlert{
+			coll.C.InsertOne(context.Background(), types.RaidAlert{
 				GridPositions: []string{"D8"},
 				PlayerID:      "2",
 				Items:         map[string]int{"thing": 2},
 				ServerKey:     "abcd",
 			})
 
-			usersColl.C.InsertOne(nil, types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"2"}}})
-			usersColl.C.InsertOne(nil, types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"3"}}})
+			usersColl.C.InsertOne(context.Background(), types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"2"}}})
+			usersColl.C.InsertOne(context.Background(), types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"3"}}})
 
 			if err := raidAlerts.AddInfo(tt.args.alertIn, tt.args.ed); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.AddInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if !tt.wantErr {
-				count, err := coll.C.CountDocuments(nil, bson.M{})
+				count, err := coll.C.CountDocuments(context.Background(), bson.M{})
 				if err != nil {
 					t.Fatal(err)
 				}
 				assert.Equal(t, tt.wantCount, count)
 
 				var rn types.RaidAlert
-				result := coll.C.FindOne(nil, bson.M{"playerid": tt.want.PlayerID})
+				result := coll.C.FindOne(context.Background(), bson.M{"playerid": tt.want.PlayerID})
 				err = result.Decode(&rn)
 				if err != nil {
 					t.Fatal(err)
@@ -159,7 +160,7 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 			defer coll.Close()
 
 			for _, alert := range tt.alerts {
-				coll.C.InsertOne(nil, alert)
+				coll.C.InsertOne(context.Background(), alert)
 			}
 
 			got, err := raidAlerts.GetReady()
@@ -212,15 +213,15 @@ func TestRaidAlerts_Remove(t *testing.T) {
 			alerts := make([]interface{}, len(tt.alerts))
 			for i := range tt.alerts {
 				alerts[i] = tt.alerts[i]
-				// coll.C.InsertOne(nil, alert)
+				// coll.C.InsertOne(context.Background(), alert)
 			}
-			coll.C.InsertMany(nil, alerts)
+			coll.C.InsertMany(context.Background(), alerts)
 
 			if err := raidAlerts.Remove(tt.args.alert); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.Remove() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			count, err := coll.C.CountDocuments(nil, bson.M{})
+			count, err := coll.C.CountDocuments(context.Background(), bson.M{})
 			if err != nil {
 				t.Fatal(err)
 			}

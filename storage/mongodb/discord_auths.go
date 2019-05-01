@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"fmt"
+	"context"
 
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
@@ -18,14 +19,14 @@ type DiscordAuths struct {
 
 func (d DiscordAuths) Get(discordName string) (types.DiscordAuth, error) {
 	var da types.DiscordAuth
-	result := d.collection.FindOne(nil, bson.M{"discordname": discordName})
+	result := d.collection.FindOne(context.Background(), bson.M{"discordname": discordName})
 	err := result.Decode(&da)
 	return da, err
 }
 
 func (d DiscordAuths) GetSnowflake(snowflake string) (types.DiscordAuth, error) {
 	var da types.DiscordAuth
-	result := d.collection.FindOne(nil, bson.M{"snowflake": snowflake})
+	result := d.collection.FindOne(context.Background(), bson.M{"snowflake": snowflake})
 	err := result.Decode(&da)
 	if err != nil {
 		return types.DiscordAuth{}, fmt.Errorf("mongodb could not find snowflake %s (%s)", snowflake, err)
@@ -35,7 +36,7 @@ func (d DiscordAuths) GetSnowflake(snowflake string) (types.DiscordAuth, error) 
 
 // Remove implements db.DiscordAuthsStore.Remove
 func (d DiscordAuths) Remove(u storage.UserInfoGetter) error {
-	_, err := d.collection.DeleteOne(nil, bson.M{"playerid": u.GetPlayerID()})
+	_, err := d.collection.DeleteOne(context.Background(), bson.M{"playerid": u.GetPlayerID()})
 	return err
 }
 
@@ -43,7 +44,7 @@ func (d DiscordAuths) Remove(u storage.UserInfoGetter) error {
 func (d DiscordAuths) Upsert(da types.DiscordAuth) error {
 	upsert := true
 	_, err := d.collection.UpdateOne(
-		nil,
+		context.Background(),
 		bson.M{"playerid": da.PlayerID},
 		da,
 		&options.UpdateOptions{Upsert: &upsert},
