@@ -2,6 +2,7 @@ package rustconn
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -10,14 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-
-	"context"
-
-	"github.com/stretchr/testify/assert"
-
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/types"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type ChatCache struct {
@@ -154,12 +153,16 @@ func TestChat_Handle(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
+			oid, err := primitive.ObjectIDFromHex("5cafadc080e1a9498fea8f03")
+			if err != nil {
+				t.Fatal("could not create ObjectID")
+			}
 
 			ctx := context.WithValue(context.Background(), contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyServerKey, "bloop")
 			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
-				ID: primitive.ObjectIDHex("5cafadc080e1a9498fea8f03"),
+				ID: oid,
 				Servers: []types.Server{
 					{ChatChanID: "1234", Key: "bloop", Name: "server-name"},
 				},
