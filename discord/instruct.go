@@ -2,15 +2,17 @@ package discord
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"github.com/poundbot/poundbot/messages"
-	"github.com/poundbot/poundbot/types"
-	uuid "github.com/satori/go.uuid"
 	"log"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
+
+	"github.com/poundbot/poundbot/messages"
+	"github.com/poundbot/poundbot/types"
+	uuid "github.com/satori/go.uuid"
 )
 
 type instructResponseType int
@@ -117,55 +119,19 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		return instructResponse{message: messages.ServerKeyMessage(server.Name, server.Key)}
 	}
 
-	var commands = []string{"reset", "rename", "delete", "chathere", "raiddelay"}
-	isCommand := func(s string) bool {
-		for _, command := range commands {
-			if s == command {
-				return true
-			}
-		}
-		return false
-	}
-
-	serverID := 0
-	instructions := parts
-
-	if !isCommand(instructions[0]) {
-		if len(instructions) < 2 || !isCommand(instructions[1]) {
-			return instructResponse{
-				responseType: instructResponseChannel,
-				message:      "Could not find server command. See `help`.",
-			}
+	serverID, instructions, err := instructServerArgs(parts, account.Servers)
+	if err != nil {
+		message := "Error processing server command. See `help`."
+		switch err.Error() {
+		case "invalid server id":
+			message = "Invalid server ID. See `help`."
+		case "server id required":
+			message = "You have multiple servers defined. You must supply a server ID. See `server list` or `help`."
 		}
 
-		id, err := strconv.Atoi(instructions[0])
-		if err != nil {
-			return instructResponse{
-				responseType: instructResponseChannel,
-				message:      "Server ID was not a number. See `server list`",
-			}
-		}
-
-		if id < 1 {
-			return instructResponse{
-				responseType: instructResponseChannel,
-				message:      "Server ID was not a positive number. See `server list`",
-			}
-		}
-
-		serverID = id - 1
-		instructions = instructions[1:]
-	} else if len(account.Servers) > 1 {
 		return instructResponse{
 			responseType: instructResponseChannel,
-			message:      "You must supply the server ID (number). See `server list` or `help",
-		}
-	}
-
-	if len(account.Servers) < serverID {
-		return instructResponse{
-			responseType: instructResponseChannel,
-			message:      "Server not defined. Try `server list` or `help",
+			message:      message,
 		}
 	}
 
@@ -219,12 +185,55 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		if err != nil {
 			return instructResponse{
 				responseType: instructResponseChannel,
-				message:      "Invalid duration format. Examples:\n`1m` = 1 minute, `1h` = 1 hour, `1s` = 1 second",
+				message:      "Invalid duration format. Examples:\n`5m` = 5 minutes, `1h` = 1 hour, `1s` = 1 second",
 			}
 		}
 
 		server.RaidDelay = instructions[1]
 		au.UpdateServer(guildID, server.Key, server)
+		return instructResponse{
+			responseType: instructResponseChannel,
+			message:      fmt.Sprintf("RaidDelay for %d:%s is now %s", serverID+1, server.Name, server.RaidDelay),
+		}
 	}
 	return instructResponse{responseType: instructResponseNone}
+}
+
+func instructServerArgs(parts []string, servers []types.Server) (int, []string, error) {
+	var serverID int
+	var commands = []string{"reset", "rename", "delete", "chathere", "raiddelay"}
+	isCommand := func(s string) bool {
+		for i := range commands {
+			if s == commands[i] {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !isCommand(parts[0]) {
+		if len(parts) < 2 || !isCommand(parts[1]) {
+			return -1, []string{}, errors.New("invalid command")
+		}
+
+		id, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return -1, []string{}, errors.New("invalid server id")
+		}
+
+		if id < 1 {
+			return -1, []string{}, errors.New("invalid server id")
+		}
+
+		serverID = id - 1
+		parts = parts[1:]
+	} else if len(servers) > 1 {
+		return -1, []string{}, errors.New("server id required")
+	}
+
+	if len(servers) < serverID {
+		return -1, []string{}, errors.New("invalid server id")
+	}
+
+	return serverID, parts, nil
 }
