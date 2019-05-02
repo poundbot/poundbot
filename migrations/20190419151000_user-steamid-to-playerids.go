@@ -7,7 +7,7 @@ import (
 
 	migrate "github.com/eminetto/mongo-migrate"
 	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func init() {

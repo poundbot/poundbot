@@ -2,6 +2,7 @@ package rustconn
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -9,13 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"context"
-
-	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage/mocks"
 	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestEntityDeath_Handle(t *testing.T) {
@@ -109,13 +109,18 @@ func TestEntityDeath_Handle(t *testing.T) {
 					return nil
 				})
 
+			oid, err := primitive.ObjectIDFromHex("5cafadc080e1a9498fea8f03")
+			if err != nil {
+				t.Fatal("Could not create ObjectID")
+			}
+
 			rr := httptest.NewRecorder()
 
 			ctx := context.WithValue(context.Background(), contextKeyServerKey, "bloop")
 			ctx = context.WithValue(ctx, contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
-				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"), //bson.NewObjectId(),
+				ID: oid,
 				Servers: []types.Server{
 					{ChatChanID: "1234", Key: "bloop", Name: "server1"},
 				},
