@@ -386,7 +386,7 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 
 	assert.Equal(t, int64(3), count, "Count is wrong")
 
-	cur, err := coll.C.Find(context.Background(), bson.M{}, &options.FindOptions{Sort: bson.M{"guildsnowflake": 1}})
+	cur, err := coll.C.Find(context.Background(), bson.M{}, &options.FindOptions{Sort: bson.M{accountKeyField: 1}})
 	//.Sort(accountsKeyField)
 	if err != nil {
 		t.Fatal(err)
@@ -561,7 +561,7 @@ func TestAccounts_SetClans(t *testing.T) {
 			}
 
 			var account types.Account
-			result := coll.C.FindOne(context.Background(), bson.M{"servers.key": tt.args.key})
+			result := coll.C.FindOne(context.Background(), bson.M{serverKeyField: tt.args.key})
 			result.Decode(&account)
 			
 			assert.Equal(t, tt.want, account)
@@ -601,7 +601,7 @@ func TestAccounts_AddServer(t *testing.T) {
 				t.Errorf("Accounts.AddServer() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			var account types.Account
-			result := coll.C.FindOne(context.Background(), bson.M{accountsKeyField: tt.args.snowflake})
+			result := coll.C.FindOne(context.Background(), bson.M{accountKeyField: tt.args.snowflake})
 			err := result.Decode(&account)
 			if err != nil {
 				t.Error(err)
