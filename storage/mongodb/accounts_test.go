@@ -450,7 +450,7 @@ func TestAccounts_AddClan(t *testing.T) {
 			})
 
 			if err := accounts.AddClan(tt.args.key, tt.args.clan); (err != nil) != tt.wantErr {
-				t.Errorf("Accounts.SetClans() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Accounts.AddClan() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			var account types.Account
@@ -501,7 +501,7 @@ func TestAccounts_RemoveClan(t *testing.T) {
 			})
 
 			if err := accounts.RemoveClan(tt.args.key, tt.args.clanTag); (err != nil) != tt.wantErr {
-				t.Errorf("Accounts.SetClans() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Accounts.RemoveClan() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			var account types.Account
