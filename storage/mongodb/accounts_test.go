@@ -531,13 +531,22 @@ func TestAccounts_SetClans(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "result",
+			name: "modified",
 			want: types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "foo"}}}},
 			},
 			args: args{key: "guildsnowflake2", clans: []types.Clan{types.Clan{Tag: "foo"}}},
+		},
+		{
+			name: "existing",
+			want: types.Account{
+				ID:        id,
+				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
+				Servers:   []types.Server{types.Server{Key: "guildsnowflake2", Clans: []types.Clan{types.Clan{Tag: "existing"}}}},
+			},
+			args: args{key: "guildsnowflake2", clans: []types.Clan{types.Clan{Tag: "existing"}}},
 		},
 		{
 			name:    "not found",
@@ -553,7 +562,10 @@ func TestAccounts_SetClans(t *testing.T) {
 			coll.C.InsertOne(context.Background(), types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
-				Servers:   []types.Server{types.Server{Key: "guildsnowflake2"}},
+				Servers:   []types.Server{types.Server{
+					Key: "guildsnowflake2",
+					Clans: []types.Clan{types.Clan{Tag: "existing"}},
+				}},
 			})
 
 			if err := accounts.SetClans(tt.args.key, tt.args.clans); (err != nil) != tt.wantErr {

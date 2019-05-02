@@ -107,7 +107,7 @@ func (s Accounts) RemoveClan(serverKey, clanTag string) error {
 		bson.M{serverKeyField: serverKey, clanTagField: clanTag},
 		bson.M{"$pull": bson.M{clanSelector: bson.M{"tag": clanTag}}},
 	)
-	if ur.ModifiedCount != 1 {
+	if ur.MatchedCount != 1 {
 		return errors.New("not found")
 	}
 	return err
@@ -119,7 +119,7 @@ func (s Accounts) SetClans(serverKey string, clans []types.Clan) error {
 		bson.M{serverKeyField: serverKey},
 		bson.M{"$set": bson.M{clanSelector: clans}},
 	)
-	if ur.ModifiedCount != 1 {
+	if ur.MatchedCount != 1 {
 		return errors.New("not found")
 	}
 	return err
@@ -141,8 +141,8 @@ func (s Accounts) RemoveServer(snowflake, serverKey string) error {
 		bson.M{serverKeyField: serverKey},
 		bson.M{"$pull": bson.M{accountServersField: bson.M{"key": serverKey}}},
 	)
-	if ur.ModifiedCount != 1 {
-
+	if ur.MatchedCount != 1 {
+		return errors.New("not found")
 	}
 	return err
 }
