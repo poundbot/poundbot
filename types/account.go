@@ -72,8 +72,8 @@ func (a Account) GetAdminIDs() []string {
 type Clan struct {
 	Tag        string
 	OwnerID    string
-	Members    []string
-	Moderators []string
+	Members    []string `bson:",omitempty"`
+	Moderators []string `bson:",omitempty"`
 }
 
 // SetGame adds game name to all IDs
