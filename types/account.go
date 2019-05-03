@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/globalsign/mgo/bson"
 )
 
 type Server struct {
@@ -39,7 +39,7 @@ type BaseAccount struct {
 }
 
 type Account struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	ID          bson.ObjectId `bson:"_id,omitempty"`
 	BaseAccount `bson:",inline" json:",inline"`
 	Servers     []Server `bson:",omitempty"`
 	Timestamp   `bson:",inline" json:",inline"`

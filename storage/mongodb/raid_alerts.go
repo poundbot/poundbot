@@ -3,20 +3,16 @@ package mongodb
 import (
 	"fmt"
 	"time"
-	"errors"
-	"context"
 
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // A RaidAlerts implements storage.RaidAlertsStore
 type RaidAlerts struct {
-	collection mongo.Collection
+	collection *mgo.Collection
 	users      storage.UsersStore
 }
 
@@ -29,11 +25,7 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 			continue
 		}
 
-		u := true
-		uo := options.UpdateOptions{Upsert: &u}
-
-		_, err = r.collection.UpdateOne(
-			context.Background(),
+		_, err = r.collection.Upsert(
 			bson.M{"playerid": pid},
 			bson.M{
 				"$setOnInsert": bson.M{
@@ -48,7 +40,6 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 					"gridpositions": ed.GridPos,
 				},
 			},
-			&uo,
 		)
 	}
 	return nil
@@ -57,37 +48,18 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 // GetReady implements storage.RaidAlertsStore.GetReady
 func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 	var alerts []types.RaidAlert
-
-	cur, err := r.collection.Find(
-		context.Background(),
+	// change := mgo.Change{Remove: true}
+	err := r.collection.Find(
 		bson.M{
 			"alertat": bson.M{
 				"$lte": time.Now().UTC(),
 			},
 		},
-	)
-	if err != nil {
-		return alerts, err
-	}
-	defer cur.Close(context.Background())
-
-	for cur.Next(context.Background()) {
-		var ra types.RaidAlert
-		err := cur.Decode(&ra)
-		if err != nil {
-			return []types.RaidAlert{}, nil
-		}
-		alerts = append(alerts, ra)
-	}
-
+	).All(&alerts)
 	return alerts, err
 }
 
 // Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidAlert) error {
-	dr, err := r.collection.DeleteOne(context.Background(), alert)
-	if dr.DeletedCount != 1 {
-		return errors.New("not found")
-	}
-	return err
+	return r.collection.Remove(alert)
 }

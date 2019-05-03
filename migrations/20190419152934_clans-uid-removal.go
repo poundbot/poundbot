@@ -3,7 +3,7 @@ package migrations
 import (
 	migrate "github.com/eminetto/mongo-migrate"
 	"github.com/globalsign/mgo"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/globalsign/mgo/bson"
 )
 
 func init() {
