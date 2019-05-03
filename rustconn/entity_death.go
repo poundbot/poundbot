@@ -92,7 +92,7 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	alertAt := 10 * time.Second
 	if len(account.Servers) != 0 {
-		sAlertAt, err := time.ParseDuration(account.Servers[0].RaidDelay)
+		sAlertAt, err := time.ParseDuration(server.RaidDelay)
 		if err == nil {
 			alertAt = sAlertAt
 		}

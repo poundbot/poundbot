@@ -115,9 +115,9 @@ func TestEntityDeath_Handle(t *testing.T) {
 			ctx = context.WithValue(ctx, contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
-				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"), //bson.NewObjectId(),
+				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"),
 				Servers: []types.Server{
-					{ChatChanID: "1234", Key: "bloop", Name: "server1"},
+					{Key: "bloop", Name: "server1"},
 				},
 			})
 
