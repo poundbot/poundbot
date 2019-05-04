@@ -94,13 +94,9 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game := r.Context().Value(contextKeyGame).(string)
-	serverKey := r.Context().Value(contextKeyServerKey).(string)
-	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
-	account := r.Context().Value(contextKeyAccount).(types.Account)
-	server, err := account.ServerFromKey(serverKey)
+	sc, err := getServerContext(r.Context())
 	if err != nil {
-		c.logger.Printf("[%s](%s:%s) Can't find server: %s", requestUUID, account.ID.Hex(), serverKey, err.Error())
+		c.logger.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -115,7 +111,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 		err := decoder.Decode(&m)
 		if err != nil {
-			c.logger.Printf("[%s](%s:%s) Invalid JSON: %s", requestUUID, account.ID.Hex(), server.Name, err.Error())
+			c.logger.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
 			handleError(w, types.RESTError{
 				Error:      "Invalid request",
 				StatusCode: http.StatusBadRequest,
@@ -124,15 +120,15 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		m.upgrade()
-		m.PlayerID = fmt.Sprintf("%s:%s", game, m.PlayerID)
+		m.PlayerID = fmt.Sprintf("%s:%s", sc.game, m.PlayerID)
 
-		found, clan := server.UsersClan([]string{m.PlayerID})
+		found, clan := sc.server.UsersClan([]string{m.PlayerID})
 		if found {
 			m.ClanTag = clan.Tag
 		}
 
-		for _, s := range account.Servers {
-			if s.Key == serverKey {
+		for _, s := range sc.account.Servers {
+			if s.Key == sc.serverKey {
 				m.ChannelID = s.ChatChanID
 				select {
 				case c.in <- m.ChatMessage:
@@ -144,12 +140,12 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodGet:
-		ch := c.ccache.GetOutChannel(serverKey)
+		ch := c.ccache.GetOutChannel(sc.serverKey)
 		select {
 		case m := <-ch:
 			b, err := json.Marshal(newDiscordChat(m))
 			if err != nil {
-				c.logger.Printf("[%s] %s", requestUUID, err.Error())
+				c.logger.Printf("[%s] %s", sc.requestUUID, err.Error())
 				return
 			}
 

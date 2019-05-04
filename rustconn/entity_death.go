@@ -55,15 +55,11 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game := r.Context().Value(contextKeyGame).(string)
-	serverKey := r.Context().Value(contextKeyServerKey).(string)
-	requestUUID := r.Context().Value(contextKeyRequestUUID).(string)
-	account := r.Context().Value(contextKeyAccount).(types.Account)
-	server, err := account.ServerFromKey(serverKey)
+	sc, err := getServerContext(r.Context())
 	if err != nil {
-		e.logger.Printf("[%s](%s) Invalid JSON: %s", requestUUID, account.ID.Hex(), err.Error())
+		e.logger.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
 		handleError(w, types.RESTError{
-			Error:      "Error processing request: Could not find server from key.",
+			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
 		})
 		return
@@ -73,7 +69,7 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	var ed deprecatedEntityDeath
 	err = decoder.Decode(&ed)
 	if err != nil {
-		e.logger.Printf("[%s](%s:%s) Invalid JSON: %s", requestUUID, account.ID.Hex(), server.Name, err.Error())
+		e.logger.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
 		handleError(w, types.RESTError{
 			Error:      "Invalid request",
 			StatusCode: http.StatusBadRequest,
@@ -84,18 +80,18 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	ed.upgrade()
 
 	for i := range ed.OwnerIDs {
-		ed.OwnerIDs[i] = fmt.Sprintf("%s:%s", game, ed.OwnerIDs[i])
+		ed.OwnerIDs[i] = fmt.Sprintf("%s:%s", sc.game, ed.OwnerIDs[i])
 	}
 
 	if ed.ServerName == "" {
-		ed.ServerName = server.Name
+		ed.ServerName = sc.server.Name
 	}
 	alertAt := 10 * time.Second
-	if len(account.Servers) != 0 {
-		sAlertAt, err := time.ParseDuration(server.RaidDelay)
-		if err == nil {
-			alertAt = sAlertAt
-		}
+
+	sAlertAt, err := time.ParseDuration(sc.server.RaidDelay)
+	if err == nil {
+		alertAt = sAlertAt
 	}
+
 	e.ras.AddInfo(alertAt, ed.EntityDeath)
 }
