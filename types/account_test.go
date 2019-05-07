@@ -177,3 +177,54 @@ func TestClan_SetGame(t *testing.T) {
 		})
 	}
 }
+
+func TestAccount_GetRegisteredPlayerIDs(t *testing.T) {
+	type fields struct {
+		BaseAccount BaseAccount
+	}
+	type args struct {
+		game string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []string
+	}{
+		{
+			name:   "empty",
+			args:   args{"game"},
+			fields: fields{BaseAccount: BaseAccount{}},
+			want:   []string{},
+		},
+		{
+			name: "different game",
+			args: args{"game"},
+			fields: fields{BaseAccount: BaseAccount{
+				AuthenticatedPlayerIDs: []string{"rust:1234", "rust:2345"},
+			}},
+			want: []string{},
+		},
+		{
+			name: "mixed game",
+			args: args{"game"},
+			fields: fields{BaseAccount: BaseAccount{
+				AuthenticatedPlayerIDs: []string{
+					"rust:1234", "rust:2345",
+					"game:3456", "game:4567",
+				},
+			}},
+			want: []string{"3456", "4567"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := Account{
+				BaseAccount: tt.fields.BaseAccount,
+			}
+			if got := a.GetRegisteredPlayerIDs(tt.args.game); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Account.GetRegisteredPlayerIDs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

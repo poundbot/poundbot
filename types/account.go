@@ -78,7 +78,7 @@ func (a Account) GetRegisteredPlayerIDs(game string) []string {
 	ids := []string{}
 	gamePrefix := game + ":"
 	for _, id := range a.AuthenticatedPlayerIDs {
-		if strings.HasPrefix(gamePrefix, id) {
+		if strings.HasPrefix(id, gamePrefix) {
 			ids = append(ids, id[len(gamePrefix):])
 		}
 	}
