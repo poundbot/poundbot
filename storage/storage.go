@@ -24,8 +24,9 @@ type UserInfoGetter interface {
 //
 // SetClanIn sets the clan tag on all users who have the provided steam IDs.
 type UsersStore interface {
-	Get(PlayerID string) (types.User, error)
-	GetSnowflake(snowflake string) (types.User, error)
+	GetByPlayerID(PlayerID string) (types.User, error)
+	GetByDiscordID(snowflake string) (types.User, error)
+	GetPlayerIDsByDiscordIDs(snowflakes []string) ([]string, error)
 	UpsertPlayer(info UserInfoGetter) error
 }
 
@@ -36,8 +37,8 @@ type UsersStore interface {
 //
 // Remove removes a discord auth
 type DiscordAuthsStore interface {
-	Get(discordName string) (types.DiscordAuth, error)
-	GetSnowflake(snowflake string) (types.DiscordAuth, error)
+	GetByDiscordName(discordName string) (types.DiscordAuth, error)
+	GetByDiscordID(snowflake string) (types.DiscordAuth, error)
 	Upsert(types.DiscordAuth) error
 	Remove(UserInfoGetter) error
 }
@@ -71,6 +72,10 @@ type AccountsStore interface {
 	AddClan(serverKey string, clan types.Clan) error
 	RemoveClan(serverKey, clanTag string) error
 	SetClans(serverKey string, clans []types.Clan) error
+
+	SetAuthenticatedPlayerIDs(accountID string, playerIDsList []string) error
+	AddAuthenticatedPlayerIDs(accountID string, playerIDs []string) error
+	RemoveAuthenticatedPlayerIDs(accountID string, playerIDs []string) error
 
 	RemoveNotInDiscordGuildList(guildIDs []types.BaseAccount) error
 	Touch(serverKey string) error

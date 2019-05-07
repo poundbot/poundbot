@@ -56,7 +56,7 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 	dAuth.upgrade()
 	dAuth.PlayerID = fmt.Sprintf("%s:%s", game, dAuth.PlayerID)
 
-	user, err := da.us.Get(dAuth.PlayerID)
+	user, err := da.us.GetByPlayerID(dAuth.PlayerID)
 	if err == nil {
 		handleError(w, types.RESTError{
 			StatusCode: http.StatusMethodNotAllowed,

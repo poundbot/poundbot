@@ -11,8 +11,29 @@ type UsersStore struct {
 	mock.Mock
 }
 
-// Get provides a mock function with given fields: PlayerID
-func (_m *UsersStore) Get(PlayerID string) (types.User, error) {
+// GetByDiscordID provides a mock function with given fields: snowflake
+func (_m *UsersStore) GetByDiscordID(snowflake string) (types.User, error) {
+	ret := _m.Called(snowflake)
+
+	var r0 types.User
+	if rf, ok := ret.Get(0).(func(string) types.User); ok {
+		r0 = rf(snowflake)
+	} else {
+		r0 = ret.Get(0).(types.User)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(snowflake)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetByPlayerID provides a mock function with given fields: PlayerID
+func (_m *UsersStore) GetByPlayerID(PlayerID string) (types.User, error) {
 	ret := _m.Called(PlayerID)
 
 	var r0 types.User
@@ -32,20 +53,22 @@ func (_m *UsersStore) Get(PlayerID string) (types.User, error) {
 	return r0, r1
 }
 
-// GetSnowflake provides a mock function with given fields: snowflake
-func (_m *UsersStore) GetSnowflake(snowflake string) (types.User, error) {
-	ret := _m.Called(snowflake)
+// GetPlayerIDsByDiscordIDs provides a mock function with given fields: snowflakes
+func (_m *UsersStore) GetPlayerIDsByDiscordIDs(snowflakes []string) ([]string, error) {
+	ret := _m.Called(snowflakes)
 
-	var r0 types.User
-	if rf, ok := ret.Get(0).(func(string) types.User); ok {
-		r0 = rf(snowflake)
+	var r0 []string
+	if rf, ok := ret.Get(0).(func([]string) []string); ok {
+		r0 = rf(snowflakes)
 	} else {
-		r0 = ret.Get(0).(types.User)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(snowflake)
+	if rf, ok := ret.Get(1).(func([]string) error); ok {
+		r1 = rf(snowflakes)
 	} else {
 		r1 = ret.Error(1)
 	}

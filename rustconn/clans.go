@@ -124,7 +124,7 @@ func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 				Error:      "Could not remove clan",
 				StatusCode: http.StatusInternalServerError,
 			})
-			log.Printf("[%s] %s: Error removing clan \"%s\" for %s:%s: $v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
+			log.Printf("[%s] %s: Error removing clan \"%s\" for %s:%s: %v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
 		}
 		return
 	case http.MethodPut:
@@ -133,7 +133,7 @@ func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 		var sClan serverClan
 		err := decoder.Decode(&sClan)
 		if err != nil {
-			log.Printf("[%s] %s: Error decoding clan \"%s\" for %s:%s: $v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
+			log.Printf("[%s] %s: Error decoding clan \"%s\" for %s:%s: %v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
 			handleError(w, types.RESTError{
 				Error:      "Could not decode clan data",
 				StatusCode: http.StatusBadRequest,
@@ -151,7 +151,7 @@ func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 				Error:      "Could not add clan",
 				StatusCode: http.StatusInternalServerError,
 			})
-			log.Printf("[%s] %s: Error adding clan \"%s\" for %s:%s: $v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
+			log.Printf("[%s] %s: Error adding clan \"%s\" for %s:%s: %v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
 		}
 	}
 }

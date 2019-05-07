@@ -14,13 +14,13 @@ type DiscordAuths struct {
 	collection *mgo.Collection
 }
 
-func (d DiscordAuths) Get(discordName string) (types.DiscordAuth, error) {
+func (d DiscordAuths) GetByDiscordName(discordName string) (types.DiscordAuth, error) {
 	var da types.DiscordAuth
 	err := d.collection.Find(bson.M{"discordname": discordName}).One(&da)
 	return da, err
 }
 
-func (d DiscordAuths) GetSnowflake(snowflake string) (types.DiscordAuth, error) {
+func (d DiscordAuths) GetByDiscordID(snowflake string) (types.DiscordAuth, error) {
 	var da types.DiscordAuth
 	err := d.collection.Find(bson.M{"snowflake": snowflake}).One(&da)
 	if err != nil {

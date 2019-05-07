@@ -20,7 +20,7 @@ type RaidAlerts struct {
 func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 	for _, pid := range ed.OwnerIDs {
 		// Checking if the user exists, just bail if not
-		_, err := r.users.Get(pid)
+		_, err := r.users.GetByPlayerID(pid)
 		if err != nil {
 			continue
 		}

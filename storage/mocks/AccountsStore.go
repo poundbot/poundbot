@@ -11,6 +11,20 @@ type AccountsStore struct {
 	mock.Mock
 }
 
+// AddAuthenticatedPlayerIDs provides a mock function with given fields: accountID, playerIDs
+func (_m *AccountsStore) AddAuthenticatedPlayerIDs(accountID string, playerIDs []string) error {
+	ret := _m.Called(accountID, playerIDs)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, []string) error); ok {
+		r0 = rf(accountID, playerIDs)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // AddClan provides a mock function with given fields: serverKey, clan
 func (_m *AccountsStore) AddClan(serverKey string, clan types.Clan) error {
 	ret := _m.Called(serverKey, clan)
@@ -109,6 +123,20 @@ func (_m *AccountsStore) Remove(snowflake string) error {
 	return r0
 }
 
+// RemoveAuthenticatedPlayerIDs provides a mock function with given fields: accountID, playerIDs
+func (_m *AccountsStore) RemoveAuthenticatedPlayerIDs(accountID string, playerIDs []string) error {
+	ret := _m.Called(accountID, playerIDs)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, []string) error); ok {
+		r0 = rf(accountID, playerIDs)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // RemoveClan provides a mock function with given fields: serverKey, clanTag
 func (_m *AccountsStore) RemoveClan(serverKey string, clanTag string) error {
 	ret := _m.Called(serverKey, clanTag)
@@ -144,6 +172,20 @@ func (_m *AccountsStore) RemoveServer(snowflake string, serverKey string) error 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string) error); ok {
 		r0 = rf(snowflake, serverKey)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetAuthenticatedPlayerIDs provides a mock function with given fields: accountID, playerIDsList
+func (_m *AccountsStore) SetAuthenticatedPlayerIDs(accountID string, playerIDsList []string) error {
+	ret := _m.Called(accountID, playerIDsList)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, []string) error); ok {
+		r0 = rf(accountID, playerIDsList)
 	} else {
 		r0 = ret.Error(0)
 	}

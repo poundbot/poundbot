@@ -138,6 +138,43 @@ func (s Accounts) RemoveNotInDiscordGuildList(guilds []types.BaseAccount) error 
 	return err
 }
 
+func (s Accounts) SetAuthenticatedPlayerIDs(accoutID string, playerIDs []string) error {
+	return s.collection.Update(
+		bson.M{accountsKeyField: accoutID},
+		bson.M{
+			"$set": bson.M{
+				"authenticatedplayerids": playerIDs,
+			},
+		},
+	)
+}
+
+func (s Accounts) AddAuthenticatedPlayerIDs(accoutID string, playerIDs []string) error {
+	return s.collection.Update(
+		bson.M{accountsKeyField: accoutID},
+		bson.M{
+			"$addToSet": bson.M{
+				"authenticatedplayerids": bson.M{
+					"$each": playerIDs,
+				},
+			},
+		},
+	)
+}
+
+func (s Accounts) RemoveAuthenticatedPlayerIDs(accoutID string, playerIDs []string) error {
+	return s.collection.Update(
+		bson.M{accountsKeyField: accoutID},
+		bson.M{
+			"$pullAll": bson.M{
+				"authenticatedplayerids": bson.M{
+					"$each": playerIDs,
+				},
+			},
+		},
+	)
+}
+
 func (s Accounts) Touch(serverKey string) error {
 	now := iclock().Now().UTC()
 	return s.collection.Update(

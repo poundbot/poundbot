@@ -15,16 +15,22 @@ type Users struct {
 }
 
 // Get implements db.UsersStore.Get
-func (u Users) Get(gameUserID string) (types.User, error) {
+func (u Users) GetByPlayerID(gameUserID string) (types.User, error) {
 	var user types.User
 	err := u.collection.Find(bson.M{"playerids": gameUserID}).One(&user)
 	return user, err
 }
 
-func (u Users) GetSnowflake(snowflake string) (types.User, error) {
+func (u Users) GetByDiscordID(snowflake string) (types.User, error) {
 	var user types.User
 	err := u.collection.Find(bson.M{"snowflake": snowflake}).One(&user)
 	return user, err
+}
+
+func (u Users) GetPlayerIDsByDiscordIDs(snowflakes []string) ([]string, error) {
+	var playerIDs []string;
+	err := u.collection.Find(bson.M{"snowflake": bson.M{"$in": snowflakes}}).Distinct("playerids", &playerIDs)
+	return playerIDs, err
 }
 
 func (u Users) UpsertPlayer(info storage.UserInfoGetter) error {

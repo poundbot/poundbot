@@ -25,7 +25,7 @@ func NewUsers(t *testing.T) (*Users, *mongotest.Collection) {
 	return &Users{collection: coll.C}, coll
 }
 
-func TestUsers_Get(t *testing.T) {
+func TestUsers_GetByPlayerID(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
@@ -56,13 +56,13 @@ func TestUsers_Get(t *testing.T) {
 
 			users.collection.Insert(baseUser)
 
-			got, err := users.Get(tt.args.gameUserID)
+			got, err := users.GetByPlayerID(tt.args.gameUserID)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Users.Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Users.GetByPlayerID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !assert.Equal(t, tt.want, &got) {
-				t.Errorf("Users.Get() = %v, want %v", got, tt.want)
+				t.Errorf("Users.GetByPlayerID() = %v, want %v", got, tt.want)
 			}
 		})
 	}

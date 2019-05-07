@@ -3,6 +3,7 @@ package types
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/globalsign/mgo/bson"
 )
@@ -32,10 +33,11 @@ func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
 }
 
 type BaseAccount struct {
-	GuildSnowflake  string
-	OwnerSnowflake  string
-	CommandPrefix   string
-	AdminSnowflakes []string `bson:",omitempty"`
+	GuildSnowflake         string
+	OwnerSnowflake         string
+	CommandPrefix          string
+	AdminSnowflakes        []string `bson:",omitempty"`
+	AuthenticatedPlayerIDs []string
 }
 
 type Account struct {
@@ -64,8 +66,23 @@ func (a Account) GetCommandPrefix() string {
 	return a.CommandPrefix
 }
 
+// GetAdminIDs returns the Discord IDs considered "admins"
 func (a Account) GetAdminIDs() []string {
 	return append(a.AdminSnowflakes, a.OwnerSnowflake)
+}
+
+// GetRegisteredPlayerIDs returns a list of player IDs
+// for the game requested. These ids are stripped of their
+// prefix (e.g. "rust:1001" would be "1001")
+func (a Account) GetRegisteredPlayerIDs(game string) []string {
+	ids := []string{}
+	gamePrefix := game + ":"
+	for _, id := range a.AuthenticatedPlayerIDs {
+		if strings.HasPrefix(gamePrefix, id) {
+			ids = append(ids, id[len(gamePrefix):])
+		}
+	}
+	return ids
 }
 
 // Clan is a clan from the game

@@ -62,8 +62,26 @@ func (c *Client) Start() error {
 		c.session.AddHandler(c.ready)
 		c.session.AddHandler(Disconnected(c.status, logPrefix))
 		c.session.AddHandler(c.resumed)
-		c.session.AddHandler(NewGuildCreate(c.as))
+		c.session.AddHandler(NewGuildCreate(c.as, c.us))
 		c.session.AddHandler(NewGuildDelete(c.as))
+		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
+			log.Printf("Guild member add: %s", m.User.Username)
+		})
+		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
+			log.Printf("1Guild member remove: %s", m.User.Username)
+		})
+		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberUpdate) {
+			log.Printf("Guild member Update: %s", m.User.Username)
+		})
+		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.UserUpdate) {
+			log.Printf("user Update: %s", m.String())
+		})
+		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMembersChunk) {
+			log.Println("Guild member chunk:")
+			for _, member := range m.Members {
+				log.Printf("+Guild member: %s", member.User.Username)
+			}
+		})
 
 		c.status = make(chan bool)
 
@@ -105,7 +123,7 @@ func (c *Client) runner() {
 
 				case t := <-c.RaidAlertChan:
 					go func() {
-						raUser, err := c.us.Get(t.PlayerID)
+						raUser, err := c.us.GetByPlayerID(t.PlayerID)
 						if err != nil {
 							log.Printf(logRunnerPrefix + "[COMM] User not found trying to send raid alert")
 							return
@@ -202,12 +220,23 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.Println(logPrefix + "[CONN] Ready!")
 	s.UpdateStatus(0, "!pb help")
 	guilds := make([]types.BaseAccount, len(s.State.Guilds))
-	for i := range s.State.Guilds {
-		guild, err := s.Guild(s.State.Guilds[i].ID)
-		if err != nil {
-			log.Printf("Could not get guild for %s", s.State.Guilds[i].ID)
-			continue
-		}
+	for i, guild := range s.State.Guilds {
+		// guild, err := s.Guild(s.State.Guilds[i].ID)
+		// if err != nil {
+		// 	log.Printf("Could not get guild for %s, %v", s.State.Guilds[i].ID, err)
+		// 	continue
+		// }
+		// s.RequestGuildMembers(guild.ID, "", 0)
+		// for _, member := range guild.Members {
+		// 	u, err := c.us.GetByDiscordID(member.User.ID)
+		// 	if err != nil {
+		// 		if err.Error() != "not found" {
+		// 			log.Printf("DB error reading user: %v", err)
+		// 		}
+		// 		continue
+		// 	}
+		// 	log.Printf("User %s exists as %v", member.User.String(), u.PlayerIDs)
+		// }
 		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
 	}
 	c.as.RemoveNotInDiscordGuildList(guilds)
@@ -283,7 +312,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	for _, server := range account.Servers {
 		if server.ChatChanID == m.ChannelID {
 			go func(cm types.ChatMessage, cc chan types.ChatMessage) {
-				user, err := c.us.GetSnowflake(m.Author.ID)
+				user, err := c.us.GetByDiscordID(m.Author.ID)
 				if err == nil {
 					found, clan := server.UsersClan(user.PlayerIDs)
 					if found {
@@ -371,5 +400,5 @@ func (c *Client) getUserByName(guildSnowflake, name string) (discordgo.User, err
 }
 
 func (c *Client) getDiscordAuth(snowflake string) (types.DiscordAuth, error) {
-	return c.das.GetSnowflake(snowflake)
+	return c.das.GetByDiscordID(snowflake)
 }

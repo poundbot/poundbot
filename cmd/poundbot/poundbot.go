@@ -94,10 +94,7 @@ func main() {
 	viper.SetDefault("http.bind_addr", "")
 	viper.SetDefault("http.port", 9090)
 	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
-
-	go func() {
-		log.Fatal(http.ListenAndServe("localhost:6061", nil))
-	}()
+	viper.SetDefault("profiler.port", 6061)
 
 	// var loaded = false
 
@@ -121,6 +118,10 @@ func main() {
 		log.Printf("Wrote new config file to %s\n", viper.ConfigFileUsed())
 		os.Exit(0)
 	}
+
+	go func() {
+		log.Fatal(http.ListenAndServe("localhost:"+viper.GetString("profiler.port"), nil))
+	}()
 
 	store, err := mongodb.NewMongoDB(mongodb.Config{
 		DialAddress: viper.GetString("mongo.dial-addr"),
