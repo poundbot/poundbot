@@ -28,6 +28,7 @@ type Client struct {
 	session       *discordgo.Session
 	as            storage.AccountsStore
 	cc            chatcache.ChatCache
+	mls           storage.MessageLocksStore
 	das           storage.DiscordAuthsStore
 	us            storage.UsersStore
 	token         string
@@ -39,8 +40,9 @@ type Client struct {
 	shutdown      bool
 }
 
-func Runner(token string, cc chatcache.ChatCache, as storage.AccountsStore, das storage.DiscordAuthsStore, us storage.UsersStore) *Client {
+func Runner(token string, cc chatcache.ChatCache, as storage.AccountsStore, das storage.DiscordAuthsStore, us storage.UsersStore, mls storage.MessageLocksStore) *Client {
 	return &Client{
+		mls:           mls,
 		as:            as,
 		cc:            cc,
 		das:           das,
@@ -221,22 +223,6 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	s.UpdateStatus(0, "!pb help")
 	guilds := make([]types.BaseAccount, len(s.State.Guilds))
 	for i, guild := range s.State.Guilds {
-		// guild, err := s.Guild(s.State.Guilds[i].ID)
-		// if err != nil {
-		// 	log.Printf("Could not get guild for %s, %v", s.State.Guilds[i].ID, err)
-		// 	continue
-		// }
-		// s.RequestGuildMembers(guild.ID, "", 0)
-		// for _, member := range guild.Members {
-		// 	u, err := c.us.GetByDiscordID(member.User.ID)
-		// 	if err != nil {
-		// 		if err.Error() != "not found" {
-		// 			log.Printf("DB error reading user: %v", err)
-		// 		}
-		// 		continue
-		// 	}
-		// 	log.Printf("User %s exists as %v", member.User.String(), u.PlayerIDs)
-		// }
 		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
 	}
 	c.as.RemoveNotInDiscordGuildList(guilds)
@@ -246,6 +232,9 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if !c.mls.Obtain(m.ID, "discord") {
+		return
+	}
 	// Ignore all messages created by the bot itself
 	// This isn't required in this specific example but it's a good practice.
 	if m.Author.ID == s.State.User.ID {

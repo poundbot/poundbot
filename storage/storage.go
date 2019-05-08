@@ -11,6 +11,10 @@ type UserInfoGetter interface {
 	GetDiscordID() string
 }
 
+type MessageLocksStore interface {
+	Obtain(mID, mType string) bool
+}
+
 // UsersStore is for accessing the user store.
 //
 // Get gets a user from store.

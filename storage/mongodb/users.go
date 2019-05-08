@@ -28,8 +28,9 @@ func (u Users) GetByDiscordID(snowflake string) (types.User, error) {
 }
 
 func (u Users) GetPlayerIDsByDiscordIDs(snowflakes []string) ([]string, error) {
-	var playerIDs []string;
-	err := u.collection.Find(bson.M{"snowflake": bson.M{"$in": snowflakes}}).Distinct("playerids", &playerIDs)
+	var playerIDs []string
+	err := u.collection.Find(bson.M{"snowflake": bson.M{"$in": snowflakes}}).
+		Distinct("playerids", &playerIDs)
 	return playerIDs, err
 }
 

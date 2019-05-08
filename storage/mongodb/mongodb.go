@@ -13,6 +13,7 @@ const (
 	discordAuthsCollection = "discord_auths"
 	raidAlertsCollection   = "raid_alerts"
 	usersCollection        = "users"
+	messageLocksCollection = "message_locks"
 )
 
 // A Config is exactly what it sounds like.
@@ -22,60 +23,72 @@ type Config struct {
 }
 
 // NewMongoDB returns a connected Mgo
-func NewMongoDB(mc Config) (*MongoDb, error) {
+func NewMongoDB(mc Config) (*MongoDB, error) {
 	sess, err := mgo.Dial(mc.DialAddress)
 	if err != nil {
 		return nil, err
 	}
-	return &MongoDb{session: sess, dbname: mc.Database}, nil
+	return &MongoDB{session: sess, dbname: mc.Database}, nil
 }
 
-// An MongoDb implements storage.Storage for MongoDB
-type MongoDb struct {
+// An MongoDB implements storage for MongoDB
+type MongoDB struct {
 	dbname  string
 	session *mgo.Session
 }
 
 // Copy implements storage.Storage.Copy
-func (m MongoDb) Copy() storage.Storage {
-	return MongoDb{dbname: m.dbname, session: m.session.Copy()}
+func (m MongoDB) Copy() storage.Storage {
+	return MongoDB{dbname: m.dbname, session: m.session.Copy()}
 }
 
-// Close implements storage.Storage.Close
-func (m MongoDb) Close() {
+// MessageLocks implements MessageLocks
+func (m MongoDB) MessageLocks() storage.MessageLocksStore {
+	return MessageLocks{collection: m.session.DB(m.dbname).C(messageLocksCollection)}
+}
+
+// Close implements Close
+func (m MongoDB) Close() {
 	m.session.Close()
 }
 
 // Users implements storage.Storage.Users
-func (m MongoDb) Users() storage.UsersStore {
+func (m MongoDB) Users() storage.UsersStore {
 	return Users{collection: m.session.DB(m.dbname).C(usersCollection)}
 }
 
 // DiscordAuths implements storage.Storage.DiscordAuths
-func (m MongoDb) DiscordAuths() storage.DiscordAuthsStore {
+func (m MongoDB) DiscordAuths() storage.DiscordAuthsStore {
 	return DiscordAuths{collection: m.session.DB(m.dbname).C(discordAuthsCollection)}
 }
 
 // RaidAlerts implements storage.Storage.RaidAlerts
-func (m MongoDb) RaidAlerts() storage.RaidAlertsStore {
-	return storage.RaidAlertsStore(RaidAlerts{
+func (m MongoDB) RaidAlerts() storage.RaidAlertsStore {
+	return RaidAlerts{
 		collection: m.session.DB(m.dbname).C(raidAlertsCollection),
 		users:      m.Users(),
-	})
+	}
 }
 
 // ServerAccounts implements storage.Storage.ServerAccounts
-func (m MongoDb) Accounts() storage.AccountsStore {
+func (m MongoDB) Accounts() storage.AccountsStore {
 	return Accounts{collection: m.session.DB(m.dbname).C(accountsCollection)}
 }
 
-// Init implements storage.Storage.Init
-func (m MongoDb) Init() {
+// Init implements Init
+func (m MongoDB) Init() {
 	log.Printf("Database is %s\n", m.dbname)
 	mongoDB := m.session.DB(m.dbname)
 	userColl := mongoDB.C(usersCollection)
 	discordAuthColl := mongoDB.C(discordAuthsCollection)
 	accountColl := mongoDB.C(accountsCollection)
+	messageLocksCollection := mongoDB.C(messageLocksCollection)
+
+	messageLocksCollection.Create(&mgo.CollectionInfo{
+		Capped:   true,
+		MaxBytes: 16384,
+		MaxDocs:  1000,
+	})
 
 	userColl.EnsureIndex(mgo.Index{
 		Key:      []string{"playerids"},

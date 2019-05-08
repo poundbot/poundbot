@@ -37,7 +37,7 @@ type BaseAccount struct {
 	OwnerSnowflake         string
 	CommandPrefix          string
 	AdminSnowflakes        []string `bson:",omitempty"`
-	AuthenticatedPlayerIDs []string
+	AuthenticatedPlayerIDs []string `bson:",omitempty"`
 }
 
 type Account struct {

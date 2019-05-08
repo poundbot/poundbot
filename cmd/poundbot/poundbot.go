@@ -45,7 +45,7 @@ func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
 	}
 }
 
-func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDb) *rustconn.ServerConfig {
+func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDB) *rustconn.ServerConfig {
 	return &rustconn.ServerConfig{
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),
@@ -84,7 +84,7 @@ func main() {
 		return
 	}
 
-	servicesCount := 2 // ALways at least 1 for discord, but should always be >1
+	servicesCount := 2 // Always at least 1 for discord, but should always be >1
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -140,7 +140,8 @@ func main() {
 	ccache := chatcache.NewChatCache()
 
 	// Discord server
-	dr := discord.Runner(dConfig.Token, *ccache, store.Accounts(), store.DiscordAuths(), store.Users())
+	dr := discord.Runner(dConfig.Token, *ccache, store.Accounts(), store.DiscordAuths(),
+		store.Users(), store.MessageLocks())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)
 	}
