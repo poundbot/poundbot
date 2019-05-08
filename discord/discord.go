@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/poundbot/poundbot/chatcache"
 	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/storage"
@@ -26,8 +25,8 @@ type RunnerConfig struct {
 
 type Client struct {
 	session       *discordgo.Session
+	cqs           storage.ChatQueueStore
 	as            storage.AccountsStore
-	cc            chatcache.ChatCache
 	mls           storage.MessageLocksStore
 	das           storage.DiscordAuthsStore
 	us            storage.UsersStore
@@ -40,11 +39,12 @@ type Client struct {
 	shutdown      bool
 }
 
-func Runner(token string, cc chatcache.ChatCache, as storage.AccountsStore, das storage.DiscordAuthsStore, us storage.UsersStore, mls storage.MessageLocksStore) *Client {
+func Runner(token string, as storage.AccountsStore, das storage.DiscordAuthsStore,
+	us storage.UsersStore, mls storage.MessageLocksStore, cqs storage.ChatQueueStore) *Client {
 	return &Client{
+		cqs:           cqs,
 		mls:           mls,
 		as:            as,
-		cc:            cc,
 		das:           das,
 		us:            us,
 		token:         token,
@@ -300,7 +300,16 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// Find the server for the channel and send the message to it
 	for _, server := range account.Servers {
 		if server.ChatChanID == m.ChannelID {
-			go func(cm types.ChatMessage, cc chan types.ChatMessage) {
+			cm := types.ChatMessage{
+				ServerKey:   server.Key,
+				DisplayName: m.Author.Username,
+				Message:     m.Message.Content,
+				DiscordInfo: types.DiscordInfo{
+					Snowflake:   m.Author.ID,
+					DiscordName: m.Author.String(),
+				},
+			}
+			go func() {
 				user, err := c.us.GetByDiscordID(m.Author.ID)
 				if err == nil {
 					found, clan := server.UsersClan(user.PlayerIDs)
@@ -312,18 +321,11 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 					cm.Message = truncateString(cm.Message, 128)
 					c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
 				}
-				select {
-				case cc <- cm:
-					return
-				case <-time.After(10 * time.Second):
-					return
+				err = c.cqs.InsertMessage(cm)
+				if err != nil {
+					log.Printf("discord: Could not insert message: %v", err)
 				}
-
-			}(types.ChatMessage{
-				ServerKey:   server.Key,
-				DisplayName: m.Author.Username,
-				Message:     m.Message.Content,
-			}, c.cc.GetOutChannel(server.Key))
+			}()
 			return
 		}
 	}

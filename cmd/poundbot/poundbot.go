@@ -14,7 +14,6 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/poundbot/poundbot/chatcache"
 	"github.com/poundbot/poundbot/discord"
 	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/rustconn"
@@ -137,11 +136,9 @@ func main() {
 	dConfig := newDiscordConfig(viper.Sub("discord"))
 	webConfig := newServerConfig(viper.Sub("http"), store)
 
-	ccache := chatcache.NewChatCache()
-
 	// Discord server
-	dr := discord.Runner(dConfig.Token, *ccache, store.Accounts(), store.DiscordAuths(),
-		store.Users(), store.MessageLocks())
+	dr := discord.Runner(dConfig.Token, store.Accounts(), store.DiscordAuths(),
+		store.Users(), store.MessageLocks(), store.ChatQueue())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)
 	}
@@ -154,7 +151,7 @@ func main() {
 			DiscordAuth: dr.DiscordAuth,
 			AuthSuccess: dr.AuthSuccess,
 			ChatChan:    dr.ChatChan,
-			ChatCache:   *ccache,
+			ChatQueue:   store.ChatQueue(),
 		},
 	)
 

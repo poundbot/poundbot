@@ -14,6 +14,7 @@ const (
 	raidAlertsCollection   = "raid_alerts"
 	usersCollection        = "users"
 	messageLocksCollection = "message_locks"
+	chatQueueCollection    = "chat_queue"
 )
 
 // A Config is exactly what it sounds like.
@@ -40,6 +41,10 @@ type MongoDB struct {
 // Copy implements storage.Storage.Copy
 func (m MongoDB) Copy() storage.Storage {
 	return MongoDB{dbname: m.dbname, session: m.session.Copy()}
+}
+
+func (m MongoDB) ChatQueue() storage.ChatQueueStore {
+	return ChatQueue{collection: m.session.DB(m.dbname).C(chatQueueCollection)}
 }
 
 // MessageLocks implements MessageLocks
@@ -82,9 +87,16 @@ func (m MongoDB) Init() {
 	userColl := mongoDB.C(usersCollection)
 	discordAuthColl := mongoDB.C(discordAuthsCollection)
 	accountColl := mongoDB.C(accountsCollection)
-	messageLocksCollection := mongoDB.C(messageLocksCollection)
+	messageLocksColl := mongoDB.C(messageLocksCollection)
+	chatQueueColl := mongoDB.C(chatQueueCollection)
 
-	messageLocksCollection.Create(&mgo.CollectionInfo{
+	chatQueueColl.Create(&mgo.CollectionInfo{
+		Capped:   true,
+		MaxBytes: 16384,
+		MaxDocs:  1000,
+	})
+
+	messageLocksColl.Create(&mgo.CollectionInfo{
 		Capped:   true,
 		MaxBytes: 16384,
 		MaxDocs:  1000,

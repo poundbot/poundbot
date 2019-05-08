@@ -41,7 +41,7 @@ type clans struct {
 	logger *log.Logger
 }
 
-func NewClans(logPrefix string, as storage.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
+func newClans(logPrefix string, as storage.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
 	c := clans{as: as, logger: &log.Logger{}}
 	c.logger.SetPrefix(logPrefix)
 	c.logger.SetOutput(os.Stdout)
@@ -92,7 +92,7 @@ type clan struct {
 	logger *log.Logger
 }
 
-func NewClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
+func newClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
 	c := clan{as: as, logger: &log.Logger{}}
 	c.logger.SetPrefix(logPrefix)
 	c.logger.SetOutput(os.Stdout)

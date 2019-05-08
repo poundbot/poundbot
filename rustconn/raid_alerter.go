@@ -24,7 +24,7 @@ type RaidAlerter struct {
 }
 
 // NewRaidAlerter constructs a RaidAlerter
-func NewRaidAlerter(ral RaidStore, rnc chan types.RaidAlert, done chan struct{}) *RaidAlerter {
+func newRaidAlerter(ral RaidStore, rnc chan types.RaidAlert, done chan struct{}) *RaidAlerter {
 	return &RaidAlerter{
 		RaidStore:  ral,
 		RaidNotify: rnc,

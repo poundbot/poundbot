@@ -20,12 +20,21 @@ import (
 	"github.com/poundbot/poundbot/types"
 )
 
-type ChatCache struct {
-	channel chan types.ChatMessage
+type chatQueueMock struct {
+	message bool
 }
 
-func (c ChatCache) GetOutChannel(name string) chan types.ChatMessage {
-	return c.channel
+func (cqm chatQueueMock) GetGameServerMessage(sk string, to time.Duration) (types.ChatMessage, bool) {
+	if !cqm.message {
+		return types.ChatMessage{}, false
+	}
+	cm := types.ChatMessage{
+		PlayerID:    "1234",
+		ClanTag:     "FoO",
+		DisplayName: "player",
+		Message:     "hello there!",
+	}
+	return cm, true
 }
 
 func TestChat_Handle(t *testing.T) {
@@ -34,27 +43,29 @@ func TestChat_Handle(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		method   string
 		s        *chat
-		body     string
-		rBody    string
-		status   int
-		rMessage *types.ChatMessage
-		dMessage *types.ChatMessage
+		method   string             // http method
+		body     string             // response body
+		status   int                // response status
+		dMessage bool               // true if there is a discord message in queue
+		rBody    string             // request body
+		rMessage *types.ChatMessage // message from Rust
 		log      string
 	}{
 		{
-			name:   "chat GET",
+			name:     "chat GET",
+			method:   http.MethodGet,
+			s:        &chat{},
+			status:   http.StatusOK,
+			dMessage: true,
+			body:     "{\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\"}",
+		},
+		{
+			name:   "chat GET no message",
 			method: http.MethodGet,
 			s:      &chat{},
-			status: http.StatusOK,
-			dMessage: &types.ChatMessage{
-				PlayerID:    "1234",
-				ClanTag:     "FoO",
-				DisplayName: "player",
-				Message:     "hello there!",
-			},
-			body: "{\"ClanTag\":\"FoO\",\"DisplayName\":\"player\",\"Message\":\"hello there!\"}",
+			status: http.StatusNoContent,
+			body:   "",
 		},
 		{
 			name:   "chat POST",
@@ -120,13 +131,8 @@ func TestChat_Handle(t *testing.T) {
 
 			var wg sync.WaitGroup
 
-			tt.s.sleep = time.Second
-
-			if tt.dMessage != nil {
-				tt.s.ccache = ChatCache{channel: make(chan types.ChatMessage, 1)}
-				defer close(tt.s.ccache.GetOutChannel("bloop"))
-				tt.s.ccache.GetOutChannel("bloop") <- *tt.dMessage
-			}
+			// tt.s.timeout = time.Second
+			tt.s.cqs = &chatQueueMock{message: tt.dMessage}
 
 			// Collect any incoming messages
 			if tt.rMessage != nil {

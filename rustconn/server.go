@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/poundbot/poundbot/chatcache"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
 )
@@ -30,7 +29,7 @@ type ServerChannels struct {
 	DiscordAuth chan types.DiscordAuth
 	AuthSuccess chan types.DiscordAuth
 	ChatChan    chan types.ChatMessage
-	ChatCache   chatcache.ChatCache
+	ChatQueue   storage.ChatQueueStore
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.
@@ -61,23 +60,23 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	api.Use(requestUUID.Handle)
 	api.HandleFunc(
 		"/entity_death",
-		NewEntityDeath(logPrefix, sc.Storage.RaidAlerts()),
+		newEntityDeath(logPrefix, sc.Storage.RaidAlerts()),
 	)
 	api.HandleFunc(
 		"/discord_auth",
-		NewDiscordAuth(logPrefix, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
+		newDiscordAuth(logPrefix, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
 	api.HandleFunc(
 		"/chat",
-		NewChat(logPrefix, channels.ChatCache, channels.ChatChan),
+		newChat(logPrefix, channels.ChatQueue, channels.ChatChan),
 	)
 	api.HandleFunc(
 		"/clans",
-		NewClans(logPrefix, sc.Storage.Accounts()),
+		newClans(logPrefix, sc.Storage.Accounts()),
 	).Methods(http.MethodPut)
 	api.HandleFunc(
 		"/clans/{tag}",
-		NewClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
+		newClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
 
 	s.Handler = r
@@ -94,7 +93,7 @@ func (s *Server) Start() error {
 		var newConn = s.sc.Storage.Copy()
 		defer newConn.Close()
 
-		var as = NewAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.channels.AuthSuccess, s.shutdownRequest)
+		var as = newAuthSaver(newConn.DiscordAuths(), newConn.Users(), s.channels.AuthSuccess, s.shutdownRequest)
 		as.Run()
 	}()
 
@@ -103,7 +102,7 @@ func (s *Server) Start() error {
 		var newConn = s.sc.Storage.Copy()
 		defer newConn.Close()
 
-		var ra = NewRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)
+		var ra = newRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)
 		ra.Run()
 	}()
 

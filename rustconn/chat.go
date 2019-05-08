@@ -9,15 +9,14 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/poundbot/poundbot/chatcache"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/types"
 )
 
 var iclock = pbclock.Clock
 
-type chatChanneler interface {
-	GetOutChannel(name string) chan types.ChatMessage
+type chatQueue interface {
+	GetGameServerMessage(sk string, to time.Duration) (types.ChatMessage, bool)
 }
 
 type discordChat struct {
@@ -48,9 +47,9 @@ func newDiscordChat(cm types.ChatMessage) discordChat {
 
 // A Chat is for handling discord <-> rust chat
 type chat struct {
-	ccache     chatChanneler
+	cqs        chatQueue
 	in         chan types.ChatMessage
-	sleep      time.Duration
+	timeout    time.Duration
 	logger     *log.Logger
 	minVersion semver.Version
 }
@@ -60,12 +59,12 @@ type chat struct {
 // ls is the log symbol
 // in is the channel for server -> discord
 // out is the channel for discord -> server
-func NewChat(ls string, ccache chatcache.ChatCache, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
+func newChat(ls string, cq chatQueue, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
 
 	c := chat{
-		ccache:     ccache,
+		cqs:        cq,
 		in:         in,
-		sleep:      10 * time.Second,
+		timeout:    10 * time.Second,
 		logger:     &log.Logger{},
 		minVersion: semver.Version{Major: 1, Patch: 1},
 	}
@@ -83,7 +82,7 @@ func NewChat(ls string, ccache chatcache.ChatCache, in chan types.ChatMessage) f
 // HTTP POST requests are sent to the "in" chan
 //
 // HTTP GET requests wait for messages and disconnect with http.StatusNoContent
-// after sleep seconds.
+// after timeout seconds.
 func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -133,26 +132,26 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 				select {
 				case c.in <- m.ChatMessage:
 					return
-				case <-time.After(c.sleep):
+				case <-time.After(c.timeout):
 					return
 				}
 			}
 		}
 
 	case http.MethodGet:
-		ch := c.ccache.GetOutChannel(sc.serverKey)
-		select {
-		case m := <-ch:
-			b, err := json.Marshal(newDiscordChat(m))
-			if err != nil {
-				c.logger.Printf("[%s] %s", sc.requestUUID, err.Error())
-				return
-			}
-
-			w.Write(b)
-		case <-time.After(c.sleep):
+		m, found := c.cqs.GetGameServerMessage(sc.serverKey, c.timeout)
+		if !found {
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+
+		b, err := json.Marshal(newDiscordChat(m))
+		if err != nil {
+			c.logger.Printf("[%s] %s", sc.requestUUID, err.Error())
+			return
+		}
+
+		w.Write(b)
 
 	default:
 		methodNotAllowed(w)

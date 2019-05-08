@@ -31,7 +31,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 
 				go func() { done <- struct{}{} }()
 
-				return NewRaidAlerter(mockRA, ch, done)
+				return newRaidAlerter(mockRA, ch, done)
 			},
 			want: types.RaidAlert{},
 		},
@@ -61,7 +61,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 					done <- struct{}{}
 				}()
 
-				r := NewRaidAlerter(mockRA, ch, done)
+				r := newRaidAlerter(mockRA, ch, done)
 				r.SleepTime = 1 * time.Microsecond
 				return r
 			},

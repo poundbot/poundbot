@@ -31,7 +31,7 @@ type AuthSaver struct {
 }
 
 // NewAuthSaver creates a new AuthSaver
-func NewAuthSaver(da discordAuthRemover, u userUpserter, as chan types.DiscordAuth, done chan struct{}) *AuthSaver {
+func newAuthSaver(da discordAuthRemover, u userUpserter, as chan types.DiscordAuth, done chan struct{}) *AuthSaver {
 	return &AuthSaver{
 		das:         da,
 		us:          u,

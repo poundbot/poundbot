@@ -11,6 +11,11 @@ type UserInfoGetter interface {
 	GetDiscordID() string
 }
 
+type ChatQueueStore interface {
+	GetGameServerMessage(serverKey string, timeout time.Duration) (message types.ChatMessage, success bool)
+	InsertMessage(message types.ChatMessage) error
+}
+
 type MessageLocksStore interface {
 	Obtain(mID, mType string) bool
 }
@@ -103,4 +108,5 @@ type Storage interface {
 	Users() UsersStore
 	DiscordAuths() DiscordAuthsStore
 	RaidAlerts() RaidAlertsStore
+	ChatQueue() ChatQueueStore
 }

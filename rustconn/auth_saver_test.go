@@ -23,7 +23,7 @@ func TestAuthSaver_Run(t *testing.T) {
 		{
 			name: "With nothing",
 			a: func() *AuthSaver {
-				return NewAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
+				return newAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
 			},
 		},
 		{
@@ -37,7 +37,7 @@ func TestAuthSaver_Run(t *testing.T) {
 				mockDA = &mocks.DiscordAuthsStore{}
 				mockDA.On("Remove", result).Return(nil)
 
-				return NewAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
+				return newAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
 			},
 			with: &types.DiscordAuth{PlayerID: "game:1001"},
 			want: &types.DiscordAuth{PlayerID: "game:1001"},
