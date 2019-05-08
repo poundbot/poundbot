@@ -165,13 +165,7 @@ func (s Accounts) AddRegisteredPlayerIDs(accoutID string, playerIDs []string) er
 func (s Accounts) RemoveRegisteredPlayerIDs(accoutID string, playerIDs []string) error {
 	return s.collection.Update(
 		bson.M{accountsKeyField: accoutID},
-		bson.M{
-			"$pullAll": bson.M{
-				"registeredplayerids": bson.M{
-					"$each": playerIDs,
-				},
-			},
-		},
+		bson.M{"$pullAll": bson.M{"registeredplayerids": playerIDs}},
 	)
 }
 

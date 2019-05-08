@@ -66,24 +66,8 @@ func (c *Client) Start() error {
 		c.session.AddHandler(c.resumed)
 		c.session.AddHandler(NewGuildCreate(c.as, c.us))
 		c.session.AddHandler(NewGuildDelete(c.as))
-		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
-			log.Printf("Guild member add: %s", m.User.Username)
-		})
-		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
-			log.Printf("1Guild member remove: %s", m.User.Username)
-		})
-		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMemberUpdate) {
-			log.Printf("Guild member Update: %s", m.User.Username)
-		})
-		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.UserUpdate) {
-			log.Printf("user Update: %s", m.String())
-		})
-		c.session.AddHandler(func(s *discordgo.Session, m *discordgo.GuildMembersChunk) {
-			log.Println("Guild member chunk:")
-			for _, member := range m.Members {
-				log.Printf("+Guild member: %s", member.User.Username)
-			}
-		})
+		c.session.AddHandler(newGuildMemberAdd(c.us, c.as))
+		c.session.AddHandler(newGuildMemberRemove(c.us, c.as))
 
 		c.status = make(chan bool)
 
@@ -337,20 +321,23 @@ func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if pinString(da.Pin) == strings.TrimSpace(m.Content) {
-		da.Ack = func(authed bool) {
-			if authed {
-				s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
-			} else {
-				s.ChannelMessageSend(m.ChannelID, "Internal error. Please try again. If the problem persists, please contact MrPoundsign")
-			}
-		}
-		c.AuthSuccess <- da
-	} else {
+	if !(pinString(da.Pin) == strings.TrimSpace(m.Content)) {
 		s.ChannelMessageSend(m.ChannelID, "Invalid pin. Please try again.")
+		return
 	}
 
-	return
+	da.Ack = func(authed bool) {
+		if authed {
+			s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
+			err = c.as.AddRegisteredPlayerIDs(da.GuildSnowflake, []string{da.PlayerID})
+			if err != nil {
+				log.Printf("interact: could not add player id %s to discord account %s: %v", da.PlayerID, da.GuildSnowflake, err)
+			}
+			return
+		}
+		s.ChannelMessageSend(m.ChannelID, "Internal error. Please try again. If the problem persists, please contact MrPoundsign")
+	}
+	c.AuthSuccess <- da
 }
 
 func (c Client) sendChannelMessage(channelID, message string) error {
