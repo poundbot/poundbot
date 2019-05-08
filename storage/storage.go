@@ -82,9 +82,9 @@ type AccountsStore interface {
 	RemoveClan(serverKey, clanTag string) error
 	SetClans(serverKey string, clans []types.Clan) error
 
-	SetAuthenticatedPlayerIDs(accountID string, playerIDsList []string) error
-	AddAuthenticatedPlayerIDs(accountID string, playerIDs []string) error
-	RemoveAuthenticatedPlayerIDs(accountID string, playerIDs []string) error
+	SetRegisteredPlayerIDs(accountID string, playerIDsList []string) error
+	AddRegisteredPlayerIDs(accountID string, playerIDs []string) error
+	RemoveRegisteredPlayerIDs(accountID string, playerIDs []string) error
 
 	RemoveNotInDiscordGuildList(guildIDs []types.BaseAccount) error
 	Touch(serverKey string) error

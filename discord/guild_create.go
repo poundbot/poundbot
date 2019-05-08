@@ -9,7 +9,7 @@ import (
 
 type guildCreateAccountStorer interface {
 	UpsertBase(types.BaseAccount) error
-	SetAuthenticatedPlayerIDs(ServerID string, IDs []string) error
+	SetRegisteredPlayerIDs(ServerID string, IDs []string) error
 	GetByDiscordGuild(string) (types.Account, error)
 }
 
@@ -53,7 +53,7 @@ func (g guildCreate) guildCreate(s *discordgo.Session, gc *discordgo.GuildCreate
 
 	log.Printf("guild: %s(%s), playerIDs:%v", gc.Name, gc.ID, playerIDs)
 
-	err = g.as.SetAuthenticatedPlayerIDs(account.GuildSnowflake, playerIDs)
+	err = g.as.SetRegisteredPlayerIDs(account.GuildSnowflake, playerIDs)
 	if err != nil {
 		log.Printf("guildCreate: Error setting playerIDs: %v", err)
 	}

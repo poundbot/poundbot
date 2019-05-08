@@ -11,8 +11,8 @@ type AccountsStore struct {
 	mock.Mock
 }
 
-// AddAuthenticatedPlayerIDs provides a mock function with given fields: accountID, playerIDs
-func (_m *AccountsStore) AddAuthenticatedPlayerIDs(accountID string, playerIDs []string) error {
+// AddRegisteredPlayerIDs provides a mock function with given fields: accountID, playerIDs
+func (_m *AccountsStore) AddRegisteredPlayerIDs(accountID string, playerIDs []string) error {
 	ret := _m.Called(accountID, playerIDs)
 
 	var r0 error
@@ -123,8 +123,8 @@ func (_m *AccountsStore) Remove(snowflake string) error {
 	return r0
 }
 
-// RemoveAuthenticatedPlayerIDs provides a mock function with given fields: accountID, playerIDs
-func (_m *AccountsStore) RemoveAuthenticatedPlayerIDs(accountID string, playerIDs []string) error {
+// RemoveRegisteredPlayerIDs provides a mock function with given fields: accountID, playerIDs
+func (_m *AccountsStore) RemoveRegisteredPlayerIDs(accountID string, playerIDs []string) error {
 	ret := _m.Called(accountID, playerIDs)
 
 	var r0 error
@@ -179,8 +179,8 @@ func (_m *AccountsStore) RemoveServer(snowflake string, serverKey string) error 
 	return r0
 }
 
-// SetAuthenticatedPlayerIDs provides a mock function with given fields: accountID, playerIDsList
-func (_m *AccountsStore) SetAuthenticatedPlayerIDs(accountID string, playerIDsList []string) error {
+// SetRegisteredPlayerIDs provides a mock function with given fields: accountID, playerIDsList
+func (_m *AccountsStore) SetRegisteredPlayerIDs(accountID string, playerIDsList []string) error {
 	ret := _m.Called(accountID, playerIDsList)
 
 	var r0 error

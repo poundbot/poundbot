@@ -152,8 +152,5 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Write(b)
-
-	default:
-		methodNotAllowed(w)
 	}
 }

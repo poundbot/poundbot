@@ -33,11 +33,11 @@ func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
 }
 
 type BaseAccount struct {
-	GuildSnowflake         string
-	OwnerSnowflake         string
-	CommandPrefix          string
-	AdminSnowflakes        []string `bson:",omitempty"`
-	AuthenticatedPlayerIDs []string `bson:",omitempty"`
+	GuildSnowflake      string
+	OwnerSnowflake      string
+	CommandPrefix       string
+	AdminSnowflakes     []string `bson:",omitempty"`
+	RegisteredPlayerIDs []string `bson:",omitempty"`
 }
 
 type Account struct {
@@ -77,7 +77,7 @@ func (a Account) GetAdminIDs() []string {
 func (a Account) GetRegisteredPlayerIDs(game string) []string {
 	ids := []string{}
 	gamePrefix := game + ":"
-	for _, id := range a.AuthenticatedPlayerIDs {
+	for _, id := range a.RegisteredPlayerIDs {
 		if strings.HasPrefix(id, gamePrefix) {
 			ids = append(ids, id[len(gamePrefix):])
 		}

@@ -69,7 +69,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	api.HandleFunc(
 		"/chat",
 		newChat(logPrefix, channels.ChatQueue, channels.ChatChan),
-	)
+	).Methods(http.MethodGet, http.MethodPost)
 	api.HandleFunc(
 		"/clans",
 		newClans(logPrefix, sc.Storage.Accounts()),
@@ -78,6 +78,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 		"/clans/{tag}",
 		newClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
 	).Methods(http.MethodDelete, http.MethodPut)
+	api.HandleFunc("/players/registered", newRegisteredPlayers()).Methods(http.MethodGet)
 
 	s.Handler = r
 

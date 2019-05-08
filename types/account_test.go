@@ -201,7 +201,7 @@ func TestAccount_GetRegisteredPlayerIDs(t *testing.T) {
 			name: "different game",
 			args: args{"game"},
 			fields: fields{BaseAccount: BaseAccount{
-				AuthenticatedPlayerIDs: []string{"rust:1234", "rust:2345"},
+				RegisteredPlayerIDs: []string{"rust:1234", "rust:2345"},
 			}},
 			want: []string{},
 		},
@@ -209,7 +209,7 @@ func TestAccount_GetRegisteredPlayerIDs(t *testing.T) {
 			name: "mixed game",
 			args: args{"game"},
 			fields: fields{BaseAccount: BaseAccount{
-				AuthenticatedPlayerIDs: []string{
+				RegisteredPlayerIDs: []string{
 					"rust:1234", "rust:2345",
 					"game:3456", "game:4567",
 				},
