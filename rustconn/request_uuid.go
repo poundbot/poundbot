@@ -5,7 +5,7 @@ import (
 
 	"context"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/gofrs/uuid"
 )
 
 type RequestUUID struct{}
@@ -15,7 +15,12 @@ func (ru RequestUUID) Handle(next http.Handler) http.Handler {
 		func(w http.ResponseWriter, r *http.Request) {
 			requestUUID := r.Header.Get("X-Request-ID")
 			if requestUUID == "" {
-				requestUUID = uuid.NewV4().String()
+				ruid, err := uuid.NewV4()
+				if err != nil {
+					http.Error(w, "could not create UUID", http.StatusInternalServerError)
+					return
+				}
+				requestUUID = ruid.String()
 			}
 
 			ctx := context.WithValue(r.Context(), contextKeyRequestUUID, requestUUID)

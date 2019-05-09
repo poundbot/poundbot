@@ -10,9 +10,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/types"
-	uuid "github.com/satori/go.uuid"
 )
 
 type instructResponseType int
@@ -109,9 +109,14 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 				message:      "Usage: `server add <name>`",
 			}
 		}
+		ruid, err := uuid.NewV4()
+		if err != nil {
+			log.Printf("discord instruct server add: error creating uuid: %v", err)
+			return instructResponse{responseType: instructResponseNone}
+		}
 		server := types.Server{
 			Name:       strings.Join(parts[1:], " "),
-			Key:        uuid.NewV4().String(),
+			Key:        ruid.String(),
 			ChatChanID: channelID,
 			RaidDelay:  "1m",
 		}
@@ -139,8 +144,13 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 
 	switch instructions[0] {
 	case "reset":
+		ruid, err := uuid.NewV4()
+		if err != nil {
+			log.Printf("discord instruct server reset: error creating uuid: %v", err)
+			return instructResponse{responseType: instructResponseNone}
+		}
 		oldKey := server.Key
-		server.Key = uuid.NewV4().String()
+		server.Key = ruid.String()
 		au.UpdateServer(guildID, oldKey, server)
 		return instructResponse{message: messages.ServerKeyMessage(server.Name, server.Key)}
 	case "rename":

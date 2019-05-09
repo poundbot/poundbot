@@ -5,6 +5,27 @@ import (
 	"testing"
 )
 
+func Benchmark_GetRegisteredPlayerIDs(b *testing.B) {
+	account := Account{}
+	account.RegisteredPlayerIDs = []string{
+		"game:453645665675876547567545",
+		"game:456756996657657645687765",
+		"game:5647564658899764567657",
+		"game:34566658765766546577567",
+		"game:76574654526534567435466",
+		"game:234575648455476345643565",
+		"game:37354656664563345548",
+		"game:456435645686587653455346",
+		"game:54675675675647546756473456",
+		"game:54675675467456745675467",
+		"game:5467656475676576457657",
+		"game:432553245455234554435",
+	}
+	for n := 0; n < b.N; n++ {
+		account.GetRegisteredPlayerIDs("game")
+	}
+}
+
 func TestServer_UsersClan(t *testing.T) {
 	clans := []Clan{
 		Clan{Tag: "FoF", Members: []string{"one", "two"}},
