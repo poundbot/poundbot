@@ -102,6 +102,12 @@ func (m MongoDB) Init() {
 		MaxDocs:  1000,
 	})
 
+	messageLocksColl.EnsureIndex(mgo.Index{
+		Key:      []string{"messageid"},
+		Unique:   true,
+		DropDups: true,
+	})
+
 	userColl.EnsureIndex(mgo.Index{
 		Key:      []string{"playerids"},
 		Unique:   true,

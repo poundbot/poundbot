@@ -34,5 +34,9 @@ func (ml MessageLocks) Obtain(mID, mType string) bool {
 	if ci.UpsertedId == nil {
 		return false
 	}
+	if ci.Matched != 0 {
+		log.Printf("Matched but no UpsertedId for %s:%s", mID, mType)
+		return false
+	}
 	return true
 }
