@@ -16,9 +16,10 @@ type ServerAuth struct {
 }
 
 func (sa ServerAuth) Handle(next http.Handler) http.Handler {
+	minVersion := semver.Version{Major: 1}
+
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			minVersion := semver.Version{Major: 1}
 			version, err := semver.Make(r.Header.Get("X-PoundBotConnector-Version"))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
