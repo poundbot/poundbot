@@ -255,14 +255,14 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// Detect prefix
 	if strings.HasPrefix(m.Message.Content, account.GetCommandPrefix()) {
 		m.Message.Content = strings.TrimPrefix(m.Message.Content, account.GetCommandPrefix())
-		response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c.as)
+		response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.Content, account, c.as)
 		respond = true
 	}
 
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.ContentWithMentionsReplaced(), account, c.as)
+			response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.Content, account, c.as)
 			respond = true
 		}
 	}
