@@ -128,7 +128,7 @@ func (s *Server) Stop() {
 
 	go func() { //Create shutdown context with 10 second timeout
 		defer wg.Done()
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		//shutdown the server
