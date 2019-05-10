@@ -90,6 +90,8 @@ func main() {
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
+	viper.SetDefault("mongo.ssl.enabled", false)
+	viper.SetDefault("mongo.ssl.insecure", false)
 	viper.SetDefault("http.bind_addr", "")
 	viper.SetDefault("http.port", 9090)
 	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
@@ -125,6 +127,8 @@ func main() {
 	store, err := mongodb.NewMongoDB(mongodb.Config{
 		DialAddress: viper.GetString("mongo.dial-addr"),
 		Database:    viper.GetString("mongo.database"),
+		SSL:         viper.GetBool("mongo.ssl.enabled"),
+		InsecureSSL: viper.GetBool("mongo.ssl.insecure"),
 	})
 
 	if err != nil {

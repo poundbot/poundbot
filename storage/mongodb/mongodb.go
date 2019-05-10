@@ -1,7 +1,9 @@
 package mongodb
 
 import (
+	"crypto/tls"
 	"log"
+	"net"
 
 	"github.com/globalsign/mgo"
 	"github.com/poundbot/poundbot/storage"
@@ -21,13 +23,36 @@ const (
 type Config struct {
 	DialAddress string // the mgo.Dial address
 	Database    string // the database name
+	SSL         bool
+	InsecureSSL bool
 }
 
 // NewMongoDB returns a connected Mgo
 func NewMongoDB(mc Config) (*MongoDB, error) {
-	sess, err := mgo.Dial(mc.DialAddress)
-	if err != nil {
-		return nil, err
+	var sErr error
+	var sess *mgo.Session
+	if mc.SSL {
+		dialInfo, err := mgo.ParseURL(mc.DialAddress)
+		if err != nil {
+			log.Println(err)
+		}
+
+		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+			tlsConfig := &tls.Config{
+				InsecureSkipVerify: mc.InsecureSSL,
+			}
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			if err != nil {
+				log.Println(err)
+			}
+			return conn, err
+		}
+		sess, sErr = mgo.DialWithInfo(dialInfo)
+	} else {
+		sess, sErr = mgo.Dial(mc.DialAddress)
+	}
+	if sErr != nil {
+		return nil, sErr
 	}
 	return &MongoDB{session: sess, dbname: mc.Database}, nil
 }
