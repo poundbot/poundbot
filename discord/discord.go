@@ -2,16 +2,16 @@ package discord
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"github.com/sirupsen/logrus"
 )
 
 const logPrefix = "[DISCORD]"
@@ -80,44 +80,57 @@ func (c *Client) Start() error {
 
 // Stop stops the runner
 func (c *Client) Stop() {
-	log.Println(logPrefix + "[CONN] Disconnecting...")
+	log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "RUNNER"}).Info(
+		"Disconnecting...",
+	)
+	// log.Println(logPrefix + "[CONN] Disconnecting...")
 	c.shutdown = true
 	c.session.Close()
 }
 
 func (c *Client) runner() {
-	defer log.Println(logRunnerPrefix + " Runner exited")
+	defer log.Println(" Runner exited")
 
 	connectedState := false
 
 	for {
 		if connectedState {
-			log.Println(logRunnerPrefix + " Waiting for messages")
+			log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+				"Waiting for messages.",
+			)
 		Reading:
 			for {
 				select {
 				case connectedState = <-c.status:
 					if !connectedState {
-						log.Println(logRunnerPrefix + "[CONN] Received disconnected message")
+						log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Warn(
+							"Received disconnected message",
+						)
 						if c.shutdown {
 							return
 						}
 						break Reading
-					} else {
-						log.Println(logRunnerPrefix + "[CONN] Received unexpected connected message")
 					}
+
+					log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+						"Received unexpected connected message",
+					)
 
 				case t := <-c.RaidAlertChan:
 					go func() {
 						raUser, err := c.us.GetByPlayerID(t.PlayerID)
 						if err != nil {
-							log.Printf(logRunnerPrefix + "[COMM] User not found trying to send raid alert")
+							log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "RAID", "PlayerID": t.PlayerID, "err": err}).Error(
+								"Player not found trying to send raid alert",
+							)
 							return
 						}
 
 						user, err := c.session.User(raUser.Snowflake)
 						if err != nil {
-							log.Printf(logRunnerPrefix+"[COMM] Error finding user %s: %d\n", t.PlayerID, err)
+							log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "RAID", "Snowflake": raUser.Snowflake, "err": err}).Error(
+								"Discord user not found trying to send raid alert",
+							)
 							return
 						}
 
@@ -127,10 +140,14 @@ func (c *Client) runner() {
 				case t := <-c.DiscordAuth:
 					dUser, err := c.getUserByName(t.GuildSnowflake, t.DiscordInfo.DiscordName)
 					if err != nil {
-						log.Printf(logRunnerPrefix+"[COMM] User %s not found\n", t.DiscordInfo.DiscordName)
+						log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "DAUTH", "guildid": t.GuildSnowflake, "name": t.DiscordInfo.DiscordName, "err": err}).Error(
+							"Discord user not found",
+						)
 						err = c.das.Remove(t)
 						if err != nil {
-							log.Printf(logRunnerPrefix+"[DB] - Error removing discord auth for PlayerID %s from the database: %v\n", t.PlayerID, err)
+							log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "DAUTH", "guildid": t.GuildSnowflake, "playerid": t.PlayerID, "err": err}).Error(
+								"Error removing discord auth for PlayerID from the database.",
+							)
 						}
 						break
 					}
@@ -139,13 +156,25 @@ func (c *Client) runner() {
 
 					err = c.das.Upsert(t)
 					if err != nil {
-						log.Printf(logRunnerPrefix+"[DB] - Error upserting PlayerID %s from the database: %v\n", t.PlayerID, err)
+						log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "DAUTH", "guildid": t.GuildSnowflake, "name": t.DiscordInfo.DiscordName, "err": err}).Error(
+							"Error upserting PlayerID ito the database",
+						)
 						break
 					}
 
-					err = c.sendPrivateMessage(t.Snowflake, messages.PinPrompt)
+					err = c.sendPrivateMessage(t.Snowflake,
+						localizer.MustLocalize(&i18n.LocalizeConfig{
+							DefaultMessage: &i18n.Message{
+								ID:    "UserPINPrompt",
+								Other: "Enter the PIN provided in-game to validate your account.\nOnce you are validated, you will begin receiving raid alerts!",
+							},
+						}),
+					)
+
 					if err != nil {
-						log.Println(logRunnerPrefix + "[COMM] Could not send PIN request to user")
+						log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CHAT", "discordid": t.Snowflake, "err": err}).Error(
+							"Could not send PIN request to user",
+						)
 					}
 
 				case t := <-c.ChatChan:
@@ -160,35 +189,49 @@ func (c *Client) runner() {
 							clan, escapeDiscordString(t.DisplayName), escapeDiscordString(t.Message)),
 					)
 					if err != nil {
-						log.Printf(logRunnerPrefix+"[COMM] Error sending to channel: %v\n", err)
+						log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CHAT", "playerid": t.PlayerID, "chanid": t.ChannelID, "err": err}).Error(
+							"Error sending chat to channel.",
+						)
 					}
 				}
 			}
 		}
 	Connecting:
 		for {
-			log.Println(logRunnerPrefix + " Waiting for connected state")
+			log.Println(" Waiting for connected state")
 			connectedState = <-c.status
 			if connectedState {
-				log.Println(logRunnerPrefix + "[CONN] Received connected message")
+				log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+					"Received connected message",
+				)
 				break Connecting
 			}
-			log.Println(logRunnerPrefix + "[CONN] Received disconnected message")
+			log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+				"Received disconnected message",
+			)
 		}
 	}
 
 }
 
 func (c *Client) connect() {
-	log.Println(logPrefix + "[CONN] Connecting")
+	log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+		"Connecting",
+	)
 	for {
 		err := c.session.Open()
 		if err != nil {
-			log.Println(logPrefix+"[CONN][WARN] Error connecting:", err)
-			log.Println(logPrefix + "[CONN] Attempting discord reconnect...")
+			log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN", "err": err}).Warn(
+				"Error connecting",
+			)
+			log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Warn(
+				"Attempting Reconnect...",
+			)
 			time.Sleep(1 * time.Second)
 		} else {
-			log.Println(logPrefix + "[CONN] Connected!")
+			log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+				"Connected",
+			)
 			return
 		}
 		time.Sleep(1 * time.Second)
@@ -196,15 +239,24 @@ func (c *Client) connect() {
 }
 
 func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
-	log.Println(logPrefix + "[CONN] Resumed!")
+	log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+		"Resumed connection",
+	)
 	c.status <- true
 }
 
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
 func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
-	log.Println(logPrefix + "[CONN] Ready!")
-	s.UpdateStatus(0, "!pb help")
+	log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
+		"Connection Ready",
+	)
+	s.UpdateStatus(0, localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID:    "PBStatusCommand",
+			Other: "!pb help",
+		}}),
+	)
 	guilds := make([]types.BaseAccount, len(s.State.Guilds))
 	for i, guild := range s.State.Guilds {
 		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
@@ -239,12 +291,18 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 
 	if account.OwnerSnowflake == "" {
-		log.Printf("setting owner for %s", m.GuildID)
+		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "RUNNER", "guildid": m.GuildID}).Info(
+			"Guild is missing owner",
+		)
 		guild, err := s.Guild(m.GuildID)
 		if err != nil {
 			// TODO handle not finding the guild here
 			return
 		}
+
+		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "RUNNER", "guildid": m.GuildID, "ownersnowflake": guild.OwnerID}).Info(
+			"Setting owner",
+		)
 		account.OwnerSnowflake = guild.OwnerID
 		c.as.UpsertBase(account.BaseAccount)
 	}
@@ -303,7 +361,13 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				}
 				if len(cm.Message) > 128 {
 					cm.Message = truncateString(cm.Message, 128)
-					c.session.ChannelMessageSend(m.ChannelID, fmt.Sprintf("*Truncated message to %s*", cm.Message))
+					c.session.ChannelMessageSend(m.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
+						DefaultMessage: &i18n.Message{
+							ID:    "TruncatedMessage",
+							Other: "*Truncated message to {{.Message}}",
+						},
+						TemplateData: map[string]string{"Message": cm.Message},
+					}))
 				}
 				err = c.cqs.InsertMessage(cm)
 				if err != nil {
@@ -313,31 +377,6 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			return
 		}
 	}
-}
-
-func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
-	da, err := c.getDiscordAuth(m.Author.ID)
-	if err != nil {
-		return
-	}
-
-	if !(pinString(da.Pin) == strings.TrimSpace(m.Content)) {
-		s.ChannelMessageSend(m.ChannelID, "Invalid pin. Please try again.")
-		return
-	}
-
-	da.Ack = func(authed bool) {
-		if authed {
-			s.ChannelMessageSend(m.ChannelID, "You have been authenticated.")
-			err = c.as.AddRegisteredPlayerIDs(da.GuildSnowflake, []string{da.PlayerID})
-			if err != nil {
-				log.Printf("interact: could not add player id %s to discord account %s: %v", da.PlayerID, da.GuildSnowflake, err)
-			}
-			return
-		}
-		s.ChannelMessageSend(m.ChannelID, "Internal error. Please try again. If the problem persists, please contact MrPoundsign")
-	}
-	c.AuthSuccess <- da
 }
 
 func (c Client) sendChannelMessage(channelID, message string) error {
