@@ -198,7 +198,7 @@ func (c *Client) runner() {
 		}
 	Connecting:
 		for {
-			log.Println(" Waiting for connected state")
+			log.Println("Waiting for connected state...")
 			connectedState = <-c.status
 			if connectedState {
 				log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "CONN"}).Info(
