@@ -1,6 +1,8 @@
 package discord
 
 import (
+	"os"
+
 	"github.com/BurntSushi/toml"
 	"golang.org/x/text/language"
 
@@ -14,9 +16,13 @@ var localizer *i18n.Localizer
 
 func init() {
 	loadLang := func(lang string) {
+		langDir := "language/"
+		if os.Getenv("POUNDBOT_DIR") != "" {
+			langDir = os.Getenv("POUNDBOT_DIR") + "/"
+		}
 		locBundle = i18n.NewBundle(language.English)
 		locBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-		locBundle.MustLoadMessageFile("language/active.tr.toml")
+		locBundle.MustLoadMessageFile(langDir + "language/active.tr.toml")
 		localizer = i18n.NewLocalizer(locBundle, lang)
 	}
 

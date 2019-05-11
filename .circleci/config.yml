@@ -12,6 +12,7 @@ jobs: # basic units of work in a run
       TEST_RESULTS: /tmp/test-reports # path to where test results will be saved
       GO111MODULE: "on"
       GOMAXPROCS: 4
+      POUNDBOT_DIR: /home/circleci/project
 
     steps: # steps that comprise the `build` job
       # - run: GO111MODULE="off" go get github.com/jstemmer/go-junit-report
