@@ -1,0 +1,99 @@
+[DiscordStatus]
+hash = "sha1-2ed558e8e7ffa8fdb8ee9bea432c1ade294ed2e8"
+other = "!pb yardım"
+
+[Instruct]
+hash = "sha1-652511a3de956791adc75131e41f8d3f4b21689c"
+other = "Instruct"
+
+[InstructCommandHelp]
+hash = "sha1-92005ecf3788faea8346a7919fba0232188561ab"
+other = "yardım"
+
+[InstructCommandServer]
+hash = "sha1-3de4f901fffb30ac720b0e7eb654b4faa2dd03fa"
+other = "sunucu"
+
+[InstructCommandServerAdd]
+hash = "sha1-58d1bbce297de3c304a9fefc3b483181872a5c6b"
+other = "ekle"
+
+[InstructCommandServerAddUsage]
+hash = "sha1-347cf263d0e0ede22bcda1fd98951bb12dd0218e"
+other = "Kullanım: `sunucu ekle <isim>`"
+
+[InstructCommandServerChatHere]
+hash = "sha1-561e32aae36c4fd90e2b835bd2b3b1e47c5ac704"
+other = "sohbetkanalı"
+
+[InstructCommandServerDelete]
+hash = "sha1-9485989ff514b5106b7738850fd73c23e8c1e3f7"
+other = "sil"
+
+[InstructCommandServerDeleteResponse]
+hash = "sha1-0206cff7362726c4efacf362259349bfb2156517"
+other = "Sunucu {{.Name}} ({{.ID}}) silindi."
+
+[InstructCommandServerList]
+hash = "sha1-38b62be4bddaa5661c7d6b8e36e28159314df5c7"
+other = "liste"
+
+[InstructCommandServerListHeader]
+hash = "sha1-fdcbc499ac31f9b3f5b68042c6e58cc27f8e04db"
+other = "`ID\\tİsim\\tRaid Gecikme Süresi\\tAnahtar`\\t"
+
+[InstructCommandServerRaidDelay]
+hash = "sha1-ac72f77aa542309977a6af961629eae0986fb71d"
+other = "raidgecikmesi"
+
+[InstructCommandServerRaidDelayInvalidFormat]
+hash = "sha1-b608ffb6418cf49658d19c626e9c2cb34b8f8f0a"
+other = "Girilen zaman dilimi yanlış. Örneğin: `5m` = 5 dakika, `1h` = 1 saat, `1s` = 1 saniye"
+
+[InstructCommandServerRaidDelayUsage]
+hash = "sha1-062ef6ecf2d3f3629de446ed0e16e9562ae88818"
+other = "Kullanım: `sunucu [id] raidgecikmesi <zaman>`"
+
+[InstructCommandServerRename]
+hash = "sha1-04a26d6f4aab9bc632ef3b0b244135354c76f93c"
+other = "yeniad"
+
+[InstructCommandServerRenameUsage]
+hash = "sha1-4ce329fb690ed969ff2f2decc06b50a44bfd2bbe"
+other = "Kullanım: `sunucu [id] yeniad <isim>`"
+
+[InstructCommandServerReset]
+hash = "sha1-91ef0c1608b20c9c5bd9e003bbb600229c0dfeb1"
+other = "sıfırla"
+
+[InstructResponseInvalidServerID]
+hash = "sha1-bfa2096206af6af67c270ccc6305e34df38b120b"
+other = "Geçersiz sunucu ID'si. `yardım` komutuyla destek alabilirsin."
+
+[InstructResponseMultipleServersDefines]
+hash = "sha1-82efc86f1b24d255d8929c5246ed7f600cd44c22"
+other = "Birden fazla sunucu kayıt etmişsiniz. `yardım` komutuyla destek alabilirsin."
+
+[InvalidCommand]
+hash = "sha1-87f4d877a6a140853aaaf433244b77e91e92ad78"
+other = "Girdiğiniz komut hatalı: {{.Command}}"
+
+[PinAuthenticated]
+hash = "sha1-87bdf039b7c039d93497d62b805f71956691f666"
+other = "Senkronize işlemin başarılı!"
+
+[PinInternalError]
+hash = "sha1-51c49c603676bddc9f4eb42b58d215092cd9c72c"
+other = "Bir hata oluştu, lütfen daha sonra tekrar dene."
+
+[PinInvalid]
+hash = "sha1-1ba597fb10f5130fc7df63a746ff4d985e4d4d1a"
+other = "Girmiş olduğunuz PIN kodu geçersiz."
+
+[TruncatedMessage]
+hash = "sha1-a73ede39702ee87ac6dd1427fbab7121cb664060"
+other = "*Yazdığınız mesaj şuna çevirildi: {{.Message}}"
+
+[UserPINPrompt]
+hash = "sha1-4f3204d6afe0f3faba51e71be9d44fe929fde6af"
+other = "Oyun içinden size verilen PIN kodunu lütfen girin.\\nSenkronize işlemini yaptıktan sonra Raid bildirimleri alıcaksınız."

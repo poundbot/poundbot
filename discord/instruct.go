@@ -74,7 +74,8 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 		DefaultMessage: &i18n.Message{
 			ID:    "InstructCommandHelp",
 			Other: "help",
-		})
+		},
+	}) {
 		return instructResponse{message: messages.HelpText()}
 	}
 

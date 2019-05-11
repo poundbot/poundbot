@@ -5,6 +5,8 @@ require (
 	github.com/benbjohnson/clock v0.0.0-20161215174838-7dc76406b6d3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bwmarrin/discordgo v0.19.0
+	github.com/coreos/etcd v3.3.13+incompatible // indirect
+	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/eminetto/mongo-migrate v0.1.2
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/gofrs/uuid v3.2.0+incompatible
@@ -12,6 +14,8 @@ require (
 	github.com/jmshal/go-locale v0.0.0-20190124211249-eb00fb25cc61
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/kr/pty v1.1.4 // indirect
+	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.0.0-beta.7
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.4.1
