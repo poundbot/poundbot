@@ -1,7 +1,3 @@
-[InstructCommandHelp]
-hash = "sha1-92005ecf3788faea8346a7919fba0232188561ab"
-other = "yardım"
-
-[InstructCommandServer]
-hash = "sha1-3de4f901fffb30ac720b0e7eb654b4faa2dd03fa"
-other = "sunucu"
+[InstructCommandServerChatHereResponse]
+hash = "sha1-20a6ffa93644d4a9c1684988695dfa912bbfc42a"
+other = "Sunucu {{.Name}} ({{.ID}}) sohbet kanalı artık burada olacak."

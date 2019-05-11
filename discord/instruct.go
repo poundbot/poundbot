@@ -305,7 +305,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 					"Name": server.Name,
 					"ID":   fmt.Sprint(serverID + 1),
 				},
-			}), //fmt.Sprintf("Server %s (%d) removed", server.Name, serverID+1),
+			}),
 		}
 	case chathereCmd:
 		server.ChatChanID = channelID
@@ -317,7 +317,16 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 
 		return instructResponse{
 			responseType: instructResponseChannel,
-			message:      fmt.Sprintf("Server %d (%s) will chat here.", serverID+1, server.Name),
+			message: localizer.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "InstructCommandServerChatHereResponse",
+					Other: "Server {{.Name}} ({{.ID}}) will chat here",
+				},
+				TemplateData: map[string]string{
+					"Name": server.Name,
+					"ID":   fmt.Sprint(serverID + 1),
+				},
+			}),
 		}
 	case raidDelayCmd:
 		if len(instructions) != 2 {
