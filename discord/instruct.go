@@ -29,13 +29,13 @@ type instructResponse struct {
 	message      string
 }
 
-type InstructAccountUpdater interface {
+type instructAccountUpdater interface {
 	AddServer(snowflake string, server types.Server) error
 	UpdateServer(snowflake, oldKey string, server types.Server) error
 	RemoveServer(snowflake, serverKey string) error
 }
 
-func instruct(botID, channelID, authorID, message string, account types.Account, au InstructAccountUpdater) instructResponse {
+func instruct(botID, channelID, authorID, message string, account types.Account, au instructAccountUpdater) instructResponse {
 	guildID := account.GuildSnowflake
 	adminIDs := account.GetAdminIDs()
 	log.WithFields(logrus.Fields{
@@ -63,7 +63,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 	)
 
 	if len(parts) == 0 {
-		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INSTRUCT"}).Trace("Received instruct with no instructions")
+		log.WithFields(logrus.Fields{"ssys": "INSTRUCT"}).Trace("Received instruct with no instructions")
 		return instructResponse{responseType: instructResponseNone}
 	}
 
@@ -89,7 +89,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 	}
 
 	if !isOwner {
-		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INSTRUCT"}).Trace(
+		log.WithFields(logrus.Fields{"ssys": "INSTRUCT"}).Trace(
 			"Instruction is not from an admin",
 		)
 		return instructResponse{responseType: instructResponseNone}
@@ -112,7 +112,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 		},
 		TemplateData: map[string]string{"Command": command},
 	})
-	log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INSTRUCT"}).Trace(msg)
+	log.WithFields(logrus.Fields{"ssys": "INSTRUCT"}).Trace(msg)
 
 	return instructResponse{
 		responseType: instructResponseChannel,
@@ -120,7 +120,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 	}
 }
 
-func instructServer(parts []string, channelID, guildID string, account types.Account, au InstructAccountUpdater) instructResponse {
+func instructServer(parts []string, channelID, guildID string, account types.Account, au instructAccountUpdater) instructResponse {
 	if len(parts) == 0 {
 		return instructResponse{message: "TODO: Server Usage. See `help`."}
 	}
@@ -170,7 +170,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		}
 		ruid, err := uuid.NewV4()
 		if err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INTERACT", "cmd": "server add"}).
+			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server add"}).
 				Error("error creating uuid")
 			return instructResponse{responseType: instructResponseNone}
 		}
@@ -251,7 +251,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 	case resetCmd:
 		ruid, err := uuid.NewV4()
 		if err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INTERACT", "cmd": "server reset"}).
+			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server reset"}).
 				Error("error creating uuid")
 			return instructResponse{responseType: instructResponseNone}
 		}
@@ -259,7 +259,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		server.Key = ruid.String()
 
 		if err = au.UpdateServer(guildID, oldKey, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INTERACT", "cmd": "server reset"}).
+			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server reset"}).
 				Error("storage error updating server")
 		}
 
@@ -279,7 +279,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		server.Name = strings.Join(instructions[1:], " ")
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INTERACT", "cmd": "server rename"}).
+			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server rename"}).
 				Error("storage error updating server")
 		}
 
@@ -311,7 +311,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		server.ChatChanID = channelID
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INTERACT", "cmd": "server chathere"}).
+			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server chathere"}).
 				Error("storage error updating server")
 		}
 
@@ -356,7 +356,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		server.RaidDelay = instructions[1]
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INTERACT", "cmd": "server raiddelay"}).
+			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server raiddelay"}).
 				Error("storage error updating server")
 		}
 		return instructResponse{
