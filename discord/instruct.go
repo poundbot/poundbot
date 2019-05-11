@@ -70,7 +70,11 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 	command := parts[0]
 	parts = parts[1:]
 
-	if command == "help" {
+	if command == localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID:    "InstructCommandHelp",
+			Other: "help",
+		})
 		return instructResponse{message: messages.HelpText()}
 	}
 
@@ -85,18 +89,18 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 
 	if !isOwner {
 		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "INSTRUCT"}).Trace(
-			localizer.MustLocalize(&i18n.LocalizeConfig{
-				DefaultMessage: &i18n.Message{
-					ID:    "InstructionNotFromAdmin",
-					Other: "Instruction is not from an admin",
-				},
-			}),
+			"Instruction is not from an admin",
 		)
 		return instructResponse{responseType: instructResponseNone}
 	}
 
 	switch command {
-	case "server":
+	case localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID:    "InstructCommandServer",
+			Other: "server",
+		},
+	}):
 		return instructServer(parts, channelID, guildID, account, au)
 	}
 
@@ -266,7 +270,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 				message: localizer.MustLocalize(&i18n.LocalizeConfig{
 					DefaultMessage: &i18n.Message{
 						ID:    "InstructCommandServerRenameUsage",
-						Other: "Usage: `server rename [id] <name>`",
+						Other: "Usage: `server [id] rename <name>`",
 					},
 				}),
 			}
@@ -320,7 +324,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 				responseType: instructResponseChannel,
 				message: localizer.MustLocalize(&i18n.LocalizeConfig{
 					DefaultMessage: &i18n.Message{
-						ID:    "InstructCommandServerRenameUsage",
+						ID:    "InstructCommandServerRaidDelayUsage",
 						Other: "Usage: `server [id] raiddelay <duration>`",
 					},
 				}),
@@ -333,9 +337,9 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 				message: localizer.MustLocalize(&i18n.LocalizeConfig{
 					DefaultMessage: &i18n.Message{
 						ID:    "InstructCommandServerRaidDelayInvalidFormat",
-						Other: "Server {{.Name}} ({{.ID}}) removed",
+						Other: "Invalid duration format. Examples: `5m` = 5 minutes, `1h` = 1 hour, `1s` = 1 second",
 					},
-				}), //"Invalid duration format. Examples:\n`5m` = 5 minutes, `1h` = 1 hour, `1s` = 1 second",
+				}),
 			}
 		}
 

@@ -253,7 +253,7 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	)
 	s.UpdateStatus(0, localizer.MustLocalize(&i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
-			ID:    "PBStatusCommand",
+			ID:    "DiscordStatus",
 			Other: "!pb help",
 		}}),
 	)

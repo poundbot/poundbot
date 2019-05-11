@@ -16,6 +16,7 @@ func init() {
 	loadLang := func(lang string) {
 		locBundle = &i18n.Bundle{DefaultLanguage: language.English}
 		locBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+		locBundle.MustLoadMessageFile("language/active.tr.toml")
 		localizer = i18n.NewLocalizer(locBundle, lang)
 	}
 
