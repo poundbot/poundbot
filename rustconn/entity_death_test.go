@@ -1,7 +1,6 @@
 package rustconn
 
 import (
-	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -88,10 +87,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		logBuffer := bytes.NewBuffer([]byte{})
-		tt.e.logger = &log.Logger{}
-		tt.e.logger.SetOutput(logBuffer)
-		tt.e.logger.SetPrefix("[C] ")
+		// logBuffer := bytes.NewBuffer([]byte{})
 
 		t.Run(tt.name, func(t *testing.T) {
 			req, err := http.NewRequest(tt.method, "/entity_death", strings.NewReader(tt.rBody))
@@ -127,7 +123,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			assert.Equal(t, tt.status, rr.Code)
 			assert.Equal(t, tt.ed, added)
-			assert.Equal(t, tt.log, logBuffer.String(), "log was incorrect")
+			// assert.Equal(t, tt.log, logBuffer.String(), "log was incorrect")
 		})
 	}
 }

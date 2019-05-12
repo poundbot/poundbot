@@ -109,9 +109,9 @@ func (s *Server) Start() error {
 	go func() {
 		log.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 		if err := s.ListenAndServe(); err != nil {
-			log.Printf("HTTP server died with error %v\n", err)
+			log.WithError(err).Warn("HTTP server died with error\n")
 		} else {
-			log.Printf("HTTP server graceful shutdown\n", err)
+			log.WithError(err).Warn("HTTP server graceful shutdown\n")
 		}
 	}()
 
@@ -133,7 +133,7 @@ func (s *Server) Stop() {
 		//shutdown the server
 		err := s.Shutdown(ctx)
 		if err != nil {
-			log.Warn("Shutdown request error: %v", err)
+			log.WithError(err).Warn("Shutdown request error")
 		}
 	}()
 	s.shutdownRequest <- struct{}{} // AuthSaver
