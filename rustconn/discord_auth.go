@@ -3,19 +3,16 @@ package rustconn
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
 )
 
 type discordAuth struct {
-	das    storage.DiscordAuthsStore
-	us     storage.UsersStore
-	dac    chan types.DiscordAuth
-	logger *log.Logger
+	das storage.DiscordAuthsStore
+	us  storage.UsersStore
+	dac chan types.DiscordAuth
 }
 
 type deprecatedDiscordAuth struct {
@@ -31,9 +28,7 @@ func (d *deprecatedDiscordAuth) upgrade() {
 }
 
 func newDiscordAuth(logPrefix string, das storage.DiscordAuthsStore, us storage.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
-	da := discordAuth{das: das, us: us, dac: dac, logger: &log.Logger{}}
-	da.logger.SetPrefix(logPrefix)
-	da.logger.SetOutput(os.Stdout)
+	da := discordAuth{das: das, us: us, dac: dac}
 	return da.Handle
 }
 
@@ -49,7 +44,7 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err := decoder.Decode(&dAuth)
 	if err != nil {
-		da.logger.Println(err.Error())
+		log.Println(err.Error())
 		return
 	}
 
@@ -77,6 +72,6 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		da.dac <- dAuth.DiscordAuth
 	} else {
-		da.logger.Println(err.Error())
+		log.Println(err.Error())
 	}
 }

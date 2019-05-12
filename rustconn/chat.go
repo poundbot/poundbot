@@ -3,9 +3,7 @@ package rustconn
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/blang/semver"
@@ -50,7 +48,6 @@ type chat struct {
 	cqs        chatQueue
 	in         chan types.ChatMessage
 	timeout    time.Duration
-	logger     *log.Logger
 	minVersion semver.Version
 }
 
@@ -65,12 +62,8 @@ func newChat(ls string, cq chatQueue, in chan types.ChatMessage) func(w http.Res
 		cqs:        cq,
 		in:         in,
 		timeout:    10 * time.Second,
-		logger:     &log.Logger{},
 		minVersion: semver.Version{Major: 1, Patch: 1},
 	}
-
-	c.logger.SetPrefix(ls)
-	c.logger.SetOutput(os.Stdout)
 
 	return c.Handle
 }
@@ -95,7 +88,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 	sc, err := getServerContext(r.Context())
 	if err != nil {
-		c.logger.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -110,7 +103,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 		err := decoder.Decode(&m)
 		if err != nil {
-			c.logger.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
+			log.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
 			handleError(w, types.RESTError{
 				Error:      "Invalid request",
 				StatusCode: http.StatusBadRequest,
@@ -147,7 +140,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 		b, err := json.Marshal(newDiscordChat(m))
 		if err != nil {
-			c.logger.Printf("[%s] %s", sc.requestUUID, err.Error())
+			log.Printf("[%s] %s", sc.requestUUID, err.Error())
 			return
 		}
 

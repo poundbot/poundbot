@@ -1,7 +1,6 @@
 package rustconn
 
 import (
-	"log"
 	"net/http"
 	"strings"
 

@@ -3,9 +3,7 @@ package rustconn
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/blang/semver"
@@ -32,14 +30,11 @@ func (d *deprecatedEntityDeath) upgrade() {
 
 type entityDeath struct {
 	ras        storage.RaidAlertsStore
-	logger     *log.Logger
 	minVersion semver.Version
 }
 
 func newEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
-	ed := entityDeath{ras: ras, logger: &log.Logger{}, minVersion: semver.Version{Major: 1}}
-	ed.logger.SetPrefix(logPrefix)
-	ed.logger.SetOutput(os.Stdout)
+	ed := entityDeath{ras: ras, minVersion: semver.Version{Major: 1}}
 	return ed.Handle
 }
 
@@ -57,7 +52,7 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 
 	sc, err := getServerContext(r.Context())
 	if err != nil {
-		e.logger.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -69,7 +64,7 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 	var ed deprecatedEntityDeath
 	err = decoder.Decode(&ed)
 	if err != nil {
-		e.logger.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
+		log.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
 		handleError(w, types.RESTError{
 			Error:      "Invalid request",
 			StatusCode: http.StatusBadRequest,

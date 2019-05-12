@@ -2,7 +2,6 @@ package rustconn
 
 import (
 	"bytes"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"

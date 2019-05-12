@@ -1,7 +1,6 @@
 package rustconn
 
 import (
-	"log"
 	"time"
 
 	"github.com/poundbot/poundbot/types"
