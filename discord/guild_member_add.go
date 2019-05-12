@@ -1,8 +1,6 @@
 package discord
 
 import (
-	"log"
-
 	"github.com/bwmarrin/discordgo"
 	"github.com/globalsign/mgo"
 	"github.com/poundbot/poundbot/types"

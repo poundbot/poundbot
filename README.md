@@ -39,3 +39,6 @@ who to send messages to from their in-game identity.
 ## Getting Help
 
 Find us on Discord on the [PoundBot server](https://discord.gg/ZPNtWEf).
+
+## Thanks
+Talha for Turkish translation and testing!

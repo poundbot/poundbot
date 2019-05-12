@@ -1,0 +1,3 @@
+[InstructCommandServerChatHereResponse]
+hash = "sha1-20a6ffa93644d4a9c1684988695dfa912bbfc42a"
+other = "Sunucu {{.Name}} ({{.ID}}) sohbet kanalı artık burada olacak."

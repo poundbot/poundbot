@@ -3,7 +3,6 @@ package rustconn
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -108,11 +107,11 @@ func (s *Server) Start() error {
 	}()
 
 	go func() {
-		log.Printf(logPrefix+" Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+		log.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
 		if err := s.ListenAndServe(); err != nil {
-			log.Printf(logPrefix+" HTTP server died with error %v\n", err)
+			log.WithError(err).Warn("HTTP server died with error\n")
 		} else {
-			log.Printf(logPrefix+" HTTP server graceful shutdown\n", err)
+			log.WithError(err).Warn("HTTP server graceful shutdown\n")
 		}
 	}()
 
@@ -121,7 +120,7 @@ func (s *Server) Start() error {
 
 // Stop stops the http server
 func (s *Server) Stop() {
-	log.Printf(logPrefix + "[WARN] Shutting down HTTP server ...")
+	log.Warn("Shutting down HTTP server ...")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -134,7 +133,7 @@ func (s *Server) Stop() {
 		//shutdown the server
 		err := s.Shutdown(ctx)
 		if err != nil {
-			log.Printf(logPrefix+"[WARN] Shutdown request error: %v", err)
+			log.WithError(err).Warn("Shutdown request error")
 		}
 	}()
 	s.shutdownRequest <- struct{}{} // AuthSaver

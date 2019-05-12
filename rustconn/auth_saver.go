@@ -1,8 +1,6 @@
 package rustconn
 
 import (
-	"log"
-
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
 )

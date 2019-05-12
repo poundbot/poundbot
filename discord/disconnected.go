@@ -1,8 +1,6 @@
 package discord
 
 import (
-	"log"
-
 	"github.com/bwmarrin/discordgo"
 )
 

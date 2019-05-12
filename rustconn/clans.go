@@ -2,9 +2,7 @@ package rustconn
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/storage"
@@ -37,14 +35,11 @@ func (s serverClan) ToClan() types.Clan {
 }
 
 type clans struct {
-	as     storage.AccountsStore
-	logger *log.Logger
+	as storage.AccountsStore
 }
 
 func newClans(logPrefix string, as storage.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
-	c := clans{as: as, logger: &log.Logger{}}
-	c.logger.SetPrefix(logPrefix)
-	c.logger.SetOutput(os.Stdout)
+	c := clans{as: as}
 	return c.Handle
 }
 
@@ -54,7 +49,7 @@ func (c *clans) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	sc, err := getServerContext(r.Context())
 	if err != nil {
-		c.logger.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -82,20 +77,17 @@ func (c *clans) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = c.as.SetClans(sc.serverKey, clans)
 	if err != nil {
-		c.logger.Printf("Error updating clans: %s\n", err)
+		log.Printf("Error updating clans: %s\n", err)
 		handleError(w, types.RESTError{StatusCode: http.StatusInternalServerError, Error: "Could not set clans"})
 	}
 }
 
 type clan struct {
-	as     storage.AccountsStore
-	logger *log.Logger
+	as storage.AccountsStore
 }
 
 func newClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
-	c := clan{as: as, logger: &log.Logger{}}
-	c.logger.SetPrefix(logPrefix)
-	c.logger.SetOutput(os.Stdout)
+	c := clan{as: as}
 	return c.Handle
 }
 
@@ -104,7 +96,7 @@ func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	sc, err := getServerContext(r.Context())
 	if err != nil {
-		c.logger.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,

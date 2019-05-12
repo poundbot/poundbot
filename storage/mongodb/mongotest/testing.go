@@ -1,7 +1,10 @@
 package mongotest
 
 import (
+	"crypto/tls"
 	"fmt"
+	"log"
+	"net"
 	"os"
 	"sync"
 
@@ -55,14 +58,37 @@ func newDb(dbId int) (*mgo.Database, error) {
 		dial = defaultDial
 	}
 
+	var sErr error
+	var sess *mgo.Session
+	if os.Getenv("MONGODB_SSL") != "" {
+		log.Println("SSL")
+		dialInfo, err := mgo.ParseURL(dial)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+			tlsConfig := &tls.Config{
+				InsecureSkipVerify: true,
+			}
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			if err != nil {
+				log.Println(err)
+			}
+			return conn, err
+		}
+		sess, sErr = mgo.DialWithInfo(dialInfo)
+	} else {
+		sess, sErr = mgo.Dial(dial)
+	}
+	if sErr != nil {
+		return nil, sErr
+	}
+
 	db := os.Getenv("MONGODB_DB")
 	if db == "" {
 		db = defaultDb
-	}
-
-	sess, err := mgo.Dial(dial)
-	if err != nil {
-		return nil, err
 	}
 
 	mdb := sess.DB(fmt.Sprintf("%s-%d", db, dbId))

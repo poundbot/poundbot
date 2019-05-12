@@ -2,7 +2,6 @@ package rustconn
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/poundbot/poundbot/types"
