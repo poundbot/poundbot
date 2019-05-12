@@ -16,7 +16,7 @@ var localizer *i18n.Localizer
 
 func init() {
 	loadLang := func(lang string) {
-		langDir := "language/"
+		langDir := ""
 		if os.Getenv("POUNDBOT_DIR") != "" {
 			langDir = os.Getenv("POUNDBOT_DIR") + "/"
 		}
@@ -30,7 +30,7 @@ func init() {
 	if err != nil {
 		loadLang(language.English.String())
 
-		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "RUNNER", "err": err}).Error(
+		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "LOG", "err": err}).Error(
 			"Could not read localization. Defaulting to English.",
 		)
 	} else {
