@@ -88,7 +88,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 	sc, err := getServerContext(r.Context())
 	if err != nil {
-		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		log.Info(fmt.Sprintf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error()))
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -103,7 +103,7 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 		err := decoder.Decode(&m)
 		if err != nil {
-			log.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
+			log.Info(fmt.Sprintf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error()))
 			handleError(w, types.RESTError{
 				Error:      "Invalid request",
 				StatusCode: http.StatusBadRequest,
@@ -121,7 +121,11 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 
 		for _, s := range sc.account.Servers {
 			if s.Key == sc.serverKey {
-				m.ChannelID = s.ChatChanID
+				cID, ok := s.ChannelIDForTag("chat")
+				if !ok {
+					return
+				}
+				m.ChannelID = cID
 				select {
 				case c.in <- m.ChatMessage:
 					return

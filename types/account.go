@@ -9,14 +9,56 @@ import (
 )
 
 type Server struct {
-	Name         string
-	Key          string
-	Address      string
-	Clans        []Clan
-	ChatChanID   string
-	ServerChanID string
-	RaidDelay    string
-	Timestamp    `bson:",inline"`
+	Name      string
+	Key       string
+	Address   string
+	Clans     []Clan
+	RaidDelay string
+	Timestamp `bson:",inline"`
+	Channels  []ServerChannel `bson:",omitempty" json:"channels"`
+}
+
+func (s Server) ChannelIDForTag(tag string) (channel string, found bool) {
+	for i := range s.Channels {
+		for _, cTag := range s.Channels[i].Tags {
+			if tag == cTag {
+				return s.Channels[i].ChannelID, true
+			}
+		}
+	}
+	return "", false
+}
+
+func (s *Server) SetChannelIDForTag(channel string, tag string) {
+	var channelFound bool
+
+	for i := range s.Channels {
+		var sChan = s.Channels[i].ChannelID
+		var sTags = s.Channels[i].Tags
+		for j, cTag := range sTags {
+			if tag == cTag {
+				if sChan == channel {
+					return
+				}
+				if len(s.Channels[i].Tags) < 2 {
+					s.Channels[i].ChannelID = channel
+					return
+				}
+
+				s.Channels[i].Tags = append(sTags[:j], sTags[j+1:]...)
+				continue
+			}
+		} // for tags
+		if sChan == channel {
+			s.Channels[i].Tags = append(sTags, tag)
+			channelFound = true
+			continue
+		}
+	} // for channels
+	if channelFound {
+		return
+	}
+	s.Channels = append(s.Channels, ServerChannel{ChannelID: channel, Tags: []string{tag}})
 }
 
 func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
@@ -30,6 +72,11 @@ func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
 		}
 	}
 	return false, Clan{}
+}
+
+type ServerChannel struct {
+	ChannelID string `bson:"channel_id" json:"channel_id"`
+	Tags      []string
 }
 
 type BaseAccount struct {

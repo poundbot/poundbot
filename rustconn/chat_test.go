@@ -160,7 +160,13 @@ func TestChat_Handle(t *testing.T) {
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
 				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"),
 				Servers: []types.Server{
-					{ChatChanID: "1234", Key: "bloop", Name: "server-name"},
+					{
+						Key:  "bloop",
+						Name: "server-name",
+						Channels: []types.ServerChannel{
+							{ChannelID: "1234", Tags: []string{"chat"}},
+						},
+					},
 				},
 			})
 

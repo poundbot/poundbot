@@ -341,7 +341,11 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 	// Find the server for the channel and send the message to it
 	for _, server := range account.Servers {
-		if server.ChatChanID == m.ChannelID {
+		sChan, ok := server.ChannelIDForTag("chat")
+		if !ok {
+			continue
+		}
+		if sChan == m.ChannelID {
 			cm := types.ChatMessage{
 				ServerKey:   server.Key,
 				DisplayName: m.Author.Username,

@@ -175,10 +175,10 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			return instructResponse{responseType: instructResponseNone}
 		}
 		server := types.Server{
-			Name:       strings.Join(parts[1:], " "),
-			Key:        ruid.String(),
-			ChatChanID: channelID,
-			RaidDelay:  "1m",
+			Name:      strings.Join(parts[1:], " "),
+			Key:       ruid.String(),
+			Channels:  []types.ServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
+			RaidDelay: "1m",
 		}
 		au.AddServer(guildID, server)
 		return instructResponse{message: messages.ServerKeyMessage(server.Name, server.Key)}
@@ -308,7 +308,8 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			}),
 		}
 	case chathereCmd:
-		server.ChatChanID = channelID
+		server.SetChannelIDForTag(channelID, "chat")
+		server.SetChannelIDForTag(channelID, "serverchat")
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
 			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server chathere"}).
