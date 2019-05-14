@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
@@ -28,6 +30,8 @@ func main() {
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
 	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
 	viper.SetDefault("mongo.database", "poundbot")
+	viper.SetDefault("mongo.ssl.enabled", false)
+	viper.SetDefault("mongo.ssl.insecure", false)
 
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
@@ -35,13 +39,39 @@ func main() {
 
 	}
 
-	session, err := mgo.Dial(viper.GetString("mongo.dial-addr"))
-	if err != nil {
-		log.Fatal(err.Error())
+	var sErr error
+	var sess *mgo.Session
+	if viper.GetBool("mongo.ssl.enabled") {
+		dialInfo, err := mgo.ParseURL(viper.GetString("mongo.dial-addr"))
+		if err != nil {
+			log.Println(err)
+		}
+
+		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+			tlsConfig := &tls.Config{
+				InsecureSkipVerify: viper.GetBool("mongo.ssl.insecure"),
+			}
+			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
+			if err != nil {
+				log.Println(err)
+			}
+			return conn, err
+		}
+		sess, sErr = mgo.DialWithInfo(dialInfo)
+	} else {
+		sess, sErr = mgo.Dial(viper.GetString("mongo.dial-addr"))
 	}
-	defer session.Close()
-	db := session.DB(viper.GetString("mongo.database"))
-	migrate.SetDatabase(db)
+	if sErr != nil {
+		panic(sErr)
+	}
+
+	// session, err := mgo.Dial(viper.GetString("mongo.dial-addr"))
+	// if err != nil {
+	// 	log.Fatal(err.Error())
+	// }
+	// defer session.Close()
+	// db := session.DB(viper.GetString("mongo.database"))
+	migrate.SetDatabase(sess.DB(viper.GetString("mongo.database")))
 	migrate.SetMigrationsCollection("migrations")
 	migrate.SetLogger(log.New(os.Stdout, "INFO: ", 0))
 	switch option {
