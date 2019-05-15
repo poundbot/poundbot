@@ -5,9 +5,9 @@ import (
 )
 
 // Disconnected is a handler for the Disconnected discord call
-func Disconnected(status chan bool, logPrefix string) func(s *discordgo.Session, event *discordgo.Disconnect) {
+func disconnected(status chan<- bool) func(s *discordgo.Session, event *discordgo.Disconnect) {
 	return func(s *discordgo.Session, event *discordgo.Disconnect) {
 		status <- false
-		log.Println(logPrefix + "[CONN] Disconnected!")
+		log.WithField("ssys", "disconnected").Warn("Disconnected!")
 	}
 }

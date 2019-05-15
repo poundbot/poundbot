@@ -61,7 +61,6 @@ func newDb(dbId int) (*mgo.Database, error) {
 	var sErr error
 	var sess *mgo.Session
 	if os.Getenv("MONGODB_SSL") != "" {
-		log.Println("SSL")
 		dialInfo, err := mgo.ParseURL(dial)
 		if err != nil {
 			log.Println(err)
