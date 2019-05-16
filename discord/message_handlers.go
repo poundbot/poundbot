@@ -12,7 +12,7 @@ import (
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	mcLog := log.WithFields(logrus.Fields{"ssys": "RUNNER", "guildid": m.GuildID})
+	mcLog := log.WithFields(logrus.Fields{"sys": "RUNNER", "guildid": m.GuildID})
 	if !c.mls.Obtain(m.ID, "discord") {
 		return
 	}

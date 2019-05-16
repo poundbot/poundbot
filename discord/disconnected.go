@@ -8,6 +8,6 @@ import (
 func disconnected(status chan<- bool) func(s *discordgo.Session, event *discordgo.Disconnect) {
 	return func(s *discordgo.Session, event *discordgo.Disconnect) {
 		status <- false
-		log.WithField("ssys", "disconnected").Warn("Disconnected!")
+		log.WithField("sys", "disconnected").Warn("Disconnected!")
 	}
 }

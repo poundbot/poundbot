@@ -3,6 +3,7 @@ package rustconn
 import (
 	"os"
 
+	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,10 +25,14 @@ var log = logrus.New()
 func init() {
 	log.SetFormatter(&formatter{
 		fields: logrus.Fields{
-			"proc": "RC",
+			"proc": "API",
 		},
-		lf: &logrus.TextFormatter{},
+		lf: &nested.Formatter{
+			HideKeys:    false,
+			FieldsOrder: []string{"proc", "sys"},
+		},
 	})
+
 	if os.Getenv("LOG_TRACE") == "on" {
 		log.SetLevel(logrus.TraceLevel)
 	}

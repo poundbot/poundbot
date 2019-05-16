@@ -32,7 +32,7 @@ func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}}))
 			err = c.as.AddRegisteredPlayerIDs(da.GuildSnowflake, []string{da.PlayerID})
 			if err != nil {
-				log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "interact()", "playerid": da.PlayerID, "guildid": da.GuildSnowflake, "err": err}).Error(
+				log.WithFields(logrus.Fields{"sys": "interact()", "playerid": da.PlayerID, "guildid": da.GuildSnowflake, "err": err}).Error(
 					"Could not add player discord account.",
 				)
 			}

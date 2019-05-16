@@ -30,7 +30,7 @@ func init() {
 	if err != nil {
 		loadLang(language.English.String())
 
-		log.WithFields(logrus.Fields{"sys": "DSCD", "ssys": "LOG", "err": err}).Error(
+		log.WithFields(logrus.Fields{"sys": "LOG", "err": err}).Error(
 			"Could not read localization. Defaulting to English.",
 		)
 	} else {

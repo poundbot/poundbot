@@ -2,6 +2,7 @@ module github.com/poundbot/poundbot
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/antonfisher/nested-logrus-formatter v1.0.2
 	github.com/benbjohnson/clock v0.0.0-20161215174838-7dc76406b6d3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bwmarrin/discordgo v0.19.0

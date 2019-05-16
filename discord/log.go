@@ -3,6 +3,7 @@ package discord
 import (
 	"os"
 
+	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,8 +27,12 @@ func init() {
 		fields: logrus.Fields{
 			"proc": "DSCD",
 		},
-		lf: &logrus.TextFormatter{},
+		lf: &nested.Formatter{
+			HideKeys:    false,
+			FieldsOrder: []string{"proc", "sys"},
+		},
 	})
+
 	if os.Getenv("LOG_TRACE") == "on" {
 		log.SetLevel(logrus.TraceLevel)
 	}

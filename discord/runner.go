@@ -76,7 +76,7 @@ func (c *Client) Start() error {
 
 // Stop stops the runner
 func (c *Client) Stop() {
-	log.WithFields(logrus.Fields{"ssys": "RUNNER"}).Info(
+	log.WithFields(logrus.Fields{"sys": "RUNNER"}).Info(
 		"Disconnecting...",
 	)
 	// log.Println(logPrefix + "[CONN] Disconnecting...")
@@ -85,7 +85,7 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) runner() {
-	rLog := log.WithFields(logrus.Fields{"ssys": "RUNNER"})
+	rLog := log.WithFields(logrus.Fields{"sys": "RUNNER"})
 	defer rLog.Warn("Runner exited")
 
 	connectedState := false
@@ -179,7 +179,7 @@ func (c *Client) runner() {
 							clan, escapeDiscordString(t.DisplayName), escapeDiscordString(t.Message)),
 					)
 					if err != nil {
-						log.WithFields(logrus.Fields{"ssys": "CHAT", "playerid": t.PlayerID, "chanid": t.ChannelID}).WithError(err).Error(
+						log.WithFields(logrus.Fields{"sys": "CHAT", "playerid": t.PlayerID, "chanid": t.ChannelID}).WithError(err).Error(
 							"Error sending chat to channel.",
 						)
 					}
@@ -191,24 +191,24 @@ func (c *Client) runner() {
 			rLog.Info("Waiting for connected state...")
 			connectedState = <-c.status
 			if connectedState {
-				rLog.WithField("ssys", "CONN").Info("Received connected message")
+				rLog.WithField("sys", "CONN").Info("Received connected message")
 				break Connecting
 			}
-			rLog.WithField("ssys", "CONN").Info("Received disconnected message")
+			rLog.WithField("sys", "CONN").Info("Received disconnected message")
 		}
 	}
 
 }
 
 func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
-	log.WithField("ssys", "CONN").Info("Resumed connection")
+	log.WithField("sys", "CONN").Info("Resumed connection")
 	c.status <- true
 }
 
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
 func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
-	log.WithField("ssys", "CONN").Info("Connection Ready")
+	log.WithField("sys", "CONN").Info("Connection Ready")
 
 	s.UpdateStatus(0, localizer.MustLocalize(&i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
