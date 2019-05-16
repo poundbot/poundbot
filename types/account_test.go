@@ -27,9 +27,7 @@ func Benchmark_GetRegisteredPlayerIDs(b *testing.B) {
 }
 
 func TestServer_UsersClan(t *testing.T) {
-	clans := []Clan{
-		Clan{Tag: "FoF", Members: []string{"one", "two"}},
-	}
+	clans := []Clan{{Tag: "FoF", Members: []string{"one", "two"}}}
 	type args struct {
 		playerIDs []string
 	}
@@ -70,8 +68,8 @@ func TestServer_UsersClan(t *testing.T) {
 
 func TestAccount_ServerFromKey(t *testing.T) {
 	servers := []Server{
-		Server{Key: "one"},
-		Server{Key: "two"},
+		{Key: "one"},
+		{Key: "two"},
 	}
 	type args struct {
 		apiKey string
@@ -103,7 +101,6 @@ func TestAccount_ServerFromKey(t *testing.T) {
 			got, err := a.ServerFromKey(tt.args.apiKey)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Account.ServerFromKey() error = %v, wantErr %v", err, tt.wantErr)
-				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Account.ServerFromKey() = %v, want %v", got, tt.want)
@@ -264,7 +261,7 @@ func TestServer_ChannelIDForTag(t *testing.T) {
 		{
 			name: "channel exists",
 			s: Server{
-				Channels: []ServerChannel{ServerChannel{ChannelID: "1234", Tags: []string{"chat"}}},
+				Channels: []ServerChannel{{ChannelID: "1234", Tags: []string{"chat"}}},
 			},
 			args:        args{"chat"},
 			wantChannel: "1234",
@@ -273,7 +270,7 @@ func TestServer_ChannelIDForTag(t *testing.T) {
 		{
 			name: "channel does not exist",
 			s: Server{
-				Channels: []ServerChannel{ServerChannel{ChannelID: "1234", Tags: []string{"chat"}}},
+				Channels: []ServerChannel{{ChannelID: "1234", Tags: []string{"chat"}}},
 			},
 			args:        args{"cha"},
 			wantChannel: "",
@@ -300,6 +297,7 @@ func TestServer_ChannelIDForTag(t *testing.T) {
 }
 
 func TestServer_SetChannelIDForTag(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Channels []ServerChannel
 	}
@@ -312,72 +310,107 @@ func TestServer_SetChannelIDForTag(t *testing.T) {
 		fields       fields
 		args         args
 		wantChannels []ServerChannel
+		want         bool
 	}{
 		{
 			name: "1. channel id and tag are new",
 			args: args{channel: "9876", tag: "newchat"},
 			wantChannels: []ServerChannel{
 				{ChannelID: "1234", Tags: []string{"chat"}},
-				{ChannelID: "5678", Tags: []string{"serverchat", "othertag"}},
+				{ChannelID: "5678", Tags: []string{"serverchat", "lasttag"}},
+				{ChannelID: "7654", Tags: []string{"lastchan"}},
 				{ChannelID: "9876", Tags: []string{"newchat"}},
 			},
+			want: true,
 		},
 		{
-			name: "2. tag is new",
+			name: "2. tag is new and channel exists",
 			args: args{channel: "1234", tag: "newchat"},
 			wantChannels: []ServerChannel{
 				{ChannelID: "1234", Tags: []string{"chat", "newchat"}},
-				{ChannelID: "5678", Tags: []string{"serverchat", "othertag"}},
+				{ChannelID: "5678", Tags: []string{"serverchat", "lasttag"}},
+				{ChannelID: "7654", Tags: []string{"lastchan"}},
 			},
+			want: true,
 		},
 		{
 			name: "3. channel is new and old channel has no other tags",
 			args: args{channel: "9876", tag: "chat"},
 			wantChannels: []ServerChannel{
+				{ChannelID: "5678", Tags: []string{"serverchat", "lasttag"}},
+				{ChannelID: "7654", Tags: []string{"lastchan"}},
 				{ChannelID: "9876", Tags: []string{"chat"}},
-				{ChannelID: "5678", Tags: []string{"serverchat", "othertag"}},
 			},
+			want: true,
+		},
+		{
+			name: "3.1. channel is new and old channel has no other tags, last channel in list",
+			args: args{channel: "9876", tag: "lastchan"},
+			wantChannels: []ServerChannel{
+				{ChannelID: "1234", Tags: []string{"chat"}},
+				{ChannelID: "5678", Tags: []string{"serverchat", "lasttag"}},
+				{ChannelID: "9876", Tags: []string{"lastchan"}},
+			},
+			want: true,
 		},
 		{
 			name: "4. channel is new and old has other tags",
 			args: args{channel: "9876", tag: "serverchat"},
 			wantChannels: []ServerChannel{
 				{ChannelID: "1234", Tags: []string{"chat"}},
-				{ChannelID: "5678", Tags: []string{"othertag"}},
+				{ChannelID: "5678", Tags: []string{"lasttag"}},
+				{ChannelID: "7654", Tags: []string{"lastchan"}},
 				{ChannelID: "9876", Tags: []string{"serverchat"}},
 			},
+			want: true,
+		},
+		{
+			name: "4.1. channel is new and old has other tags, last tag in list",
+			args: args{channel: "9876", tag: "lasttag"},
+			wantChannels: []ServerChannel{
+				{ChannelID: "1234", Tags: []string{"chat"}},
+				{ChannelID: "5678", Tags: []string{"serverchat"}},
+				{ChannelID: "7654", Tags: []string{"lastchan"}},
+				{ChannelID: "9876", Tags: []string{"lasttag"}},
+			},
+			want: true,
 		},
 		{
 			name: "5. nothing is new on single tag",
 			args: args{channel: "1234", tag: "chat"},
 			wantChannels: []ServerChannel{
 				{ChannelID: "1234", Tags: []string{"chat"}},
-				{ChannelID: "5678", Tags: []string{"serverchat", "othertag"}},
+				{ChannelID: "5678", Tags: []string{"serverchat", "lasttag"}},
+				{ChannelID: "7654", Tags: []string{"lastchan"}},
 			},
 		},
 		{
 			name: "6. nothing is new on multiple tags",
-			args: args{channel: "5678", tag: "othertag"},
+			args: args{channel: "5678", tag: "lasttag"},
 			wantChannels: []ServerChannel{
 				{ChannelID: "1234", Tags: []string{"chat"}},
-				{ChannelID: "5678", Tags: []string{"serverchat", "othertag"}},
+				{ChannelID: "5678", Tags: []string{"serverchat", "lasttag"}},
+				{ChannelID: "7654", Tags: []string{"lastchan"}},
 			},
 		},
 	}
 	for _, tt := range tests {
 		baseChannels := []ServerChannel{
 			{ChannelID: "1234", Tags: []string{"chat"}},
-			{ChannelID: "5678", Tags: []string{"serverchat", "othertag"}},
+			{ChannelID: "5678", Tags: []string{"serverchat", "lasttag"}},
+			{ChannelID: "7654", Tags: []string{"lastchan"}},
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			s := Server{
 				Channels: baseChannels,
 			}
 
-			s.SetChannelIDForTag(tt.args.channel, tt.args.tag)
+			if got := s.SetChannelIDForTag(tt.args.channel, tt.args.tag); got != tt.want {
+				t.Errorf("Server.SetChannelIDForTag(%s) resulting channels = %v, want %v", tt.args, got, tt.want)
+			}
 
 			if !reflect.DeepEqual(s.Channels, tt.wantChannels) {
-				t.Errorf("Server.SetChannelIDForTag(%s) = %v, want %v", tt.args, s.Channels, tt.wantChannels)
+				t.Errorf("Server.SetChannelIDForTag(%s) resulting channels = %v, want %v", tt.args, s.Channels, tt.wantChannels)
 			}
 		})
 	}

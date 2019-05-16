@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -76,12 +77,12 @@ func (c *Client) Start() error {
 
 // Stop stops the runner
 func (c *Client) Stop() {
+	defer c.session.Close()
 	log.WithFields(logrus.Fields{"sys": "RUNNER"}).Info(
 		"Disconnecting...",
 	)
 	// log.Println(logPrefix + "[CONN] Disconnecting...")
 	c.shutdown = true
-	c.session.Close()
 }
 
 func (c *Client) runner() {
@@ -109,7 +110,7 @@ func (c *Client) runner() {
 
 				case t := <-c.RaidAlertChan:
 					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "playerID": t.PlayerID})
-					raLog.Trace("Gor raid alert")
+					raLog.Trace("Got raid alert")
 					go func() {
 						raUser, err := c.us.GetByPlayerID(t.PlayerID)
 						if err != nil {
@@ -168,20 +169,50 @@ func (c *Client) runner() {
 					}
 
 				case t := <-c.ChatChan:
+					ccLog := log.WithFields(logrus.Fields{
+						"cmd":         "ChatChan",
+						"playerID":    t.PlayerID,
+						"name":        t.DisplayName,
+						"dName":       t.DiscordName,
+						"guildID":     t.Snowflake,
+						"channelName": t.ChannelName,
+					})
 					var clan = ""
 					if t.ClanTag != "" {
 						clan = fmt.Sprintf("[%s] ", t.ClanTag)
 					}
-					_, err := c.session.ChannelMessageSend(
-						t.ChannelID,
+
+					channelID := ""
+
+					if t.ChannelName != "" {
+						if t.Snowflake == "" {
+							ccLog.Error("no guild id provided with channel name")
+							continue
+						}
+						guild, err := c.session.State.Guild(t.Snowflake)
+						if err != nil {
+							ccLog.WithError(err).Error("Could not get guild from session")
+							continue
+						}
+						for _, gChan := range guild.Channels {
+							ccLog.WithField("guildChan", gChan.Name).Trace("checking for channel match")
+							if gChan.Name == t.ChannelName {
+								channelID = gChan.ID
+								break
+							}
+						}
+					} else {
+						channelID = t.ChannelID
+					}
+
+					err := c.sendChannelMessage(
+						channelID,
 						fmt.Sprintf("☢️ @%s **%s%s**: %s",
 							iclock().Now().UTC().Format("01-02 15:04 MST"),
 							clan, escapeDiscordString(t.DisplayName), escapeDiscordString(t.Message)),
 					)
 					if err != nil {
-						log.WithFields(logrus.Fields{"sys": "CHAT", "playerid": t.PlayerID, "chanid": t.ChannelID}).WithError(err).Error(
-							"Error sending chat to channel.",
-						)
+						ccLog.WithError(err).Error("Error sending chat to channel.")
 					}
 				}
 			}
@@ -224,7 +255,19 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	c.status <- true
 }
 
+func canSendToChannel(s *discordgo.Session, channelID string) bool {
+	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
+	if err != nil || discordgo.PermissionSendMessages&^perms != 0 {
+		log.WithError(err).Error("cannot send to channel")
+		return false
+	}
+	return true
+}
+
 func (c Client) sendChannelMessage(channelID, message string) error {
+	if !canSendToChannel(c.session, channelID) {
+		return errors.New("cannot send to channel")
+	}
 	_, err := c.session.ChannelMessageSend(channelID, message)
 	return err
 }
@@ -247,12 +290,17 @@ func (c Client) sendPrivateMessage(snowflake, message string) error {
 
 // Returns nil user if they don't exist; Returns error if there was a communications error
 func (c *Client) getUserByName(guildSnowflake, name string) (discordgo.User, error) {
-	users, err := c.session.GuildMembers(guildSnowflake, "", 1000)
+	// users, err := c.session.GuildMembers(guildSnowflake, "", 1000)
+	// if err != nil {
+	// 	return discordgo.User{}, fmt.Errorf("discord user not found %s in %s", name, guildSnowflake)
+	// }
+
+	guild, err := c.session.State.Guild(guildSnowflake)
 	if err != nil {
-		return discordgo.User{}, fmt.Errorf("discord user not found %s in %s", name, guildSnowflake)
+		return discordgo.User{}, fmt.Errorf("guild %s not found searching for user %s", guildSnowflake, name)
 	}
 
-	for _, user := range users {
+	for _, user := range guild.Members {
 		if strings.ToLower(user.User.String()) == strings.ToLower(name) {
 			return *user.User, nil
 		}

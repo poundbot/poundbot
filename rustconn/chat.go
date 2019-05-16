@@ -14,7 +14,7 @@ import (
 var iclock = pbclock.Clock
 
 type chatQueue interface {
-	GetGameServerMessage(sk string, to time.Duration) (types.ChatMessage, bool)
+	GetGameServerMessage(sk, tag string, to time.Duration) (types.ChatMessage, bool)
 }
 
 type discordChat struct {
@@ -119,24 +119,30 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 			m.ClanTag = clan.Tag
 		}
 
-		for _, s := range sc.account.Servers {
-			if s.Key == sc.serverKey {
-				cID, ok := s.ChannelIDForTag("chat")
-				if !ok {
-					return
-				}
-				m.ChannelID = cID
-				select {
-				case c.in <- m.ChatMessage:
-					return
-				case <-time.After(c.timeout):
-					return
+		if m.ChannelName != "" {
+			m.Snowflake = sc.account.GuildSnowflake
+		} else {
+			for _, s := range sc.account.Servers {
+				if s.Key == sc.serverKey {
+					cID, ok := s.ChannelIDForTag("chat")
+					if !ok {
+						return
+					}
+					m.ChannelID = cID
+					break
 				}
 			}
 		}
 
+		select {
+		case c.in <- m.ChatMessage:
+			return
+		case <-time.After(c.timeout):
+			return
+		}
+
 	case http.MethodGet:
-		m, found := c.cqs.GetGameServerMessage(sc.serverKey, c.timeout)
+		m, found := c.cqs.GetGameServerMessage(sc.serverKey, "chat", c.timeout)
 		if !found {
 			w.WriteHeader(http.StatusNoContent)
 			return

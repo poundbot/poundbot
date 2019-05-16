@@ -537,8 +537,8 @@ func TestAccounts_SetClans(t *testing.T) {
 			coll.C.Insert(types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
-				Servers:   []types.Server{types.Server{
-					Key: "guildsnowflake2",
+				Servers: []types.Server{types.Server{
+					Key:   "guildsnowflake2",
 					Clans: []types.Clan{types.Clan{Tag: "existing"}},
 				}},
 			})

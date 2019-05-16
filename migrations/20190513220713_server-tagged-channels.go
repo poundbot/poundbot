@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	migrate.Register(func(db *mgo.Database) error { //Up
+	err := migrate.Register(func(db *mgo.Database) error { //Up
 		type server struct {
 			ChatChanID string
 		}
@@ -31,7 +31,7 @@ func init() {
 			unsets := bson.M{}
 			for i := range account.Servers {
 				sets[fmt.Sprintf("servers.%d.channels", i)] = []bson.M{
-					bson.M{"channel_id": account.Servers[i].ChatChanID, "tags": []string{"chat", "serverchat"}},
+					{"channel_id": account.Servers[i].ChatChanID, "tags": []string{"chat"}},
 				}
 				unsets[fmt.Sprintf("servers.%d.chatchanid", i)] = 1
 				unsets[fmt.Sprintf("servers.%d.serverchanid", i)] = 1
@@ -51,4 +51,8 @@ func init() {
 	}, func(db *mgo.Database) error { //Down
 		return nil
 	})
+
+	if err != nil {
+		panic(err)
+	}
 }

@@ -22,7 +22,7 @@ type chatQueueMock struct {
 	message bool
 }
 
-func (cqm chatQueueMock) GetGameServerMessage(sk string, to time.Duration) (types.ChatMessage, bool) {
+func (cqm chatQueueMock) GetGameServerMessage(sk, tag string, to time.Duration) (types.ChatMessage, bool) {
 	if !cqm.message {
 		return types.ChatMessage{}, false
 	}

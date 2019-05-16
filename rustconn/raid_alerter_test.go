@@ -70,7 +70,7 @@ func TestRaidAlerter_Run(t *testing.T) {
 	}
 	for _, tt := range tests {
 
-		// Reset rnTesult
+		// Reset rnResult
 		rnResult = types.RaidAlert{}
 		mockRA = nil
 

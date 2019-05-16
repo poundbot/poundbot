@@ -54,7 +54,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 		},
 	}))
 
-	parts := strings.Fields(
+	parts := getQuotedParts(
 		strings.Replace(
 			strings.Replace(message, fmt.Sprintf("<@%s>", botID), "", -1),
 			fmt.Sprintf("<@!%s>", botID), "", -1,

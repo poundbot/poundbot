@@ -52,3 +52,21 @@ func escapeDiscordString(s string) string {
 	)
 	return r.Replace(s)
 }
+
+// getQuotedParts finds a "string which spans multiple spaces" in a message.
+// Then takes that and replaces the Quote string with a single string value of the quote contents
+func getQuotedParts(str string) []string {
+	inQuote := false
+	f := func(c rune) bool {
+		switch {
+		case c == '"':
+			inQuote = !inQuote
+			return true
+		case inQuote:
+			return false
+		default:
+			return c == ' '
+		}
+	}
+	return strings.FieldsFunc(str, f)
+}

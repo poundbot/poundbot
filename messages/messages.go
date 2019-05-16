@@ -49,11 +49,6 @@ var defaultTemplates = map[string]string{
 	"HelpText.tmpl":         "No help text available.",
 }
 
-const PinPrompt = `
-Enter the PIN provided in-game to validate your account.
-Once you are validated, you will begin receiving raid alerts!
-`
-
 func ServerKeyMessage(name, key string) string {
 	type data struct {
 		Name string

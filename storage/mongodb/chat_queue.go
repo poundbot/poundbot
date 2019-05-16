@@ -17,13 +17,14 @@ func (cq ChatQueue) InsertMessage(m types.ChatMessage) error {
 	return cq.collection.Insert(m)
 }
 
-func (cq ChatQueue) GetGameServerMessage(sk string, to time.Duration) (types.ChatMessage, bool) {
+func (cq ChatQueue) GetGameServerMessage(sk, tag string, to time.Duration) (types.ChatMessage, bool) {
 	sess := cq.collection.Database.Session.Copy()
 	defer sess.Close()
 
 	iter := cq.collection.With(sess).Find(
 		bson.M{
 			"serverkey":  sk,
+			"tag":        tag,
 			"senttouser": false,
 		},
 	).Tail(to)
@@ -31,7 +32,10 @@ func (cq ChatQueue) GetGameServerMessage(sk string, to time.Duration) (types.Cha
 
 	var cm types.ChatMessage
 	for iter.Next(&cm) {
-		err := cq.collection.Update(bson.M{"_id": cm.ID, "senttouser": false}, bson.M{"$set": bson.M{"senttouser": true}})
+		err := cq.collection.Update(
+			bson.M{"_id": cm.ID, "senttouser": false},
+			bson.M{"$set": bson.M{"senttouser": true}},
+		)
 		if err != nil {
 			if err != mgo.ErrNotFound {
 				log.Printf("MongoDB Error updating message: %v", err)

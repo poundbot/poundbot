@@ -42,7 +42,6 @@ func TestAuthSaver_Run(t *testing.T) {
 			with: &types.DiscordAuth{PlayerID: "game:1001"},
 			want: &types.DiscordAuth{PlayerID: "game:1001"},
 		},
-		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		mockU = nil
@@ -57,7 +56,6 @@ func TestAuthSaver_Run(t *testing.T) {
 			go func() {
 				defer func() { done <- struct{}{} }()
 				if tt.with != nil {
-					t.Logf("Auth %v", tt.with)
 					server.authSuccess <- *tt.with
 				}
 			}()

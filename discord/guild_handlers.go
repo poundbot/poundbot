@@ -30,13 +30,6 @@ func newGuildCreate(as guildCreateAccountStorer, ug guildCreateUserGetter) func(
 func (g guildCreate) guildCreate(s *discordgo.Session, gc *discordgo.GuildCreate) {
 	gcLog := log.WithFields(logrus.Fields{"sys": "guildCreate", "guildID": gc.ID, "guildName": gc.Name})
 
-	for _, channel := range gc.Channels {
-		if channel.Type == discordgo.ChannelTypeGuildText {
-			gcLog.WithField("channel", channel.Name).Trace("Channel found")
-			// channel.Recipients
-		}
-	}
-
 	userIDs := make([]string, len(gc.Members))
 	for i, member := range gc.Members {
 		userIDs[i] = member.User.ID

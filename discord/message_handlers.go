@@ -12,7 +12,7 @@ import (
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	mcLog := log.WithFields(logrus.Fields{"sys": "RUNNER", "guildid": m.GuildID})
+	mcLog := log.WithFields(logrus.Fields{"sys": "RUN", "guildID": m.GuildID})
 	if !c.mls.Obtain(m.ID, "discord") {
 		return
 	}
@@ -80,15 +80,17 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		return
 	}
 
-	// Find the server for the channel and send the message to it
 	for _, server := range account.Servers {
-		sChan, ok := server.ChannelIDForTag("chat")
+		cTags, ok := server.TagsForChannelID(m.ChannelID)
 		if !ok {
 			continue
 		}
-		if sChan == m.ChannelID {
+		csLog := mcLog.WithFields(logrus.Fields{"serverID": server.Key[:4]})
+		for _, cTag := range cTags {
+			csLog.WithFields(logrus.Fields{"t": cTag}).Info("inserting message")
 			cm := types.ChatMessage{
 				ServerKey:   server.Key,
+				Tag:         cTag,
 				DisplayName: m.Author.Username,
 				Message:     m.Message.Content,
 				DiscordInfo: types.DiscordInfo{
@@ -116,10 +118,9 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				}
 				err = c.cqs.InsertMessage(cm)
 				if err != nil {
-					mcLog.WithError(err).Error("Could not send message to Discord")
+					mcLog.WithError(err).Error("Storage error saving message")
 				}
 			}()
-			return
 		}
 	}
 }

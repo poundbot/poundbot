@@ -29,36 +29,54 @@ func (s Server) ChannelIDForTag(tag string) (channel string, found bool) {
 	return "", false
 }
 
-func (s *Server) SetChannelIDForTag(channel string, tag string) {
-	var channelFound bool
+func (s Server) TagsForChannelID(channelID string) (tags []string, found bool) {
+	for i := range s.Channels {
+		if s.Channels[i].ChannelID == channelID {
+			return s.Channels[i].Tags, true
+		}
+	}
+	return tags, false
+}
+
+func (s *Server) RemoveTag(tag string) (found bool) {
+	for i := range s.Channels {
+		sTags := s.Channels[i].Tags
+		for j := range sTags {
+			if tag == sTags[j] {
+				if len(s.Channels[i].Tags) < 2 {
+					s.Channels = append(s.Channels[:i], s.Channels[i+1:]...)
+					return true
+				}
+
+				s.Channels[i].Tags = append(sTags[:j], sTags[j+1:]...)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (s *Server) SetChannelIDForTag(channel string, tag string) (changed bool) {
+	c, found := s.ChannelIDForTag(tag)
+	if found {
+		if c == channel {
+			return false
+		}
+		s.RemoveTag(tag)
+	}
 
 	for i := range s.Channels {
 		var sChan = s.Channels[i].ChannelID
 		var sTags = s.Channels[i].Tags
-		for j, cTag := range sTags {
-			if tag == cTag {
-				if sChan == channel {
-					return
-				}
-				if len(s.Channels[i].Tags) < 2 {
-					s.Channels[i].ChannelID = channel
-					return
-				}
 
-				s.Channels[i].Tags = append(sTags[:j], sTags[j+1:]...)
-				continue
-			}
-		} // for tags
 		if sChan == channel {
 			s.Channels[i].Tags = append(sTags, tag)
-			channelFound = true
-			continue
+			return true
 		}
 	} // for channels
-	if channelFound {
-		return
-	}
+
 	s.Channels = append(s.Channels, ServerChannel{ChannelID: channel, Tags: []string{tag}})
+	return true
 }
 
 func (s Server) UsersClan(playerIDs []string) (bool, Clan) {

@@ -4,12 +4,14 @@ import "github.com/globalsign/mgo/bson"
 
 type ChatMessage struct {
 	ID          bson.ObjectId `bson:"_id,omitempty"`
-	PlayerID    string
 	DiscordInfo `bson:",inline" json:"-"`
-	ServerKey   string `json:"-"`
+	ChannelID   string `json:"-"`
+	ChannelName string
 	ClanTag     string
 	DisplayName string
 	Message     string
-	ChannelID   string `json:"-"`
+	PlayerID    string
 	SentToUser  bool
+	ServerKey   string `json:"-"`
+	Tag         string
 }

@@ -12,7 +12,7 @@ type UserInfoGetter interface {
 }
 
 type ChatQueueStore interface {
-	GetGameServerMessage(serverKey string, timeout time.Duration) (message types.ChatMessage, success bool)
+	GetGameServerMessage(serverKey, tag string, timeout time.Duration) (message types.ChatMessage, success bool)
 	InsertMessage(message types.ChatMessage) error
 }
 
