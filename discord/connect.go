@@ -11,23 +11,23 @@ type sessionOpener interface {
 }
 
 func connect(sess sessionOpener) {
-	log.WithFields(logrus.Fields{"ssys": "connect"}).Info(
+	log.WithFields(logrus.Fields{"sys": "connect"}).Info(
 		"Connecting",
 	)
 	for {
 		err := sess.Open()
 		if err != nil {
-			log.WithFields(logrus.Fields{"ssys": "connect"}).WithError(err).Warn(
+			log.WithFields(logrus.Fields{"sys": "connect"}).WithError(err).Warn(
 				"Error connecting",
 			)
-			log.WithFields(logrus.Fields{"ssys": "connect"}).Warn(
+			log.WithFields(logrus.Fields{"sys": "connect"}).Warn(
 				"Attempting Reconnect...",
 			)
 			time.Sleep(1 * time.Second)
 			continue
 		}
 
-		log.WithFields(logrus.Fields{"ssys": "connect"}).Info(
+		log.WithFields(logrus.Fields{"sys": "connect"}).Info(
 			"Connected",
 		)
 		return

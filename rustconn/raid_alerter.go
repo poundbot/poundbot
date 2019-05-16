@@ -3,10 +3,9 @@ package rustconn
 import (
 	"time"
 
+	"github.com/globalsign/mgo"
 	"github.com/poundbot/poundbot/types"
 )
-
-const raLogPrefix = "[RAIDALERT]"
 
 // A RaidStore stores raid information
 type RaidStore interface {
@@ -17,13 +16,13 @@ type RaidStore interface {
 // A RaidAlerter sends notifications on raids
 type RaidAlerter struct {
 	RaidStore  RaidStore
-	RaidNotify chan types.RaidAlert
+	RaidNotify chan<- types.RaidAlert
 	SleepTime  time.Duration
-	done       chan struct{}
+	done       <-chan struct{}
 }
 
 // NewRaidAlerter constructs a RaidAlerter
-func newRaidAlerter(ral RaidStore, rnc chan types.RaidAlert, done chan struct{}) *RaidAlerter {
+func newRaidAlerter(ral RaidStore, rnc chan<- types.RaidAlert, done <-chan struct{}) *RaidAlerter {
 	return &RaidAlerter{
 		RaidStore:  ral,
 		RaidNotify: rnc,
@@ -35,22 +34,25 @@ func newRaidAlerter(ral RaidStore, rnc chan types.RaidAlert, done chan struct{})
 // Run checks for raids that need to be alerted and sends them
 // out through the RaidNotify channel. It runs in a loop.
 func (r *RaidAlerter) Run() {
-	log.Println(raLogPrefix + " Starting RaidAlerter")
+	raLog := log.WithField("sys", "RALERT")
+	raLog.Info("Starting")
 	for {
 		select {
 		case <-r.done:
-			log.Println(raLogPrefix + "[WARN] Shutting down RaidAlerter")
+			raLog.Warn("Shutting down")
 			return
 		case <-time.After(r.SleepTime):
 			alerts, err := r.RaidStore.GetReady()
-			if err != nil && err.Error() != "not found" {
-				log.Printf("[ERROR] Get Raid Alerts Error: %s\n", err)
+			if err != nil && err != mgo.ErrNotFound {
+				raLog.WithError(err).Error("could not get raid alert")
 				continue
 			}
 
 			for _, result := range alerts {
+				if err := r.RaidStore.Remove(result); err != nil {
+					raLog.WithError(err).Error("storage: Could not remove alert")
+				}
 				r.RaidNotify <- result
-				r.RaidStore.Remove(result)
 			}
 		}
 	}

@@ -3,9 +3,8 @@ package rustconn
 import (
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
+	"github.com/sirupsen/logrus"
 )
-
-const asLogSymbol = "[AUTH] "
 
 type discordAuthRemover interface {
 	Remove(storage.UserInfoGetter) error
@@ -40,25 +39,41 @@ func newAuthSaver(da discordAuthRemover, u userUpserter, as chan types.DiscordAu
 
 // Run updates users sent in through the AuthSuccess channel
 func (a *AuthSaver) Run() {
-	defer log.Println(asLogSymbol + "AuthServer Stopped.")
-	log.Println(asLogSymbol + "Starting AuthServer")
+	rLog := log.WithField("sys", "AUTH")
+	defer rLog.Warn("AuthServer Stopped.")
+	rLog.Info("Starting AuthServer")
 	for {
 		select {
 		case as := <-a.authSuccess:
-			err := a.us.UpsertPlayer(as)
-
-			if err == nil {
-				a.das.Remove(as)
+			rLog = rLog.WithFields(logrus.Fields{
+				"guildID":   as.GuildSnowflake,
+				"playerID":  as.PlayerID,
+				"discordID": as.Snowflake,
+				"name":      as.DiscordName,
+			})
+			rLog.WithField("pin", as.Pin).Info("auth success")
+			if err := a.us.UpsertPlayer(as); err != nil {
+				rLog.WithError(err).Error("storage error saving player")
 				if as.Ack != nil {
-					as.Ack(true)
-				}
-			} else {
-				if as.Ack != nil {
+					rLog.Trace("sending auth failure ACK")
 					as.Ack(false)
 				}
+				continue
+			}
+			if err := a.das.Remove(as); err != nil {
+				log.WithError(err).Error("storage error removing DiscordAuth")
+				if as.Ack != nil {
+					rLog.Trace("sending auth failure ACK")
+					as.Ack(false)
+				}
+				continue
+			}
+
+			if as.Ack != nil {
+				rLog.Trace("sending auth success ACK")
+				as.Ack(true)
 			}
 		case <-a.done:
-			log.Println(asLogSymbol + "Shutting down AuthServer...")
 			return
 		}
 	}

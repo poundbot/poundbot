@@ -38,22 +38,21 @@ type instructAccountUpdater interface {
 func instruct(botID, channelID, authorID, message string, account types.Account, au instructAccountUpdater) instructResponse {
 	guildID := account.GuildSnowflake
 	adminIDs := account.GetAdminIDs()
-	log.WithFields(logrus.Fields{
-		"sys":      "DSCD",
-		"ssys":     "INSTRUCT",
+	iLog := log.WithFields(logrus.Fields{
+		"sys":      "INST",
 		"account":  account.ID.Hex(),
 		"authorid": authorID,
 		"guildid":  guildID,
 		"admins":   adminIDs,
 		"message":  message,
-	}).Trace(
-		localizer.MustLocalize(&i18n.LocalizeConfig{
-			DefaultMessage: &i18n.Message{
-				ID:    "Instruct",
-				Other: "Instruct",
-			},
-		}),
-	)
+	})
+
+	iLog.Trace(localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID:    "Instruct",
+			Other: "Instruct",
+		},
+	}))
 
 	parts := strings.Fields(
 		strings.Replace(
@@ -63,7 +62,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 	)
 
 	if len(parts) == 0 {
-		log.WithFields(logrus.Fields{"ssys": "INSTRUCT"}).Trace("Received instruct with no instructions")
+		iLog.Trace("Received instruct with no instructions")
 		return instructResponse{responseType: instructResponseNone}
 	}
 
@@ -89,9 +88,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 	}
 
 	if !isOwner {
-		log.WithFields(logrus.Fields{"ssys": "INSTRUCT"}).Trace(
-			"Instruction is not from an admin",
-		)
+		iLog.Trace("Instruction is not from an admin")
 		return instructResponse{responseType: instructResponseNone}
 	}
 
@@ -112,7 +109,7 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 		},
 		TemplateData: map[string]string{"Command": command},
 	})
-	log.WithFields(logrus.Fields{"ssys": "INSTRUCT"}).Trace(msg)
+	iLog.Trace(msg)
 
 	return instructResponse{
 		responseType: instructResponseChannel,
@@ -121,7 +118,13 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 }
 
 func instructServer(parts []string, channelID, guildID string, account types.Account, au instructAccountUpdater) instructResponse {
+	isLog := log.WithFields(logrus.Fields{"sys": "instructServer",
+		"guildID":   guildID,
+		"channelID": channelID,
+		"accountID": account.ID.Hex(),
+	})
 	if len(parts) == 0 {
+		isLog.Trace("Empty instruct")
 		return instructResponse{message: "TODO: Server Usage. See `help`."}
 	}
 
@@ -141,6 +144,8 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 
 	switch parts[0] {
 	case listCmd:
+		isLog = isLog.WithField("cmd", "server list")
+		isLog.Trace("server list")
 		buf := new(bytes.Buffer)
 		w := tabwriter.NewWriter(buf, 0, 0, 3, ' ', 0)
 
@@ -157,6 +162,8 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		out := buf.String()
 		return instructResponse{message: out}
 	case addCmd:
+		isLog = isLog.WithField("cmd", "server add")
+		isLog.Trace("server add")
 		if len(parts) < 2 {
 			return instructResponse{
 				responseType: instructResponseChannel,
@@ -170,8 +177,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		}
 		ruid, err := uuid.NewV4()
 		if err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server add"}).
-				Error("error creating uuid")
+			isLog.WithError(err).Error("error creating uuid")
 			return instructResponse{responseType: instructResponseNone}
 		}
 		server := types.Server{
@@ -180,7 +186,11 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			Channels:  []types.ServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
 			RaidDelay: "1m",
 		}
-		au.AddServer(guildID, server)
+		err = au.AddServer(guildID, server)
+		if err != nil {
+			isLog.WithError(err).Error("could not add server")
+			return instructResponse{message: "Internal error adding server. Please try again."}
+		}
 		return instructResponse{message: messages.ServerKeyMessage(server.Name, server.Key)}
 	}
 
@@ -249,22 +259,24 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 
 	switch instructions[0] {
 	case resetCmd:
+		isLog = isLog.WithField("cmd", "server reset")
+		isLog.Trace("server reset")
 		ruid, err := uuid.NewV4()
 		if err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server reset"}).
-				Error("error creating uuid")
+			isLog.WithError(err).Error("error creating uuid")
 			return instructResponse{responseType: instructResponseNone}
 		}
 		oldKey := server.Key
 		server.Key = ruid.String()
 
 		if err = au.UpdateServer(guildID, oldKey, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server reset"}).
-				Error("storage error updating server")
+			isLog.WithError(err).Error("storage error updating server")
 		}
 
 		return instructResponse{message: messages.ServerKeyMessage(server.Name, server.Key)}
 	case renameCmd:
+		isLog = isLog.WithField("cmd", "server rename")
+		isLog.Trace("server rename")
 		if len(instructions) < 2 {
 			return instructResponse{
 				responseType: instructResponseChannel,
@@ -279,8 +291,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		server.Name = strings.Join(instructions[1:], " ")
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server rename"}).
-				Error("storage error updating server")
+			isLog.WithError(err).Error("storage error updating server")
 		}
 
 		return instructResponse{
@@ -308,12 +319,14 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			}),
 		}
 	case chathereCmd:
+		isLog = isLog.WithField("cmd", "server chathere")
+		isLog.Trace("server chathere")
 		server.SetChannelIDForTag(channelID, "chat")
 		server.SetChannelIDForTag(channelID, "serverchat")
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server chathere"}).
-				Error("storage error updating server")
+			isLog.WithError(err).Error("storage error updating server")
+			return instructResponse{message: "Internal error. Please try again."}
 		}
 
 		return instructResponse{
@@ -330,6 +343,8 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			}),
 		}
 	case raidDelayCmd:
+		isLog = isLog.WithField("cmd", "server raidDelay")
+		isLog.Trace("server raidDelay")
 		if len(instructions) != 2 {
 			return instructResponse{
 				responseType: instructResponseChannel,
@@ -357,12 +372,23 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		server.RaidDelay = instructions[1]
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
-			log.WithError(err).WithFields(logrus.Fields{"ssys": "INTERACT", "cmd": "server raiddelay"}).
-				Error("storage error updating server")
+			isLog.WithError(err).Error("storage error updating server")
+			return instructResponse{message: "Internal error. Please try again."}
 		}
+
 		return instructResponse{
 			responseType: instructResponseChannel,
-			message:      fmt.Sprintf("RaidDelay for %d:%s is now %s", serverID+1, server.Name, server.RaidDelay),
+			message: localizer.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "InstructCommandServerChatHereResponse",
+					Other: "RaidDelay for {{.ID}}:{{.Name}} is now {{.RaidDelay}}",
+				},
+				TemplateData: map[string]string{
+					"Name":      server.Name,
+					"ID":        fmt.Sprint(serverID + 1),
+					"RaidDelay": server.RaidDelay,
+				},
+			}), //fmt.Sprintf("RaidDelay for %d:%s is now %s", serverID+1, server.Name, server.RaidDelay),
 		}
 	}
 	return instructResponse{responseType: instructResponseNone}
