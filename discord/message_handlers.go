@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -123,4 +124,38 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			}()
 		}
 	}
+}
+
+func canSendToChannel(s *discordgo.Session, channelID string) bool {
+	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
+
+	if err != nil || discordgo.PermissionSendMessages&^perms != 0 {
+		log.WithError(err).Error("cannot send to channel")
+		return false
+	}
+	return true
+}
+
+func (c Client) sendChannelMessage(channelID, message string) error {
+	if !canSendToChannel(c.session, channelID) {
+		return errors.New("cannot send to channel")
+	}
+	_, err := c.session.ChannelMessageSend(channelID, message)
+	return err
+}
+
+func (c Client) sendPrivateMessage(snowflake, message string) error {
+	channel, err := c.session.UserChannelCreate(snowflake)
+
+	if err != nil {
+		log.WithError(err).Error("Error creating user channel")
+		return err
+	}
+
+	_, err = c.session.ChannelMessageSend(
+		channel.ID,
+		message,
+	)
+
+	return err
 }

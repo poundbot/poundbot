@@ -46,7 +46,7 @@ func newDiscordChat(cm types.ChatMessage) discordChat {
 // A Chat is for handling discord <-> rust chat
 type chat struct {
 	cqs        chatQueue
-	in         chan types.ChatMessage
+	in         chan<- types.ChatMessage
 	timeout    time.Duration
 	minVersion semver.Version
 }
@@ -56,7 +56,7 @@ type chat struct {
 // ls is the log symbol
 // in is the channel for server -> discord
 // out is the channel for discord -> server
-func newChat(ls string, cq chatQueue, in chan types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
+func newChat(cq chatQueue, in chan<- types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
 
 	c := chat{
 		cqs:        cq,
@@ -69,8 +69,6 @@ func newChat(ls string, cq chatQueue, in chan types.ChatMessage) func(w http.Res
 }
 
 // Handle manages Rust <-> discord chat requests and logging
-// Discord -> Rust is through the "out" chan and Rust -> Discord is
-// through the "in" chan.
 //
 // HTTP POST requests are sent to the "in" chan
 //

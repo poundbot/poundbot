@@ -23,12 +23,12 @@ type userUpserter interface {
 type AuthSaver struct {
 	das         discordAuthRemover
 	us          userUpserter
-	authSuccess chan types.DiscordAuth
-	done        chan struct{}
+	authSuccess <-chan types.DiscordAuth
+	done        <-chan struct{}
 }
 
 // NewAuthSaver creates a new AuthSaver
-func newAuthSaver(da discordAuthRemover, u userUpserter, as chan types.DiscordAuth, done chan struct{}) *AuthSaver {
+func newAuthSaver(da discordAuthRemover, u userUpserter, as <-chan types.DiscordAuth, done <-chan struct{}) *AuthSaver {
 	return &AuthSaver{
 		das:         da,
 		us:          u,
@@ -44,7 +44,10 @@ func (a *AuthSaver) Run() {
 	rLog.Info("Starting AuthServer")
 	for {
 		select {
-		case as := <-a.authSuccess:
+		case as, more := <-a.authSuccess:
+			if !more {
+				continue
+			}
 			rLog = rLog.WithFields(logrus.Fields{
 				"guildID":   as.GuildSnowflake,
 				"playerID":  as.PlayerID,

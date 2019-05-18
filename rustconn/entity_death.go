@@ -33,7 +33,7 @@ type entityDeath struct {
 	minVersion semver.Version
 }
 
-func newEntityDeath(logPrefix string, ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
+func newEntityDeath(ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
 	ed := entityDeath{ras: ras, minVersion: semver.Version{Major: 1}}
 	return ed.Handle
 }

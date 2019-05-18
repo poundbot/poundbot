@@ -124,20 +124,20 @@ func TestChat_Handle(t *testing.T) {
 
 			var wg sync.WaitGroup
 
-			// tt.s.timeout = time.Second
 			tt.s.cqs = &chatQueueMock{message: tt.dMessage}
 
 			// Collect any incoming messages
 			if tt.rMessage != nil {
-				tt.s.in = make(chan types.ChatMessage, 1)
-				defer close(tt.s.in)
+				in := make(chan types.ChatMessage, 1)
+				defer close(in)
+				tt.s.in = in
 
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
 					for {
 						select {
-						case result := <-tt.s.in:
+						case result := <-in:
 							messageFromRust = &result
 							return
 						case <-time.After(10 * time.Second):

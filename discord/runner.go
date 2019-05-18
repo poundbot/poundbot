@@ -1,7 +1,6 @@
 package discord
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -21,34 +20,36 @@ type RunnerConfig struct {
 }
 
 type Client struct {
-	session       *discordgo.Session
-	cqs           storage.ChatQueueStore
-	as            storage.AccountsStore
-	mls           storage.MessageLocksStore
-	das           storage.DiscordAuthsStore
-	us            storage.UsersStore
-	token         string
-	status        chan bool
-	ChatChan      chan types.ChatMessage
-	RaidAlertChan chan types.RaidAlert
-	DiscordAuth   chan types.DiscordAuth
-	AuthSuccess   chan types.DiscordAuth
-	shutdown      bool
+	session         *discordgo.Session
+	cqs             storage.ChatQueueStore
+	as              storage.AccountsStore
+	mls             storage.MessageLocksStore
+	das             storage.DiscordAuthsStore
+	us              storage.UsersStore
+	token           string
+	status          chan bool
+	ChatChan        chan types.ChatMessage
+	RaidAlertChan   chan types.RaidAlert
+	DiscordAuth     chan types.DiscordAuth
+	GameMessageChan chan types.GameMessage
+	AuthSuccess     chan types.DiscordAuth
+	shutdown        bool
 }
 
 func Runner(token string, as storage.AccountsStore, das storage.DiscordAuthsStore,
 	us storage.UsersStore, mls storage.MessageLocksStore, cqs storage.ChatQueueStore) *Client {
 	return &Client{
-		cqs:           cqs,
-		mls:           mls,
-		as:            as,
-		das:           das,
-		us:            us,
-		token:         token,
-		ChatChan:      make(chan types.ChatMessage),
-		DiscordAuth:   make(chan types.DiscordAuth),
-		AuthSuccess:   make(chan types.DiscordAuth),
-		RaidAlertChan: make(chan types.RaidAlert),
+		cqs:             cqs,
+		mls:             mls,
+		as:              as,
+		das:             das,
+		us:              us,
+		token:           token,
+		ChatChan:        make(chan types.ChatMessage),
+		DiscordAuth:     make(chan types.DiscordAuth),
+		AuthSuccess:     make(chan types.DiscordAuth),
+		RaidAlertChan:   make(chan types.RaidAlert),
+		GameMessageChan: make(chan types.GameMessage),
 	}
 }
 
@@ -129,91 +130,14 @@ func (c *Client) runner() {
 						c.sendPrivateMessage(user.ID, t.String())
 					}()
 
-				case t := <-c.DiscordAuth:
-					dLog := rLog.WithFields(logrus.Fields{
-						"chan":    "DAUTH",
-						"guildID": t.GuildSnowflake,
-						"name":    t.DiscordInfo.DiscordName,
-						"userID":  t.Snowflake,
-					})
-					dLog.Trace("Got discord auth")
-					dUser, err := c.getUserByName(t.GuildSnowflake, t.DiscordInfo.DiscordName)
-					if err != nil {
-						dLog.WithError(err).Error("Discord user not found")
-						err = c.das.Remove(t)
-						if err != nil {
-							dLog.WithError(err).Error("Error removing discord auth for PlayerID from the database.")
-						}
-						break
-					}
+				case da := <-c.DiscordAuth:
+					go c.discordAuthHandler(da)
 
-					t.Snowflake = dUser.ID
+				case m := <-c.GameMessageChan:
+					go gameMessageHandler(m, c.session.State.Guild, c.sendChannelMessage)
 
-					err = c.das.Upsert(t)
-					if err != nil {
-						dLog.WithError(err).Error("Error upserting PlayerID ito the database")
-						break
-					}
-
-					err = c.sendPrivateMessage(t.Snowflake,
-						localizer.MustLocalize(&i18n.LocalizeConfig{
-							DefaultMessage: &i18n.Message{
-								ID:    "UserPINPrompt",
-								Other: "Enter the PIN provided in-game to validate your account.\nOnce you are validated, you will begin receiving raid alerts!",
-							},
-						}),
-					)
-
-					if err != nil {
-						dLog.WithError(err).Error("Could not send PIN request to user")
-					}
-
-				case t := <-c.ChatChan:
-					ccLog := log.WithFields(logrus.Fields{
-						"cmd":         "ChatChan",
-						"playerID":    t.PlayerID,
-						"name":        t.DisplayName,
-						"dName":       t.DiscordName,
-						"guildID":     t.Snowflake,
-						"channelName": t.ChannelName,
-					})
-					var clan = ""
-					if t.ClanTag != "" {
-						clan = fmt.Sprintf("[%s] ", t.ClanTag)
-					}
-
-					channelID := ""
-
-					if t.ChannelName != "" {
-						if t.Snowflake == "" {
-							ccLog.Error("no guild id provided with channel name")
-							continue
-						}
-						guild, err := c.session.State.Guild(t.Snowflake)
-						if err != nil {
-							ccLog.WithError(err).Error("Could not get guild from session")
-							continue
-						}
-						for _, gChan := range guild.Channels {
-							ccLog.WithField("guildChan", gChan.Name).Trace("checking for channel match")
-							if gChan.Name == t.ChannelName {
-								channelID = gChan.ID
-								break
-							}
-						}
-					} else {
-						channelID = t.ChannelID
-					}
-
-					err := c.sendChannelMessage(
-						channelID,
-						fmt.Sprintf("☢️ @%s **%s%s**: %s",
-							iclock().Now().UTC().Format("01-02 15:04 MST"),
-							clan, escapeDiscordString(t.DisplayName), escapeDiscordString(t.Message)),
-					)
-					if err != nil {
-						ccLog.WithError(err).Error("Error sending chat to channel.")
-					}
+				case cm := <-c.ChatChan:
+					go gameChatHandler(cm, c.session.State.Guild, c.sendChannelMessage)
 				}
 			}
 		}
@@ -229,6 +153,46 @@ func (c *Client) runner() {
 		}
 	}
 
+}
+
+func (c *Client) discordAuthHandler(da types.DiscordAuth) {
+	dLog := log.WithFields(logrus.Fields{
+		"chan":    "DAUTH",
+		"guildID": da.GuildSnowflake,
+		"name":    da.DiscordInfo.DiscordName,
+		"userID":  da.Snowflake,
+	})
+	dLog.Trace("Got discord auth")
+	dUser, err := c.getUserByName(da.GuildSnowflake, da.DiscordInfo.DiscordName)
+	if err != nil {
+		dLog.WithError(err).Error("Discord user not found")
+		err = c.das.Remove(da)
+		if err != nil {
+			dLog.WithError(err).Error("Error removing discord auth for PlayerID from the database.")
+		}
+		return
+	}
+
+	da.Snowflake = dUser.ID
+
+	err = c.das.Upsert(da)
+	if err != nil {
+		dLog.WithError(err).Error("Error upserting PlayerID ito the database")
+		return
+	}
+
+	err = c.sendPrivateMessage(da.Snowflake,
+		localizer.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "UserPINPrompt",
+				Other: "Enter the PIN provided in-game to validate your account.\nOnce you are validated, you will begin receiving raid alerts!",
+			},
+		}),
+	)
+
+	if err != nil {
+		dLog.WithError(err).Error("Could not send PIN request to user")
+	}
 }
 
 func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
@@ -253,39 +217,6 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	}
 	c.as.RemoveNotInDiscordGuildList(guilds)
 	c.status <- true
-}
-
-func canSendToChannel(s *discordgo.Session, channelID string) bool {
-	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
-	if err != nil || discordgo.PermissionSendMessages&^perms != 0 {
-		log.WithError(err).Error("cannot send to channel")
-		return false
-	}
-	return true
-}
-
-func (c Client) sendChannelMessage(channelID, message string) error {
-	if !canSendToChannel(c.session, channelID) {
-		return errors.New("cannot send to channel")
-	}
-	_, err := c.session.ChannelMessageSend(channelID, message)
-	return err
-}
-
-func (c Client) sendPrivateMessage(snowflake, message string) error {
-	channel, err := c.session.UserChannelCreate(snowflake)
-
-	if err != nil {
-		log.WithError(err).Error("Error creating user channel")
-		return err
-	}
-
-	_, err = c.session.ChannelMessageSend(
-		channel.ID,
-		message,
-	)
-
-	return err
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error

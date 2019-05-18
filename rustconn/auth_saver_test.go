@@ -16,20 +16,20 @@ func TestAuthSaver_Run(t *testing.T) {
 
 	tests := []struct {
 		name string
-		a    func() *AuthSaver
+		a    func(<-chan types.DiscordAuth) *AuthSaver
 		with *types.DiscordAuth
 		want *types.DiscordAuth
 	}{
 		{
 			name: "With nothing",
-			a: func() *AuthSaver {
-				return newAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
+			a: func(ch <-chan types.DiscordAuth) *AuthSaver {
+				return newAuthSaver(mockDA, mockU, ch, done)
 			},
 		},
 		{
 			name: "With AuthSuccess",
 
-			a: func() *AuthSaver {
+			a: func(ch <-chan types.DiscordAuth) *AuthSaver {
 				result := types.DiscordAuth{PlayerID: "game:1001"}
 				mockU = &mocks.UsersStore{}
 				mockU.On("UpsertPlayer", result).Return(nil)
@@ -37,7 +37,7 @@ func TestAuthSaver_Run(t *testing.T) {
 				mockDA = &mocks.DiscordAuthsStore{}
 				mockDA.On("Remove", result).Return(nil)
 
-				return newAuthSaver(mockDA, mockU, make(chan types.DiscordAuth), done)
+				return newAuthSaver(mockDA, mockU, ch, done)
 			},
 			with: &types.DiscordAuth{PlayerID: "game:1001"},
 			want: &types.DiscordAuth{PlayerID: "game:1001"},
@@ -51,12 +51,14 @@ func TestAuthSaver_Run(t *testing.T) {
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
-			var server = tt.a()
+			ch := make(chan types.DiscordAuth)
+			var server = tt.a(ch)
 
 			go func() {
 				defer func() { done <- struct{}{} }()
+				defer close(ch)
 				if tt.with != nil {
-					server.authSuccess <- *tt.with
+					ch <- *tt.with
 				}
 			}()
 

@@ -12,7 +12,7 @@ import (
 type discordAuth struct {
 	das storage.DiscordAuthsStore
 	us  storage.UsersStore
-	dac chan types.DiscordAuth
+	dac chan<- types.DiscordAuth
 }
 
 type deprecatedDiscordAuth struct {
@@ -27,7 +27,7 @@ func (d *deprecatedDiscordAuth) upgrade() {
 	d.PlayerID = fmt.Sprintf("%d", d.SteamID)
 }
 
-func newDiscordAuth(logPrefix string, das storage.DiscordAuthsStore, us storage.UsersStore, dac chan types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
+func newDiscordAuth(das storage.DiscordAuthsStore, us storage.UsersStore, dac chan<- types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
 	da := discordAuth{das: das, us: us, dac: dac}
 	return da.Handle
 }

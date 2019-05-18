@@ -151,11 +151,12 @@ func main() {
 	server := rustconn.NewServer(
 		webConfig,
 		rustconn.ServerChannels{
-			RaidNotify:  dr.RaidAlertChan,
-			DiscordAuth: dr.DiscordAuth,
-			AuthSuccess: dr.AuthSuccess,
-			ChatChan:    dr.ChatChan,
-			ChatQueue:   store.ChatQueue(),
+			RaidNotify:      dr.RaidAlertChan,
+			DiscordAuth:     dr.DiscordAuth,
+			AuthSuccess:     dr.AuthSuccess,
+			ChatChan:        dr.ChatChan,
+			GameMessageChan: dr.GameMessageChan,
+			ChatQueue:       store.ChatQueue(),
 		},
 	)
 

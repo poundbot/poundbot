@@ -38,7 +38,7 @@ type clans struct {
 	as storage.AccountsStore
 }
 
-func newClans(logPrefix string, as storage.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
+func newClans(as storage.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
 	c := clans{as: as}
 	return c.Handle
 }
@@ -86,7 +86,7 @@ type clan struct {
 	as storage.AccountsStore
 }
 
-func newClan(logPrefix string, as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
+func newClan(as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
 	c := clan{as: as}
 	return c.Handle
 }

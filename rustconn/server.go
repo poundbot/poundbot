@@ -14,8 +14,6 @@ import (
 
 const upgradeURL = "https://umod.org/plugins/pound-bot"
 
-var logPrefix = "[RC]"
-
 // ServerConfig contains the base Server configuration
 type ServerConfig struct {
 	BindAddr string
@@ -24,11 +22,12 @@ type ServerConfig struct {
 }
 
 type ServerChannels struct {
-	RaidNotify  chan types.RaidAlert
-	DiscordAuth chan types.DiscordAuth
-	AuthSuccess chan types.DiscordAuth
-	ChatChan    chan types.ChatMessage
-	ChatQueue   storage.ChatQueueStore
+	RaidNotify      chan<- types.RaidAlert
+	DiscordAuth     chan<- types.DiscordAuth
+	AuthSuccess     <-chan types.DiscordAuth
+	ChatChan        chan<- types.ChatMessage
+	GameMessageChan chan<- types.GameMessage
+	ChatQueue       storage.ChatQueueStore
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.
@@ -59,24 +58,24 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	api.Use(requestUUID.Handle)
 	api.HandleFunc(
 		"/entity_death",
-		newEntityDeath(logPrefix, sc.Storage.RaidAlerts()),
+		newEntityDeath(sc.Storage.RaidAlerts()),
 	)
 	api.HandleFunc(
 		"/discord_auth",
-		newDiscordAuth(logPrefix, sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
+		newDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
-	api.HandleFunc(
-		"/chat",
-		newChat(logPrefix, channels.ChatQueue, channels.ChatChan),
-	).Methods(http.MethodGet, http.MethodPost)
-	api.HandleFunc(
-		"/clans",
-		newClans(logPrefix, sc.Storage.Accounts()),
-	).Methods(http.MethodPut)
-	api.HandleFunc(
-		"/clans/{tag}",
-		newClan(logPrefix, sc.Storage.Accounts(), sc.Storage.Users()),
-	).Methods(http.MethodDelete, http.MethodPut)
+	api.HandleFunc("/chat", newChat(channels.ChatQueue, channels.ChatChan)).
+		Methods(http.MethodGet, http.MethodPost)
+
+	api.HandleFunc("/messages/{channel}", newMessages(channels.GameMessageChan)).
+		Methods(http.MethodPost)
+
+	api.HandleFunc("/clans", newClans(sc.Storage.Accounts())).
+		Methods(http.MethodPut)
+
+	api.HandleFunc("/clans/{tag}", newClan(sc.Storage.Accounts(), sc.Storage.Users())).
+		Methods(http.MethodDelete, http.MethodPut)
+
 	api.HandleFunc("/players/registered", newRegisteredPlayers()).Methods(http.MethodGet)
 
 	s.Handler = r
