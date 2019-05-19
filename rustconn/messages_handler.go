@@ -2,7 +2,7 @@ package rustconn
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
@@ -39,13 +39,14 @@ func (mh *messages) Handle(w http.ResponseWriter, r *http.Request) {
 
 	sc, err := getServerContext(r.Context())
 	if err != nil {
-		log.Info(fmt.Sprintf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error()))
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
 		})
 		return
 	}
+
+	mhLog := log.WithFields(logrus.Fields{"handler": "messages", "requestID": sc.requestUUID, "accountID": sc.account.ID.Hex(), "serverName": sc.server.Name})
 
 	switch r.Method {
 	case http.MethodPost:
@@ -54,12 +55,12 @@ func (mh *messages) Handle(w http.ResponseWriter, r *http.Request) {
 
 		err := decoder.Decode(&message)
 		if err != nil {
-			log.WithError(err).Error(fmt.Sprintf("[%s](%s:%s) Invalid JSON", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name))
+			mhLog.WithError(err).Error("Invalid JSON")
 			if err := handleError(w, types.RESTError{
 				Error:      "Invalid request",
 				StatusCode: http.StatusBadRequest,
 			}); err != nil {
-				log.WithError(err).Error("http response failed to write")
+				mhLog.WithError(err).Error("http response failed to write")
 			}
 			return
 		}
@@ -69,19 +70,19 @@ func (mh *messages) Handle(w http.ResponseWriter, r *http.Request) {
 		eChan := make(chan error)
 		message.ErrorResponse = eChan
 
-		log.WithField("message", message).Info("message")
+		mhLog.WithField("message", message).Trace("message")
 
 		// sending message
 		select {
 		case mh.mChan <- message:
 			break
 		case <-time.After(mh.timeout):
-			log.Error("timed out sending message to channel")
+			mhLog.Error("timed out sending message to channel")
 			if err := handleError(w, types.RESTError{
 				Error:      "internal error sending message to discord handler",
 				StatusCode: http.StatusInternalServerError,
 			}); err != nil {
-				log.WithError(err).Error("http response failed to write")
+				mhLog.WithError(err).Error("http response failed to write")
 			}
 			return
 		}
@@ -98,21 +99,21 @@ func (mh *messages) Handle(w http.ResponseWriter, r *http.Request) {
 				default:
 					status = http.StatusInternalServerError
 				}
-				log.WithError(err).Error("error from discord handler")
+				mhLog.WithError(err).Error("error from discord handler")
 				if err := handleError(w, types.RESTError{
 					Error:      err.Error(),
 					StatusCode: status,
 				}); err != nil {
-					log.WithError(err).Error("http response failed to write")
+					mhLog.WithError(err).Error("http response failed to write")
 				}
 			}
 		case <-time.After(mh.timeout):
-			log.Error("timed out receiving discord response")
+			mhLog.Error("timed out receiving discord response")
 			if err := handleError(w, types.RESTError{
 				Error:      "internal error receiving discord response",
 				StatusCode: http.StatusInternalServerError,
 			}); err != nil {
-				log.WithError(err).Error("http response failed to write")
+				mhLog.WithError(err).Error("http response failed to write")
 			}
 		}
 	}

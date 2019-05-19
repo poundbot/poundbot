@@ -53,9 +53,8 @@ type chat struct {
 
 // NewChat initializes a chat handler and returns it
 //
-// ls is the log symbol
+// cq is the chatQueue for reading messages from
 // in is the channel for server -> discord
-// out is the channel for discord -> server
 func newChat(cq chatQueue, in chan<- types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
 
 	c := chat{
@@ -80,7 +79,9 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 	version, err := semver.Make(r.Header.Get("X-PoundBotBetterChat-Version"))
 	if err == nil && version.LT(c.minVersion) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("PoundBotBetterChat must be updated. Please download the latest version at " + upgradeURL))
+		if _, err := w.Write([]byte("PoundBotBetterChat must be updated. Please download the latest version at " + upgradeURL)); err != nil {
+			log.WithError(err).Error("Could not write output")
+		}
 		return
 	}
 
