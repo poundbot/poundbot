@@ -102,19 +102,19 @@ func guildMemberAdd(uf userFinder, gma guildMemberAdder, gID, uID string) {
 	gmaLog := log.WithFields(logrus.Fields{"sys": "guildMemberAdd", "guildID": gID, "userID": uID})
 	user, err := uf.GetByDiscordID(uID)
 	if err != nil {
-		gmaLog.WithError(err).Error("Error finding user")
+		gmaLog.WithError(err).Trace("Error finding user")
 		return
 	}
 	_, err = gma.GetByDiscordGuild(gID)
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			gmaLog.WithError(err).Error("Could not get account for guild")
+			gmaLog.WithError(err).Trace("Could not get account for guild")
 		}
 		return
 	}
 	err = gma.AddRegisteredPlayerIDs(gID, user.PlayerIDs)
 	if err != nil {
-		gmaLog.WithError(err).Error("Could not add player IDs to account")
+		gmaLog.WithError(err).Error("Storage error: Could not add player IDs to account")
 	}
 }
 
