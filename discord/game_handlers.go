@@ -11,10 +11,11 @@ import (
 )
 
 type gameDiscordMessageSender func(string, string) error
+type gameDiscordEmbedSender func(string, string, int) error
 type guildFinder func(string) (*discordgo.Guild, error)
 
 // gameMessageHandler handles the messages interface from games
-func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDiscordMessageSender) {
+func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDiscordMessageSender, sendEmbed gameDiscordEmbedSender) {
 	defer close(m.ErrorResponse)
 
 	mhLog := log.WithFields(logrus.Fields{
@@ -57,12 +58,28 @@ func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDis
 		return
 	}
 
-	err = sendMessage(channelID, escapeDiscordString(m.Message))
+	var message string
+	for i := range m.MessageParts {
+		switch m.MessageParts[i].Escape {
+		case true:
+			message = message + escapeDiscordString(m.MessageParts[i].Content)
+		case false:
+			message = message + m.MessageParts[i].Content
+		}
+	}
+
+	switch m.Type {
+	case types.GameMessageTypePlain:
+		err = sendMessage(channelID, message)
+	case types.GameMessageTypeEmbed:
+		err = sendEmbed(channelID, message, m.EmbedStyle.ColorInt())
+	}
 	if err != nil {
 		m.ErrorResponse <- errors.New("could not send to channel")
 		mhLog.WithError(err).Error("Error sending chat to channel")
 		return
 	}
+
 }
 
 // gameChatHandler handles game chat messages

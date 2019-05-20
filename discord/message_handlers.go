@@ -46,7 +46,11 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 		mcLog.WithField("guildID", guild.OwnerID).Info("Setting owner")
 		account.OwnerSnowflake = guild.OwnerID
-		c.as.UpsertBase(account.BaseAccount)
+		err = c.as.UpsertBase(account.BaseAccount)
+		if err != nil {
+			mcLog.WithError(err).Error("Storage error updating account")
+			return
+		}
 	}
 
 	var response instructResponse
@@ -109,13 +113,16 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				}
 				if len(cm.Message) > 128 {
 					cm.Message = truncateString(cm.Message, 128)
-					c.session.ChannelMessageSend(m.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
+					err = c.sendChannelMessage(m.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
 						DefaultMessage: &i18n.Message{
 							ID:    "TruncatedMessage",
 							Other: "*Truncated message to {{.Message}}",
 						},
 						TemplateData: map[string]string{"Message": cm.Message},
 					}))
+					if err != nil {
+						csLog.WithError(err).Error("Error sendingmessage")
+					}
 				}
 				err = c.cqs.InsertMessage(cm)
 				if err != nil {
@@ -126,21 +133,24 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 }
 
-func canSendToChannel(s *discordgo.Session, channelID string) bool {
-	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
-
-	if err != nil || discordgo.PermissionSendMessages&^perms != 0 {
-		log.WithError(err).Error("cannot send to channel")
-		return false
-	}
-	return true
-}
-
 func (c Client) sendChannelMessage(channelID, message string) error {
 	if !canSendToChannel(c.session, channelID) {
 		return errors.New("cannot send to channel")
 	}
+
 	_, err := c.session.ChannelMessageSend(channelID, message)
+	return err
+}
+
+func (c Client) sendChannelEmbed(channelID, message string, color int) error {
+	if !canSendToChannel(c.session, channelID) {
+		return errors.New("cannot send to channel")
+	}
+
+	_, err := c.session.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+		Description: message,
+		Color:       color,
+	})
 	return err
 }
 
@@ -158,4 +168,14 @@ func (c Client) sendPrivateMessage(snowflake, message string) error {
 	)
 
 	return err
+}
+
+func canSendToChannel(s *discordgo.Session, channelID string) bool {
+	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
+
+	if err != nil || discordgo.PermissionSendMessages&^perms != 0 {
+		log.WithError(err).Error("cannot send to channel")
+		return false
+	}
+	return true
 }

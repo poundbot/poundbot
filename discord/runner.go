@@ -127,14 +127,17 @@ func (c *Client) runner() {
 							return
 						}
 
-						c.sendPrivateMessage(user.ID, t.String())
+						err = c.sendPrivateMessage(user.ID, t.String())
+						if err != nil {
+							raLog.WithError(err).Error("could not create private channel to send to user")
+						}
 					}()
 
 				case da := <-c.DiscordAuth:
 					go c.discordAuthHandler(da)
 
 				case m := <-c.GameMessageChan:
-					go gameMessageHandler(m, c.session.State.Guild, c.sendChannelMessage)
+					go gameMessageHandler(m, c.session.State.Guild, c.sendChannelMessage, c.sendChannelEmbed)
 
 				case cm := <-c.ChatChan:
 					go gameChatHandler(cm, c.session.State.Guild, c.sendChannelMessage)
@@ -205,27 +208,27 @@ func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.WithField("sys", "CONN").Info("Connection Ready")
 
-	s.UpdateStatus(0, localizer.MustLocalize(&i18n.LocalizeConfig{
+	if err := s.UpdateStatus(0, localizer.MustLocalize(&i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
 			ID:    "DiscordStatus",
 			Other: "!pb help",
 		}}),
-	)
+	); err != nil {
+		log.WithError(err).Error("failed to update bot status")
+	}
+
 	guilds := make([]types.BaseAccount, len(s.State.Guilds))
 	for i, guild := range s.State.Guilds {
 		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
 	}
-	c.as.RemoveNotInDiscordGuildList(guilds)
+	if err := c.as.RemoveNotInDiscordGuildList(guilds); err != nil {
+		log.WithError(err).Error("could not sync discord guilds")
+	}
 	c.status <- true
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error
 func (c *Client) getUserByName(guildSnowflake, name string) (discordgo.User, error) {
-	// users, err := c.session.GuildMembers(guildSnowflake, "", 1000)
-	// if err != nil {
-	// 	return discordgo.User{}, fmt.Errorf("discord user not found %s in %s", name, guildSnowflake)
-	// }
-
 	guild, err := c.session.State.Guild(guildSnowflake)
 	if err != nil {
 		return discordgo.User{}, fmt.Errorf("guild %s not found searching for user %s", guildSnowflake, name)
