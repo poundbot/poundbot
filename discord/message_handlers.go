@@ -174,7 +174,7 @@ func canSendToChannel(s *discordgo.Session, channelID string) bool {
 	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
 
 	if err != nil || discordgo.PermissionSendMessages&^perms != 0 {
-		log.WithError(err).Error("cannot send to channel")
+		log.WithError(err).WithField("channelID", channelID).Error("canSendToChannel: cannot send to channel")
 		return false
 	}
 	return true

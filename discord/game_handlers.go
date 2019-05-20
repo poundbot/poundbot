@@ -19,7 +19,7 @@ func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDis
 	defer close(m.ErrorResponse)
 
 	mhLog := log.WithFields(logrus.Fields{
-		"cmd":         "ChatChan",
+		"cmd":         "Message",
 		"channelName": m.ChannelName,
 	})
 
@@ -44,9 +44,10 @@ func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDis
 		mhLog.WithError(err).Error("Could not get guild from session")
 		return
 	}
+
 	for _, gChan := range guild.Channels {
 		mhLog.WithField("guildChan", gChan.Name).Trace("checking for channel match")
-		if gChan.Name == m.ChannelName {
+		if gChan.Type == discordgo.ChannelTypeGuildText && (gChan.Name == m.ChannelName || gChan.ID == m.ChannelName) {
 			channelID = gChan.ID
 			break
 		}
@@ -98,35 +99,13 @@ func gameChatHandler(cm types.ChatMessage, gf guildFinder, sendMessage gameDisco
 		clan = fmt.Sprintf("[%s] ", cm.ClanTag)
 	}
 
-	channelID := ""
-
-	if cm.ChannelName != "" {
-		if cm.Snowflake == "" {
-			ccLog.Error("no guild id provided with channel name")
-			return
-		}
-
-		guild, err := gf(cm.Snowflake)
-		if err != nil {
-			ccLog.WithError(err).Error("Could not get guild from session")
-			return
-		}
-
-		for _, gChan := range guild.Channels {
-			ccLog.WithField("guildChan", gChan.Name).Trace("checking for channel match")
-			if gChan.Name == cm.ChannelName {
-				channelID = gChan.ID
-				break
-			}
-		}
-	}
-
 	err := sendMessage(
-		channelID,
+		cm.ChannelID,
 		fmt.Sprintf("☢️ @%s **%s%s**: %s",
 			iclock().Now().UTC().Format("01-02 15:04 MST"),
 			clan, escapeDiscordString(cm.DisplayName), escapeDiscordString(cm.Message)),
 	)
+
 	if err != nil {
 		ccLog.WithError(err).Error("Error sending chat to channel.")
 	}
