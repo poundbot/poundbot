@@ -36,14 +36,16 @@ func init() {
 				unsets[fmt.Sprintf("servers.%d.chatchanid", i)] = 1
 				unsets[fmt.Sprintf("servers.%d.serverchanid", i)] = 1
 			}
-			if err := coll.Update(
-				bson.M{"_id": account.ID},
-				bson.M{
-					"$set":   sets,
-					"$unset": unsets,
-				},
-			); err != nil {
-				return err
+			if len(sets) > 0 {
+				if err := coll.Update(
+					bson.M{"_id": account.ID},
+					bson.M{
+						"$set":   sets,
+						"$unset": unsets,
+					},
+				); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
