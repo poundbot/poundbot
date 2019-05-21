@@ -28,7 +28,7 @@ func newGuildCreate(as guildCreateAccountStorer, ug guildCreateUserGetter) func(
 }
 
 func (g guildCreate) guildCreate(s *discordgo.Session, gc *discordgo.GuildCreate) {
-	gcLog := log.WithFields(logrus.Fields{"sys": "guildCreate", "guildID": gc.ID, "guildName": gc.Name})
+	gcLog := log.WithFields(logrus.Fields{"sys": "guildCreate", "gID": gc.ID, "guildName": gc.Name})
 
 	userIDs := make([]string, len(gc.Members))
 	for i, member := range gc.Members {
@@ -99,7 +99,7 @@ func newGuildMemberAdd(uf userFinder, gma guildMemberAdder) func(*discordgo.Sess
 }
 
 func guildMemberAdd(uf userFinder, gma guildMemberAdder, gID, uID string) {
-	gmaLog := log.WithFields(logrus.Fields{"sys": "guildMemberAdd", "guildID": gID, "userID": uID})
+	gmaLog := log.WithFields(logrus.Fields{"sys": "guildMemberAdd", "gID": gID, "uID": uID})
 	user, err := uf.GetByDiscordID(uID)
 	if err != nil {
 		gmaLog.WithError(err).Trace("Error finding user")
@@ -130,16 +130,16 @@ func newGuildMemberRemove(uf userFinder, gmr guildMemberRemover) func(*discordgo
 }
 
 func guildMemberRemove(uf userFinder, gmr guildMemberRemover, gID, uID string) {
-	gmrLog := log.WithFields(logrus.Fields{"sys": "guildMemberRemove", "guildID": gID, "userID": uID})
+	gmrLog := log.WithFields(logrus.Fields{"sys": "guildMemberRemove", "gID": gID, "uID": uID})
 	user, err := uf.GetByDiscordID(uID)
 	if err != nil {
-		gmrLog.WithError(err).Error("Error finding user")
+		gmrLog.WithError(err).Trace("Error finding user")
 		return
 	}
 	account, err := gmr.GetByDiscordGuild(gID)
 	if err != nil {
 		if err != mgo.ErrNotFound {
-			gmrLog.WithError(err).Error("Could not get account for guild ID")
+			gmrLog.WithError(err).Trace("Could not get account for guild ID")
 		}
 		return
 	}

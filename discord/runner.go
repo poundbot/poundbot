@@ -110,7 +110,7 @@ func (c *Client) runner() {
 					rLog.Info("Received unexpected connected message")
 
 				case t := <-c.RaidAlertChan:
-					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "playerID": t.PlayerID})
+					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "pID": t.PlayerID})
 					raLog.Trace("Got raid alert")
 					go func() {
 						raUser, err := c.us.GetByPlayerID(t.PlayerID)
@@ -121,7 +121,7 @@ func (c *Client) runner() {
 
 						user, err := c.session.User(raUser.Snowflake)
 						if err != nil {
-							raLog.WithField("userID", raUser.Snowflake).WithError(err).Error(
+							raLog.WithField("uID", raUser.Snowflake).WithError(err).Error(
 								"Discord user not found trying to send raid alert",
 							)
 							return
@@ -160,10 +160,10 @@ func (c *Client) runner() {
 
 func (c *Client) discordAuthHandler(da types.DiscordAuth) {
 	dLog := log.WithFields(logrus.Fields{
-		"chan":    "DAUTH",
-		"guildID": da.GuildSnowflake,
-		"name":    da.DiscordInfo.DiscordName,
-		"userID":  da.Snowflake,
+		"chan": "DAUTH",
+		"gID":  da.GuildSnowflake,
+		"name": da.DiscordInfo.DiscordName,
+		"uID":  da.Snowflake,
 	})
 	dLog.Trace("Got discord auth")
 	dUser, err := c.getUserByName(da.GuildSnowflake, da.DiscordInfo.DiscordName)

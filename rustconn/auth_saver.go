@@ -49,8 +49,8 @@ func (a *AuthSaver) Run() {
 				continue
 			}
 			rLog = rLog.WithFields(logrus.Fields{
-				"guildID":   as.GuildSnowflake,
-				"playerID":  as.PlayerID,
+				"gID":       as.GuildSnowflake,
+				"pID":       as.PlayerID,
 				"discordID": as.Snowflake,
 				"name":      as.DiscordName,
 			})

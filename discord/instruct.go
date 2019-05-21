@@ -119,8 +119,8 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 
 func instructServer(parts []string, channelID, guildID string, account types.Account, au instructAccountUpdater) instructResponse {
 	isLog := log.WithFields(logrus.Fields{"sys": "instructServer",
-		"guildID":   guildID,
-		"channelID": channelID,
+		"gID":       guildID,
+		"cID":       channelID,
 		"accountID": account.ID.Hex(),
 	})
 	if len(parts) == 0 {

@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
 )
 
+type daAuthUpserter interface {
+	Upsert(types.DiscordAuth) error
+}
+
+type daUserGetter interface {
+	GetByPlayerID(string) (types.User, error)
+}
+
 type discordAuth struct {
-	das storage.DiscordAuthsStore
-	us  storage.UsersStore
+	dau daAuthUpserter
+	us  daUserGetter
 	dac chan<- types.DiscordAuth
 }
 
@@ -27,8 +34,8 @@ func (d *deprecatedDiscordAuth) upgrade() {
 	d.PlayerID = fmt.Sprintf("%d", d.SteamID)
 }
 
-func newDiscordAuth(das storage.DiscordAuthsStore, us storage.UsersStore, dac chan<- types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
-	da := discordAuth{das: das, us: us, dac: dac}
+func newDiscordAuth(dau daAuthUpserter, us daUserGetter, dac chan<- types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
+	da := discordAuth{dau: dau, us: us, dac: dac}
 	return da.Handle
 }
 
@@ -58,7 +65,9 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 			Error:      fmt.Sprintf("%s is linked to you.", user.DiscordName),
 		})
 		return
-	} else if dAuth.DiscordName == "check" {
+	}
+
+	if dAuth.DiscordName == "check" {
 		handleError(w, types.RESTError{
 			StatusCode: http.StatusNotFound,
 			Error:      "Account is not linked to discord.",
@@ -68,7 +77,7 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 
 	dAuth.GuildSnowflake = account.GuildSnowflake
 
-	err = da.das.Upsert(dAuth.DiscordAuth)
+	err = da.dau.Upsert(dAuth.DiscordAuth)
 	if err == nil {
 		da.dac <- dAuth.DiscordAuth
 	} else {

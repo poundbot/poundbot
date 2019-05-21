@@ -19,8 +19,9 @@ func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDis
 	defer close(m.ErrorResponse)
 
 	mhLog := log.WithFields(logrus.Fields{
-		"cmd":         "Message",
-		"channelName": m.ChannelName,
+		"cmd":   "gameMessageHandler",
+		"gID":   m.Snowflake,
+		"cName": m.ChannelName,
 	})
 
 	sendErrorResponse := func(errorCh chan<- error, err error) {
@@ -86,13 +87,12 @@ func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDis
 // gameChatHandler handles game chat messages
 func gameChatHandler(cm types.ChatMessage, gf guildFinder, sendMessage gameDiscordMessageSender) {
 	ccLog := log.WithFields(logrus.Fields{
-		"cmd":         "ChatChan",
-		"playerID":    cm.PlayerID,
-		"guildID":     cm.Snowflake,
-		"channelID":   cm.ChannelID,
-		"name":        cm.DisplayName,
-		"dName":       cm.DiscordName,
-		"channelName": cm.ChannelName,
+		"cmd":   "gameChatHandler",
+		"pID":   cm.PlayerID,
+		"cID":   cm.ChannelID,
+		"name":  cm.DisplayName,
+		"dName": cm.DiscordName,
+		"cName": cm.ChannelName,
 	})
 	var clan = ""
 	if cm.ClanTag != "" {

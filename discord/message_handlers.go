@@ -13,7 +13,7 @@ import (
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	mcLog := log.WithFields(logrus.Fields{"sys": "RUN", "guildID": m.GuildID})
+	mcLog := log.WithFields(logrus.Fields{"sys": "RUN", "gID": m.GuildID})
 	if !c.mls.Obtain(m.ID, "discord") {
 		return
 	}
@@ -44,7 +44,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			return
 		}
 
-		mcLog.WithField("guildID", guild.OwnerID).Info("Setting owner")
+		mcLog.WithField("gID", guild.OwnerID).Info("Setting owner")
 		account.OwnerSnowflake = guild.OwnerID
 		err = c.as.UpsertBase(account.BaseAccount)
 		if err != nil {
@@ -92,7 +92,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		}
 		csLog := mcLog.WithFields(logrus.Fields{"serverID": server.Key[:4]})
 		for _, cTag := range cTags {
-			csLog.WithFields(logrus.Fields{"t": cTag}).Info("inserting message")
+			csLog.WithFields(logrus.Fields{"t": cTag}).Trace("inserting message")
 			cm := types.ChatMessage{
 				ServerKey:   server.Key,
 				Tag:         cTag,
@@ -173,8 +173,13 @@ func (c Client) sendPrivateMessage(snowflake, message string) error {
 func canSendToChannel(s *discordgo.Session, channelID string) bool {
 	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
 
-	if err != nil || discordgo.PermissionSendMessages&^perms != 0 {
-		log.WithError(err).WithField("channelID", channelID).Error("canSendToChannel: cannot send to channel")
+	if err != nil {
+		log.WithError(err).WithField("cID", channelID).Error("canSendToChannel: error sending to channel")
+		return false
+	}
+
+	if discordgo.PermissionSendMessages&^perms != 0 {
+		log.WithField("cID", channelID).Error("canSendToChannel: cannot send to channel")
 		return false
 	}
 	return true
