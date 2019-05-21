@@ -92,7 +92,6 @@ func gameChatHandler(cm types.ChatMessage, gf guildFinder, sendMessage gameDisco
 		"cID":   cm.ChannelID,
 		"name":  cm.DisplayName,
 		"dName": cm.DiscordName,
-		"cName": cm.ChannelName,
 	})
 	var clan = ""
 	if cm.ClanTag != "" {

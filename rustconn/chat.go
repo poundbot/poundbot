@@ -118,18 +118,14 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 			m.ClanTag = clan.Tag
 		}
 
-		if m.ChannelName != "" {
-			m.Snowflake = sc.account.GuildSnowflake
-		} else {
-			for _, s := range sc.account.Servers {
-				if s.Key == sc.serverKey {
-					cID, ok := s.ChannelIDForTag("chat")
-					if !ok {
-						return
-					}
-					m.ChannelID = cID
-					break
+		for _, s := range sc.account.Servers {
+			if s.Key == sc.serverKey {
+				cID, ok := s.ChannelIDForTag("chat")
+				if !ok {
+					return
 				}
+				m.ChannelID = cID
+				break
 			}
 		}
 
