@@ -1,4 +1,4 @@
-package rustconn
+package gameapi
 
 import (
 	"github.com/poundbot/poundbot/storage"

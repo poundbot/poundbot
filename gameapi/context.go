@@ -1,4 +1,4 @@
-package rustconn
+package gameapi
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 type contextKey string
 
 func (c contextKey) String() string {
-	return "rustconn package context key " + string(c)
+	return "gameapi package context key " + string(c)
 }
 
 var (

@@ -1,4 +1,4 @@
-package rustconn
+package gameapi
 
 import (
 	pblog "github.com/poundbot/poundbot/log"

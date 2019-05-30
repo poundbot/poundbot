@@ -16,7 +16,7 @@ import (
 
 	"github.com/poundbot/poundbot/discord"
 	"github.com/poundbot/poundbot/messages"
-	"github.com/poundbot/poundbot/rustconn"
+	"github.com/poundbot/poundbot/gameapi"
 	"github.com/poundbot/poundbot/storage/mongodb"
 	"github.com/spf13/viper"
 )
@@ -44,8 +44,8 @@ func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
 	}
 }
 
-func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDB) *rustconn.ServerConfig {
-	return &rustconn.ServerConfig{
+func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDB) *gameapi.ServerConfig {
+	return &gameapi.ServerConfig{
 		BindAddr: cfg.GetString("bind_address"),
 		Port:     cfg.GetInt("port"),
 		Storage:  storage,
@@ -148,9 +148,9 @@ func main() {
 	}
 
 	// HTTP API server
-	server := rustconn.NewServer(
+	server := gameapi.NewServer(
 		webConfig,
-		rustconn.ServerChannels{
+		gameapi.ServerChannels{
 			RaidNotify:      dr.RaidAlertChan,
 			DiscordAuth:     dr.DiscordAuth,
 			AuthSuccess:     dr.AuthSuccess,
