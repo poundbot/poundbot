@@ -24,7 +24,7 @@ type serverContext struct {
 	serverKey   string
 	requestUUID string
 	account     types.Account
-	server      types.Server
+	server      types.AccountServer
 }
 
 func getServerContext(ctx context.Context) (serverContext, error) {

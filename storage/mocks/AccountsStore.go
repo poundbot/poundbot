@@ -40,11 +40,11 @@ func (_m *AccountsStore) AddRegisteredPlayerIDs(accountID string, playerIDs []st
 }
 
 // AddServer provides a mock function with given fields: snowflake, server
-func (_m *AccountsStore) AddServer(snowflake string, server types.Server) error {
+func (_m *AccountsStore) AddServer(snowflake string, server types.AccountServer) error {
 	ret := _m.Called(snowflake, server)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, types.Server) error); ok {
+	if rf, ok := ret.Get(0).(func(string, types.AccountServer) error); ok {
 		r0 = rf(snowflake, server)
 	} else {
 		r0 = ret.Error(0)
@@ -222,11 +222,11 @@ func (_m *AccountsStore) Touch(serverKey string) error {
 }
 
 // UpdateServer provides a mock function with given fields: snowflake, oldKey, server
-func (_m *AccountsStore) UpdateServer(snowflake string, oldKey string, server types.Server) error {
+func (_m *AccountsStore) UpdateServer(snowflake string, oldKey string, server types.AccountServer) error {
 	ret := _m.Called(snowflake, oldKey, server)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, types.Server) error); ok {
+	if rf, ok := ret.Get(0).(func(string, string, types.AccountServer) error); ok {
 		r0 = rf(snowflake, oldKey, server)
 	} else {
 		r0 = ret.Error(0)

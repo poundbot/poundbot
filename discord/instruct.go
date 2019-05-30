@@ -30,8 +30,8 @@ type instructResponse struct {
 }
 
 type instructAccountUpdater interface {
-	AddServer(snowflake string, server types.Server) error
-	UpdateServer(snowflake, oldKey string, server types.Server) error
+	AddServer(snowflake string, server types.AccountServer) error
+	UpdateServer(snowflake, oldKey string, server types.AccountServer) error
 	RemoveServer(snowflake, serverKey string) error
 }
 
@@ -180,10 +180,10 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			isLog.WithError(err).Error("error creating uuid")
 			return instructResponse{responseType: instructResponseNone}
 		}
-		server := types.Server{
+		server := types.AccountServer{
 			Name:      strings.Join(parts[1:], " "),
 			Key:       ruid.String(),
-			Channels:  []types.ServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
+			Channels:  []types.AccountServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
 			RaidDelay: "1m",
 		}
 		err = au.AddServer(guildID, server)
@@ -394,7 +394,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 	return instructResponse{responseType: instructResponseNone}
 }
 
-func instructServerArgs(parts []string, servers []types.Server) (int, []string, error) {
+func instructServerArgs(parts []string, servers []types.AccountServer) (int, []string, error) {
 	resetCmd := localizer.MustLocalize(&i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
 			ID:    "InstructCommandServerReset",

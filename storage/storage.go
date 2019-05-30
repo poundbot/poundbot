@@ -74,8 +74,8 @@ type AccountsStore interface {
 	UpsertBase(types.BaseAccount) error
 	Remove(snowflake string) error
 
-	AddServer(snowflake string, server types.Server) error
-	UpdateServer(snowflake, oldKey string, server types.Server) error
+	AddServer(snowflake string, server types.AccountServer) error
+	UpdateServer(snowflake, oldKey string, server types.AccountServer) error
 	RemoveServer(snowflake, serverKey string) error
 
 	AddClan(serverKey string, clan types.Clan) error

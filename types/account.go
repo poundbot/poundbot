@@ -8,17 +8,17 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-type Server struct {
+type AccountServer struct {
 	Name      string
 	Key       string
 	Address   string
 	Clans     []Clan
 	RaidDelay string
 	Timestamp `bson:",inline"`
-	Channels  []ServerChannel `bson:",omitempty" json:"channels"`
+	Channels  []AccountServerChannel `bson:",omitempty" json:"channels"`
 }
 
-func (s Server) ChannelIDForTag(tag string) (channel string, found bool) {
+func (s AccountServer) ChannelIDForTag(tag string) (channel string, found bool) {
 	for i := range s.Channels {
 		for _, cTag := range s.Channels[i].Tags {
 			if tag == cTag {
@@ -29,7 +29,7 @@ func (s Server) ChannelIDForTag(tag string) (channel string, found bool) {
 	return "", false
 }
 
-func (s Server) TagsForChannelID(channelID string) (tags []string, found bool) {
+func (s AccountServer) TagsForChannelID(channelID string) (tags []string, found bool) {
 	for i := range s.Channels {
 		if s.Channels[i].ChannelID == channelID {
 			return s.Channels[i].Tags, true
@@ -38,7 +38,7 @@ func (s Server) TagsForChannelID(channelID string) (tags []string, found bool) {
 	return tags, false
 }
 
-func (s *Server) RemoveTag(tag string) (found bool) {
+func (s *AccountServer) RemoveTag(tag string) (found bool) {
 	for i := range s.Channels {
 		sTags := s.Channels[i].Tags
 		for j := range sTags {
@@ -56,7 +56,7 @@ func (s *Server) RemoveTag(tag string) (found bool) {
 	return false
 }
 
-func (s *Server) SetChannelIDForTag(channel string, tag string) (changed bool) {
+func (s *AccountServer) SetChannelIDForTag(channel string, tag string) (changed bool) {
 	c, found := s.ChannelIDForTag(tag)
 	if found {
 		if c == channel {
@@ -75,11 +75,11 @@ func (s *Server) SetChannelIDForTag(channel string, tag string) (changed bool) {
 		}
 	} // for channels
 
-	s.Channels = append(s.Channels, ServerChannel{ChannelID: channel, Tags: []string{tag}})
+	s.Channels = append(s.Channels, AccountServerChannel{ChannelID: channel, Tags: []string{tag}})
 	return true
 }
 
-func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
+func (s AccountServer) UsersClan(playerIDs []string) (bool, Clan) {
 	for _, clan := range s.Clans {
 		for _, member := range clan.Members {
 			for _, id := range playerIDs {
@@ -92,7 +92,7 @@ func (s Server) UsersClan(playerIDs []string) (bool, Clan) {
 	return false, Clan{}
 }
 
-type ServerChannel struct {
+type AccountServerChannel struct {
 	ChannelID string `bson:"channel_id" json:"channel_id"`
 	Tags      []string
 }
@@ -108,19 +108,19 @@ type BaseAccount struct {
 type Account struct {
 	ID          bson.ObjectId `bson:"_id,omitempty"`
 	BaseAccount `bson:",inline" json:",inline"`
-	Servers     []Server `bson:",omitempty"`
+	Servers     []AccountServer `bson:",omitempty"`
 	Timestamp   `bson:",inline" json:",inline"`
 	Disabled    bool
 }
 
 // ServerFromKey finds a server for a given key. Errors if not found.
-func (a Account) ServerFromKey(apiKey string) (Server, error) {
+func (a Account) ServerFromKey(apiKey string) (AccountServer, error) {
 	for i := range a.Servers {
 		if a.Servers[i].Key == apiKey {
 			return a.Servers[i], nil
 		}
 	}
-	return Server{}, errors.New("server not found")
+	return AccountServer{}, errors.New("server not found")
 }
 
 // GetCommandPrefix the Discord command prefix. Defaults to "!pb"

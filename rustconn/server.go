@@ -67,7 +67,9 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	api.HandleFunc("/chat", newChat(channels.ChatQueue, channels.ChatChan)).
 		Methods(http.MethodGet, http.MethodPost)
 
-	api.HandleFunc("/messages/{channel}", newMessages(channels.GameMessageChan)).
+	messages := newMessages(channels.GameMessageChan)
+
+	api.HandleFunc("/messages/{channel}", messages.ChannelHandler).
 		Methods(http.MethodPost)
 
 	api.HandleFunc("/clans", newClans(sc.Storage.Accounts())).

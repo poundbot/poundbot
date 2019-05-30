@@ -73,7 +73,7 @@ func (s Accounts) SetClans(serverKey string, clans []types.Clan) error {
 	)
 }
 
-func (s Accounts) AddServer(snowflake string, server types.Server) error {
+func (s Accounts) AddServer(snowflake string, server types.AccountServer) error {
 	server.CreatedAt = iclock().Now().UTC()
 	return s.collection.Update(
 		bson.M{accountsKeyField: snowflake},
@@ -88,7 +88,7 @@ func (s Accounts) RemoveServer(snowflake, serverKey string) error {
 	)
 }
 
-func (s Accounts) UpdateServer(snowflake, oldKey string, server types.Server) error {
+func (s Accounts) UpdateServer(snowflake, oldKey string, server types.AccountServer) error {
 	return s.collection.Update(
 		bson.M{
 			accountsKeyField: snowflake,
