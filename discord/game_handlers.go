@@ -10,12 +10,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type gameDiscordMessageSender func(string, string) error
-type gameDiscordEmbedSender func(string, string, int) error
+type gameDiscordMessageSender interface {
+	sendChannelMessage(userID, channelID, message string) error
+	sendChannelEmbed(userID, channelID, message string, color int) error
+}
+
 type guildFinder func(string) (*discordgo.Guild, error)
 
 // gameMessageHandler handles the messages interface from games
-func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDiscordMessageSender, sendEmbed gameDiscordEmbedSender) {
+func gameMessageHandler(userID string, m types.GameMessage, gf guildFinder, ms gameDiscordMessageSender) {
 	defer close(m.ErrorResponse)
 
 	mhLog := log.WithFields(logrus.Fields{
@@ -72,9 +75,9 @@ func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDis
 
 	switch m.Type {
 	case types.GameMessageTypePlain:
-		err = sendMessage(channelID, message)
+		err = ms.sendChannelMessage(userID, channelID, message)
 	case types.GameMessageTypeEmbed:
-		err = sendEmbed(channelID, message, m.EmbedStyle.ColorInt())
+		err = ms.sendChannelEmbed(userID, channelID, message, m.EmbedStyle.ColorInt())
 	}
 	if err != nil {
 		m.ErrorResponse <- errors.New("could not send to channel")
@@ -85,7 +88,7 @@ func gameMessageHandler(m types.GameMessage, gf guildFinder, sendMessage gameDis
 }
 
 // gameChatHandler handles game chat messages
-func gameChatHandler(cm types.ChatMessage, gf guildFinder, sendMessage gameDiscordMessageSender) {
+func gameChatHandler(userID string, cm types.ChatMessage, gf guildFinder, ms gameDiscordMessageSender) {
 	ccLog := log.WithFields(logrus.Fields{
 		"cmd":   "gameChatHandler",
 		"pID":   cm.PlayerID,
@@ -98,7 +101,8 @@ func gameChatHandler(cm types.ChatMessage, gf guildFinder, sendMessage gameDisco
 		clan = fmt.Sprintf("[%s] ", cm.ClanTag)
 	}
 
-	err := sendMessage(
+	err := ms.sendChannelMessage(
+		userID,
 		cm.ChannelID,
 		fmt.Sprintf("☢️ @%s **%s%s**: %s",
 			iclock().Now().UTC().Format("01-02 15:04 MST"),

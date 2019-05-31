@@ -30,9 +30,10 @@ type Client struct {
 	status          chan bool
 	ChatChan        chan types.ChatMessage
 	RaidAlertChan   chan types.RaidAlert
-	DiscordAuth     chan types.DiscordAuth
 	GameMessageChan chan types.GameMessage
+	DiscordAuth     chan types.DiscordAuth
 	AuthSuccess     chan types.DiscordAuth
+	ChannelsRequest chan types.ServerChannelsRequest
 	shutdown        bool
 }
 
@@ -50,6 +51,7 @@ func Runner(token string, as storage.AccountsStore, das storage.DiscordAuthsStor
 		AuthSuccess:     make(chan types.DiscordAuth),
 		RaidAlertChan:   make(chan types.RaidAlert),
 		GameMessageChan: make(chan types.GameMessage),
+		ChannelsRequest: make(chan types.ServerChannelsRequest),
 	}
 }
 
@@ -137,10 +139,13 @@ func (c *Client) runner() {
 					go c.discordAuthHandler(da)
 
 				case m := <-c.GameMessageChan:
-					go gameMessageHandler(m, c.session.State.Guild, c.sendChannelMessage, c.sendChannelEmbed)
+					go gameMessageHandler(c.session.State.User.ID, m, c.session.State.Guild, c)
 
 				case cm := <-c.ChatChan:
-					go gameChatHandler(cm, c.session.State.Guild, c.sendChannelMessage)
+					go gameChatHandler(c.session.State.User.ID, cm, c.session.State.Guild, c)
+
+				case cr := <-c.ChannelsRequest:
+					go sendChannelList(c.session.State.User.ID, cr.GuildID, cr.ResponseChan, c.session.State)
 				}
 			}
 		}

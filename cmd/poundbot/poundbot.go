@@ -15,8 +15,8 @@ import (
 	"syscall"
 
 	"github.com/poundbot/poundbot/discord"
-	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/gameapi"
+	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/storage/mongodb"
 	"github.com/spf13/viper"
 )
@@ -151,12 +151,13 @@ func main() {
 	server := gameapi.NewServer(
 		webConfig,
 		gameapi.ServerChannels{
-			RaidNotify:      dr.RaidAlertChan,
-			DiscordAuth:     dr.DiscordAuth,
-			AuthSuccess:     dr.AuthSuccess,
-			ChatChan:        dr.ChatChan,
-			GameMessageChan: dr.GameMessageChan,
-			ChatQueue:       store.ChatQueue(),
+			RaidNotify:          dr.RaidAlertChan,
+			DiscordAuth:         dr.DiscordAuth,
+			AuthSuccess:         dr.AuthSuccess,
+			ChatChan:            dr.ChatChan,
+			GameMessageChan:     dr.GameMessageChan,
+			ChatQueue:           store.ChatQueue(),
+			ChannelsRequestChan: dr.ChannelsRequest,
 		},
 	)
 

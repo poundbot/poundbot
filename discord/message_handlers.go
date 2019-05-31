@@ -76,7 +76,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		case instructResponsePrivate:
 			err = c.sendPrivateMessage(m.Author.ID, response.message)
 		case instructResponseChannel:
-			err = c.sendChannelMessage(m.ChannelID, response.message)
+			err = c.sendChannelMessage(c.session.State.User.ID, m.ChannelID, response.message)
 		}
 		return
 	}
@@ -113,7 +113,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				}
 				if len(cm.Message) > 128 {
 					cm.Message = truncateString(cm.Message, 128)
-					err = c.sendChannelMessage(m.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
+					err = c.sendChannelMessage(c.session.State.User.ID, cm.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
 						DefaultMessage: &i18n.Message{
 							ID:    "TruncatedMessage",
 							Other: "*Truncated message to {{.Message}}",
@@ -133,21 +133,73 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	}
 }
 
-func (c Client) sendChannelMessage(channelID, message string) error {
-	if !canSendToChannel(c.session, channelID) {
+type channelPermissionsGetter interface {
+	UserChannelPermissions(userID, channelID string) (apermissions int, err error)
+}
+
+type messageChannelsGetter interface {
+	channelPermissionsGetter
+	Guild(guildID string) (st *discordgo.Guild, err error)
+}
+
+func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsResponse, mgg messageChannelsGetter) error {
+	defer close(ch)
+	guild, err := mgg.Guild(guildID)
+	if err != nil {
+		ch <- types.ServerChannelsResponse{OK: false}
+		return err
+	}
+
+	r := types.ServerChannelsResponse{OK: true}
+	r.Channels = make([]types.ServerChannel, len(guild.Channels))
+	for i, channel := range guild.Channels {
+		canSend, err := canSendToChannel(mgg, userID, channel.ID)
+		if err != nil {
+			ch <- types.ServerChannelsResponse{OK: false}
+			return err
+		}
+
+		canEmbed, err := canEmbedToChannel(mgg, userID, channel.ID)
+		if err != nil {
+			ch <- types.ServerChannelsResponse{OK: false}
+			return err
+		}
+
+		if channel.Type != discordgo.ChannelTypeGuildText {
+			continue
+		}
+
+		r.Channels[i] = types.ServerChannel{ID: channel.ID, Name: channel.Name, CanSend: canSend, CanStyle: canEmbed}
+	}
+	ch <- r
+	return nil
+}
+
+func (c Client) sendChannelMessage(userID, channelID, message string) error {
+	canSend, err := canSendToChannel(c.session, userID, channelID)
+	if err != nil {
+		return err
+	}
+
+	if !canSend {
 		return errors.New("cannot send to channel")
 	}
 
-	_, err := c.session.ChannelMessageSend(channelID, message)
+	_, err = c.session.ChannelMessageSend(channelID, message)
 	return err
 }
 
-func (c Client) sendChannelEmbed(channelID, message string, color int) error {
-	if !canSendToChannel(c.session, channelID) {
+func (c Client) sendChannelEmbed(userID, channelID, message string, color int) error {
+	canEmbed, err := canEmbedToChannel(c.session, userID, channelID)
+	if err != nil {
+		return err
+	}
+
+	if !canEmbed {
 		return errors.New("cannot send to channel")
 	}
 
-	_, err := c.session.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+	_, err = c.session.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 		Description: message,
 		Color:       color,
 	})
@@ -170,17 +222,32 @@ func (c Client) sendPrivateMessage(snowflake, message string) error {
 	return err
 }
 
-func canSendToChannel(s *discordgo.Session, channelID string) bool {
-	perms, err := s.State.UserChannelPermissions(s.State.User.ID, channelID)
+func canSendToChannel(pg channelPermissionsGetter, userID, channelID string) (bool, error) {
+	perms, err := pg.UserChannelPermissions(userID, channelID)
 
 	if err != nil {
-		log.WithError(err).WithField("cID", channelID).Error("canSendToChannel: error sending to channel")
-		return false
+		log.WithError(err).WithField("cID", channelID).Trace("canSendToChannel: error reading permissions for channel")
+		return false, err
 	}
 
 	if discordgo.PermissionSendMessages&^perms != 0 {
-		log.WithField("cID", channelID).Error("canSendToChannel: cannot send to channel")
-		return false
+		log.WithField("cID", channelID).Trace("canSendToChannel: cannot send to channel")
+		return false, nil
 	}
-	return true
+	return true, nil
+}
+
+func canEmbedToChannel(pg channelPermissionsGetter, userID, channelID string) (bool, error) {
+	perms, err := pg.UserChannelPermissions(userID, channelID)
+
+	if err != nil {
+		log.WithError(err).WithField("cID", channelID).Trace("canSendToChannel: error sending to channel")
+		return false, nil
+	}
+
+	if discordgo.PermissionEmbedLinks&^perms != 0 {
+		log.WithField("cID", channelID).Trace("canSendToChannel: cannot embed to channel")
+		return false, err
+	}
+	return true, nil
 }

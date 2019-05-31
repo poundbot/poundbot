@@ -23,12 +23,13 @@ type messages struct {
 // mChan is the channel for server -> discord
 func initMessages(mChan chan<- types.GameMessage, cChan chan<- types.ServerChannelsRequest, api *mux.Router) {
 	m := messages{
-		mChan:   mChan,
-		timeout: 10 * time.Second,
+		mChan:        mChan,
+		channelsChan: cChan,
+		timeout:      10 * time.Second,
 	}
 
 	api.HandleFunc("/messages", m.rootHandler).
-		Methods(http.MethodPost)
+		Methods(http.MethodGet)
 
 	api.HandleFunc("/messages/{channel}", m.channelHandler).
 		Methods(http.MethodPost)
@@ -36,6 +37,38 @@ func initMessages(mChan chan<- types.GameMessage, cChan chan<- types.ServerChann
 
 func (mh *messages) rootHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	sc, err := getServerContext(r.Context())
+	if err != nil {
+		handleError(w, types.RESTError{
+			Error:      "Error finding server identity",
+			StatusCode: http.StatusInternalServerError,
+		})
+		return
+	}
+
+	mhLog := log.WithFields(logrus.Fields{"uri": r.RequestURI, "requestID": sc.requestUUID, "accountID": sc.account.ID.Hex(), "serverName": sc.server.Name})
+
+	rChan := make(chan types.ServerChannelsResponse)
+
+	mh.channelsChan <- types.ServerChannelsRequest{GuildID: sc.account.GuildSnowflake, ResponseChan: rChan}
+
+	response := <-rChan
+	if !response.OK {
+		mhLog.Error("rootHandler: Could not get channels")
+		handleError(w, types.RESTError{
+			Error:      "Could not get channels",
+			StatusCode: http.StatusInternalServerError,
+		})
+		return
+	}
+
+	b, err := json.Marshal(response)
+	if err != nil {
+		mhLog.WithError(err).Error("error encoding response")
+		return
+	}
+
+	w.Write(b)
 }
 
 // Handle manages Rust <-> discord messages requests and logging
@@ -56,7 +89,7 @@ func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mhLog := log.WithFields(logrus.Fields{"handler": "messages", "requestID": sc.requestUUID, "accountID": sc.account.ID.Hex(), "serverName": sc.server.Name})
+	mhLog := log.WithFields(logrus.Fields{"uri": r.RequestURI, "requestID": sc.requestUUID, "accountID": sc.account.ID.Hex(), "serverName": sc.server.Name})
 
 	decoder := json.NewDecoder(r.Body)
 	var message types.GameMessage
