@@ -22,12 +22,13 @@ type ServerConfig struct {
 }
 
 type ServerChannels struct {
-	RaidNotify      chan<- types.RaidAlert
-	DiscordAuth     chan<- types.DiscordAuth
-	AuthSuccess     <-chan types.DiscordAuth
-	ChatChan        chan<- types.ChatMessage
-	GameMessageChan chan<- types.GameMessage
-	ChatQueue       storage.ChatQueueStore
+	RaidNotify          chan<- types.RaidAlert
+	DiscordAuth         chan<- types.DiscordAuth
+	AuthSuccess         <-chan types.DiscordAuth
+	ChatChan            chan<- types.ChatMessage
+	GameMessageChan     chan<- types.GameMessage
+	ChannelsRequestChan chan<- types.ServerChannelsRequest
+	ChatQueue           storage.ChatQueueStore
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.
@@ -67,16 +68,9 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	api.HandleFunc("/chat", newChat(channels.ChatQueue, channels.ChatChan)).
 		Methods(http.MethodGet, http.MethodPost)
 
-	messages := newMessages(channels.GameMessageChan)
+	initMessages(channels.GameMessageChan, channels.ChannelsRequestChan, api)
 
-	api.HandleFunc("/messages/{channel}", messages.ChannelHandler).
-		Methods(http.MethodPost)
-
-	api.HandleFunc("/clans", newClans(sc.Storage.Accounts())).
-		Methods(http.MethodPut)
-
-	api.HandleFunc("/clans/{tag}", newClan(sc.Storage.Accounts(), sc.Storage.Users())).
-		Methods(http.MethodDelete, http.MethodPut)
+	initClans(sc.Storage.Accounts(), sc.Storage.Users(), api)
 
 	api.HandleFunc("/players/registered", newRegisteredPlayers()).Methods(http.MethodGet)
 

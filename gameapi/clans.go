@@ -36,16 +36,22 @@ func (s serverClan) ToClan() types.Clan {
 
 type clans struct {
 	as storage.AccountsStore
+	us storage.UsersStore
 }
 
-func newClans(as storage.AccountsStore) func(w http.ResponseWriter, r *http.Request) {
-	c := clans{as: as}
-	return c.Handle
+func initClans(as storage.AccountsStore, us storage.UsersStore, api *mux.Router) {
+	c := clans{as: as, us: us}
+
+	api.HandleFunc("/clans", c.rootHandler).
+		Methods(http.MethodPut)
+
+	api.HandleFunc("/clans/{tag}", c.clanHandler).
+	 	Methods(http.MethodDelete, http.MethodPut)
 }
 
 // Handle manages clans sync HTTP requests from the Rust server
 // These requests are a complete refresh of all clans
-func (c *clans) Handle(w http.ResponseWriter, r *http.Request) {
+func (c *clans) rootHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	sc, err := getServerContext(r.Context())
 	if err != nil {
@@ -56,7 +62,7 @@ func (c *clans) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	log.Printf("[%s] %s: Updating all clans for %s:%s\n", sc.requestUUID, sc.game, sc.account.ID.Hex(), sc.server.Name)
+	log.Printf("[%s] %s: Updating all clans for %s:%s", sc.requestUUID, sc.game, sc.account.ID.Hex(), sc.server.Name)
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -82,17 +88,8 @@ func (c *clans) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type clan struct {
-	as storage.AccountsStore
-}
-
-func newClan(as storage.AccountsStore, us storage.UsersStore) func(w http.ResponseWriter, r *http.Request) {
-	c := clan{as: as}
-	return c.Handle
-}
-
 // Handle manages individual clan REST requests form the Rust server
-func (c *clan) Handle(w http.ResponseWriter, r *http.Request) {
+func (c *clans) clanHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	sc, err := getServerContext(r.Context())
 	if err != nil {

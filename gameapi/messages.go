@@ -13,26 +13,35 @@ import (
 
 // A Chat is for handling discord <-> rust chat
 type messages struct {
-	mChan   chan<- types.GameMessage
-	timeout time.Duration
+	mChan        chan<- types.GameMessage
+	channelsChan chan<- types.ServerChannelsRequest
+	timeout      time.Duration
 }
 
-// newMessages initializes a chat handler and returns it
+// initMessages initializes a chat handler and returns it
 //
-// in is the channel for server -> discord
-func newMessages(in chan<- types.GameMessage) *messages {
+// mChan is the channel for server -> discord
+func initMessages(mChan chan<- types.GameMessage, cChan chan<- types.ServerChannelsRequest, api *mux.Router) {
 	m := messages{
-		mChan:   in,
+		mChan:   mChan,
 		timeout: 10 * time.Second,
 	}
 
-	return &m
+	api.HandleFunc("/messages", m.rootHandler).
+		Methods(http.MethodPost)
+
+	api.HandleFunc("/messages/{channel}", m.channelHandler).
+		Methods(http.MethodPost)
+}
+
+func (mh *messages) rootHandler(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 }
 
 // Handle manages Rust <-> discord messages requests and logging
 //
 // HTTP POST requests are sent to the "in" chan
-func (mh *messages) ChannelHandler(w http.ResponseWriter, r *http.Request) {
+func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	vars := mux.Vars(r)
