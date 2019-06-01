@@ -151,8 +151,7 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 	}
 
 	r := types.ServerChannelsResponse{OK: true}
-	r.Channels = make([]types.ServerChannel, len(guild.Channels))
-	for i, channel := range guild.Channels {
+	for _, channel := range guild.Channels {
 		canSend, err := canSendToChannel(mgg, userID, channel.ID)
 		if err != nil {
 			ch <- types.ServerChannelsResponse{OK: false}
@@ -169,7 +168,7 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 			continue
 		}
 
-		r.Channels[i] = types.ServerChannel{ID: channel.ID, Name: channel.Name, CanSend: canSend, CanStyle: canEmbed}
+		r.Channels = append(r.Channels, types.ServerChannel{ID: channel.ID, Name: channel.Name, CanSend: canSend, CanStyle: canEmbed})
 	}
 	ch <- r
 	return nil

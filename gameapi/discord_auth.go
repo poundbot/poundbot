@@ -78,9 +78,9 @@ func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
 	dAuth.GuildSnowflake = account.GuildSnowflake
 
 	err = da.dau.Upsert(dAuth.DiscordAuth)
-	if err == nil {
-		da.dac <- dAuth.DiscordAuth
-	} else {
+	if err != nil {
 		log.Println(err.Error())
+		return
 	}
+	da.dac <- dAuth.DiscordAuth
 }
