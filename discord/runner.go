@@ -34,6 +34,7 @@ type Client struct {
 	DiscordAuth     chan types.DiscordAuth
 	AuthSuccess     chan types.DiscordAuth
 	ChannelsRequest chan types.ServerChannelsRequest
+	RoleSetChan     chan types.RoleSet
 	shutdown        bool
 }
 
@@ -52,6 +53,7 @@ func Runner(token string, as storage.AccountsStore, das storage.DiscordAuthsStor
 		RaidAlertChan:   make(chan types.RaidAlert),
 		GameMessageChan: make(chan types.GameMessage),
 		ChannelsRequest: make(chan types.ServerChannelsRequest),
+		RoleSetChan:     make(chan types.RoleSet),
 	}
 }
 
@@ -110,7 +112,6 @@ func (c *Client) runner() {
 					}
 
 					rLog.Info("Received unexpected connected message")
-
 				case t := <-c.RaidAlertChan:
 					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "pID": t.PlayerID})
 					raLog.Trace("Got raid alert")
@@ -134,18 +135,16 @@ func (c *Client) runner() {
 							raLog.WithError(err).Error("could not create private channel to send to user")
 						}
 					}()
-
 				case da := <-c.DiscordAuth:
 					go c.discordAuthHandler(da)
-
 				case m := <-c.GameMessageChan:
 					go gameMessageHandler(c.session.State.User.ID, m, c.session.State.Guild, c)
-
 				case cm := <-c.ChatChan:
 					go gameChatHandler(c.session.State.User.ID, cm, c.session.State.Guild, c)
-
 				case cr := <-c.ChannelsRequest:
 					go sendChannelList(c.session.State.User.ID, cr.GuildID, cr.ResponseChan, c.session.State)
+				case rs := <-c.RoleSetChan:
+					go rolesSetHandler(c.session.State.User.ID, rs, c.session.State, c.us, c.session)
 				}
 			}
 		}
@@ -233,10 +232,10 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error
-func (c *Client) getUserByName(guildSnowflake, name string) (discordgo.User, error) {
-	guild, err := c.session.State.Guild(guildSnowflake)
+func (c *Client) getUserByName(guildID, name string) (discordgo.User, error) {
+	guild, err := c.session.State.Guild(guildID)
 	if err != nil {
-		return discordgo.User{}, fmt.Errorf("guild %s not found searching for user %s", guildSnowflake, name)
+		return discordgo.User{}, fmt.Errorf("guild %s not found searching for user %s", guildID, name)
 	}
 
 	for _, user := range guild.Members {

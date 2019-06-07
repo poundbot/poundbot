@@ -28,6 +28,7 @@ type ServerChannels struct {
 	ChatChan            chan<- types.ChatMessage
 	GameMessageChan     chan<- types.GameMessage
 	ChannelsRequestChan chan<- types.ServerChannelsRequest
+	RoleSetChan         chan<- types.RoleSet
 	ChatQueue           storage.ChatQueueStore
 }
 
@@ -71,6 +72,8 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	initMessages(channels.GameMessageChan, channels.ChannelsRequestChan, api)
 
 	initClans(sc.Storage.Accounts(), sc.Storage.Users(), api)
+
+	initRoles(channels.RoleSetChan, api)
 
 	api.HandleFunc("/players/registered", newRegisteredPlayers()).Methods(http.MethodGet)
 

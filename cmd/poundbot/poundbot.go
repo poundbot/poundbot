@@ -158,6 +158,7 @@ func main() {
 			GameMessageChan:     dr.GameMessageChan,
 			ChatQueue:           store.ChatQueue(),
 			ChannelsRequestChan: dr.ChannelsRequest,
+			RoleSetChan:         dr.RoleSetChan,
 		},
 	)
 
