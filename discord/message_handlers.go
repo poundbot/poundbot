@@ -240,12 +240,12 @@ func canEmbedToChannel(pg channelPermissionsGetter, userID, channelID string) (b
 	perms, err := pg.UserChannelPermissions(userID, channelID)
 
 	if err != nil {
-		log.WithError(err).WithField("cID", channelID).Trace("canSendToChannel: error sending to channel")
+		log.WithError(err).WithField("cID", channelID).Trace("canEmbedToChannel: error sending to channel")
 		return false, nil
 	}
 
 	if discordgo.PermissionEmbedLinks&^perms != 0 {
-		log.WithField("cID", channelID).Trace("canSendToChannel: cannot embed to channel")
+		log.WithField("cID", channelID).Trace("canEmbedToChannel: cannot embed to channel")
 		return false, err
 	}
 	return true, nil
