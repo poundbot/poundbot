@@ -14,15 +14,17 @@ type roleGuildGetter interface {
 
 type rolePlayerGetter interface {
 	GetByPlayerID(PlayerID string) (types.User, error)
+	GetByDiscordID(snowflake string) (types.User, error)
 }
 
 type roleMemberAdder interface {
 	GuildMemberRoleAdd(guildID, userID, roleID string) (err error)
+	GuildMemberRoleRemove(guildID, userID, roleID string) (err error)
 }
 
 func rolesSetHandler(userID string, rs types.RoleSet, state roleGuildGetter, rpg rolePlayerGetter, rma roleMemberAdder) {
 	rsLog := log.WithFields(logrus.Fields{"cmd": "rolesSetHandler", "rsRole": rs.Role, "gID": rs.GuildID})
-	rsLog.Print("roles set", rs)
+	rsLog.Tracef("roles set: %s", rs)
 	guild, err := state.Guild(rs.GuildID)
 	if err != nil {
 		rsLog.WithError(err).Error("Could not find guild")
@@ -72,21 +74,52 @@ func rolesSetHandler(userID string, rs types.RoleSet, state roleGuildGetter, rpg
 		return
 	}
 
-	for _, pID := range rs.PlayerIDs {
-		uLog := rsLog.WithField("pID", pID)
-		u, err := rpg.GetByPlayerID(pID)
+	for _, member := range guild.Members {
+		rsLog = rsLog.WithFields(logrus.Fields{"uID": member.User.ID, "uName": member.User.Username})
+		hasRole := false
+		for _, role := range member.Roles {
+			if role == gRole.ID {
+				hasRole = true
+				break
+			}
+		}
+
+		u, err := rpg.GetByDiscordID(member.User.ID)
 		if err != nil {
 			if err != mgo.ErrNotFound {
 				rsLog.WithError(err).Error("storage error finding user")
-				break
+				continue
 			}
-			uLog.Trace("player not found")
+		}
+
+		shouldHaveRole := false
+		for _, pID := range rs.PlayerIDs {
+			for _, uPID := range u.PlayerIDs {
+				if uPID == pID {
+					shouldHaveRole = true
+					break
+				}
+			}
+		}
+
+		if shouldHaveRole || hasRole {
+			rsLog.Trace("checking user")
+		}
+
+		if shouldHaveRole && !hasRole {
+			rsLog.Tracef("adding role")
+			if err := rma.GuildMemberRoleAdd(guild.ID, member.User.ID, gRole.ID); err != nil {
+				rsLog.WithField("uID", u.Snowflake).WithError(err).Error("Could not set role")
+			}
 			continue
 		}
 
-		uLog.Trace("player found")
-		if err := rma.GuildMemberRoleAdd(guild.ID, u.Snowflake, gRole.ID); err != nil {
-			uLog.WithField("userID", u.Snowflake).WithError(err).Error("Could not set role")
+		if hasRole && !shouldHaveRole {
+			rsLog.Tracef("removing role")
+			if err := rma.GuildMemberRoleRemove(guild.ID, member.User.ID, gRole.ID); err != nil {
+				rsLog.WithField("uID", u.Snowflake).WithError(err).Error("Could not remove role")
+			}
+			continue
 		}
 	}
 }
