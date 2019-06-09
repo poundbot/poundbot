@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactoring in `discord` package to make some methods more testable.
 - Refactored `discord.Client` to `discord.Runner`
 
+### Removed
+
+- Removed chat post support in favor of messages API
+
 ### Fixes
 
 - Messages sent to embed now properly return an error if permission to post is not available.

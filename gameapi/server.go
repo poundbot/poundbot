@@ -67,7 +67,7 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 		newDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
 	)
 	api.HandleFunc("/chat", newChat(channels.ChatQueue, channels.ChatChan)).
-		Methods(http.MethodGet)
+		Methods(http.MethodGet, http.MethodPost)
 
 	initMessages(channels.GameMessageChan, channels.ChannelsRequestChan, api)
 
