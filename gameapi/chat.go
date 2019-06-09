@@ -23,18 +23,6 @@ type discordChat struct {
 	Message     string
 }
 
-type deprecatedChat struct {
-	types.ChatMessage
-	SteamID uint64
-}
-
-func (d *deprecatedChat) upgrade() {
-	if d.SteamID == 0 {
-		return
-	}
-	d.PlayerID = fmt.Sprintf("%d", d.SteamID)
-}
-
 func newDiscordChat(cm types.ChatMessage) discordChat {
 	return discordChat{
 		ClanTag:     cm.ClanTag,
@@ -61,7 +49,7 @@ func newChat(cq chatQueue, in chan<- types.ChatMessage) func(w http.ResponseWrit
 		cqs:        cq,
 		in:         in,
 		timeout:    10 * time.Second,
-		minVersion: semver.Version{Major: 1, Patch: 1},
+		minVersion: semver.Version{Major: 1, Patch: 3},
 	}
 
 	return c.Handle
@@ -96,46 +84,6 @@ func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
-	case http.MethodPost:
-		decoder := json.NewDecoder(r.Body)
-		var m deprecatedChat
-
-		err := decoder.Decode(&m)
-		if err != nil {
-			log.Info(fmt.Sprintf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error()))
-			handleError(w, types.RESTError{
-				Error:      "Invalid request",
-				StatusCode: http.StatusBadRequest,
-			})
-			return
-		}
-
-		m.upgrade()
-		m.PlayerID = fmt.Sprintf("%s:%s", sc.game, m.PlayerID)
-
-		found, clan := sc.server.UsersClan([]string{m.PlayerID})
-		if found {
-			m.ClanTag = clan.Tag
-		}
-
-		for _, s := range sc.account.Servers {
-			if s.Key == sc.serverKey {
-				cID, ok := s.ChannelIDForTag("chat")
-				if !ok {
-					return
-				}
-				m.ChannelID = cID
-				break
-			}
-		}
-
-		select {
-		case c.in <- m.ChatMessage:
-			return
-		case <-time.After(c.timeout):
-			return
-		}
-
 	case http.MethodGet:
 		m, found := c.cqs.GetGameServerMessage(sc.serverKey, "chat", c.timeout)
 		if !found {

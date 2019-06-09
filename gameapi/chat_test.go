@@ -65,57 +65,6 @@ func TestChat_Handle(t *testing.T) {
 			status: http.StatusNoContent,
 			body:   "",
 		},
-		{
-			name:   "chat POST",
-			method: http.MethodPost,
-			s:      &chat{},
-			status: http.StatusOK,
-			rBody: `
-			{
-				"PlayerID":"1234",
-				"ClanTag":"FoO",
-				"DisplayName":"player",
-				"Message":"hello there!"
-			}
-			`,
-			rMessage: &types.ChatMessage{
-				PlayerID:    "game:1234",
-				ClanTag:     "FoO",
-				DisplayName: "player",
-				Message:     "hello there!",
-				ChannelID:   "1234",
-			},
-		},
-		{
-			name:   "old chat POST",
-			method: http.MethodPost,
-			s:      &chat{},
-			status: http.StatusOK,
-			rBody: `
-			{
-				"SteamID":1234,
-				"ClanTag":"FoO",
-				"DisplayName":"player",
-				"Message":"hello there!"
-			}
-			`,
-			rMessage: &types.ChatMessage{
-				PlayerID:    "game:1234",
-				ClanTag:     "FoO",
-				DisplayName: "player",
-				Message:     "hello there!",
-				ChannelID:   "1234",
-			},
-		},
-		{
-			name:   "chat POST bad json",
-			method: http.MethodPost,
-			s:      &chat{},
-			status: http.StatusBadRequest,
-			body:   "{\"StatusCode\":400,\"Error\":\"Invalid request\"}\n",
-			rBody:  "not JSON",
-			log:    "[C] [request-1](5cafadc080e1a9498fea8f03:server-name) Invalid JSON: invalid character 'o' in literal null (expecting 'u')\n",
-		},
 	}
 
 	for _, tt := range tests {
