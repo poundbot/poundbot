@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `rustconn` renamed to `gameapi` and several refactorings.
 - Refactoring in `discord` package to make some methods more testable.
+- Refactored `discord.Client` to `discord.Runner`
 
 ### Fixes
 

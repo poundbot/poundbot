@@ -8,8 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
-	da, err := c.getDiscordAuth(m.Author.ID)
+func (r *Runner) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
+	da, err := r.getDiscordAuth(m.Author.ID)
 	if err != nil {
 		return
 	}
@@ -30,7 +30,7 @@ func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 					ID:    "PinAuthenticated",
 					Other: "You have authenticated!",
 				}}))
-			err = c.as.AddRegisteredPlayerIDs(da.GuildSnowflake, []string{da.PlayerID})
+			err = r.as.AddRegisteredPlayerIDs(da.GuildSnowflake, []string{da.PlayerID})
 			if err != nil {
 				log.WithFields(logrus.Fields{"sys": "interact()", "playerid": da.PlayerID, "guildid": da.GuildSnowflake, "err": err}).Error(
 					"Could not add player discord account.",
@@ -44,5 +44,5 @@ func (c *Client) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Other: "Internal error. Please try again.",
 			}}))
 	}
-	c.AuthSuccess <- da
+	r.AuthSuccess <- da
 }

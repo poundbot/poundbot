@@ -19,7 +19,7 @@ type RunnerConfig struct {
 	Token string
 }
 
-type Client struct {
+type Runner struct {
 	session         *discordgo.Session
 	cqs             storage.ChatQueueStore
 	as              storage.AccountsStore
@@ -38,9 +38,9 @@ type Client struct {
 	shutdown        bool
 }
 
-func Runner(token string, as storage.AccountsStore, das storage.DiscordAuthsStore,
-	us storage.UsersStore, mls storage.MessageLocksStore, cqs storage.ChatQueueStore) *Client {
-	return &Client{
+func NewRunner(token string, as storage.AccountsStore, das storage.DiscordAuthsStore,
+	us storage.UsersStore, mls storage.MessageLocksStore, cqs storage.ChatQueueStore) *Runner {
+	return &Runner{
 		cqs:             cqs,
 		mls:             mls,
 		as:              as,
@@ -58,22 +58,22 @@ func Runner(token string, as storage.AccountsStore, das storage.DiscordAuthsStor
 }
 
 // Start starts the runner
-func (c *Client) Start() error {
-	session, err := discordgo.New("Bot " + c.token)
+func (r *Runner) Start() error {
+	session, err := discordgo.New("Bot " + r.token)
 	if err == nil {
-		c.session = session
-		c.session.AddHandler(c.messageCreate)
-		c.session.AddHandler(c.ready)
-		c.session.AddHandler(disconnected(c.status))
-		c.session.AddHandler(c.resumed)
-		c.session.AddHandler(newGuildCreate(c.as, c.us))
-		c.session.AddHandler(newGuildDelete(c.as))
-		c.session.AddHandler(newGuildMemberAdd(c.us, c.as))
-		c.session.AddHandler(newGuildMemberRemove(c.us, c.as))
+		r.session = session
+		r.session.AddHandler(r.messageCreate)
+		r.session.AddHandler(r.ready)
+		r.session.AddHandler(disconnected(r.status))
+		r.session.AddHandler(r.resumed)
+		r.session.AddHandler(newGuildCreate(r.as, r.us))
+		r.session.AddHandler(newGuildDelete(r.as))
+		r.session.AddHandler(newGuildMemberAdd(r.us, r.as))
+		r.session.AddHandler(newGuildMemberRemove(r.us, r.as))
 
-		c.status = make(chan bool)
+		r.status = make(chan bool)
 
-		go c.runner()
+		go r.runner()
 
 		connect(session)
 	}
@@ -81,16 +81,16 @@ func (c *Client) Start() error {
 }
 
 // Stop stops the runner
-func (c *Client) Stop() {
-	defer c.session.Close()
+func (r *Runner) Stop() {
+	defer r.session.Close()
 	log.WithFields(logrus.Fields{"sys": "RUNNER"}).Info(
 		"Disconnecting...",
 	)
-	// log.Println(logPrefix + "[CONN] Disconnecting...")
-	c.shutdown = true
+
+	r.shutdown = true
 }
 
-func (c *Client) runner() {
+func (r *Runner) runner() {
 	rLog := log.WithFields(logrus.Fields{"sys": "RUNNER"})
 	defer rLog.Warn("Runner exited")
 
@@ -102,27 +102,27 @@ func (c *Client) runner() {
 		Reading:
 			for {
 				select {
-				case connectedState = <-c.status:
+				case connectedState = <-r.status:
 					if !connectedState {
 						rLog.Warn("Received disconnected message")
-						if c.shutdown {
+						if r.shutdown {
 							return
 						}
 						break Reading
 					}
 
 					rLog.Info("Received unexpected connected message")
-				case t := <-c.RaidAlertChan:
+				case t := <-r.RaidAlertChan:
 					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "pID": t.PlayerID})
 					raLog.Trace("Got raid alert")
 					go func() {
-						raUser, err := c.us.GetByPlayerID(t.PlayerID)
+						raUser, err := r.us.GetByPlayerID(t.PlayerID)
 						if err != nil {
 							raLog.WithError(err).Error("Player not found trying to send raid alert")
 							return
 						}
 
-						user, err := c.session.User(raUser.Snowflake)
+						user, err := r.session.User(raUser.Snowflake)
 						if err != nil {
 							raLog.WithField("uID", raUser.Snowflake).WithError(err).Error(
 								"Discord user not found trying to send raid alert",
@@ -130,28 +130,28 @@ func (c *Client) runner() {
 							return
 						}
 
-						err = c.sendPrivateMessage(user.ID, t.String())
+						err = r.sendPrivateMessage(user.ID, t.String())
 						if err != nil {
 							raLog.WithError(err).Error("could not create private channel to send to user")
 						}
 					}()
-				case da := <-c.DiscordAuth:
-					go c.discordAuthHandler(da)
-				case m := <-c.GameMessageChan:
-					go gameMessageHandler(c.session.State.User.ID, m, c.session.State.Guild, c)
-				case cm := <-c.ChatChan:
-					go gameChatHandler(c.session.State.User.ID, cm, c.session.State.Guild, c)
-				case cr := <-c.ChannelsRequest:
-					go sendChannelList(c.session.State.User.ID, cr.GuildID, cr.ResponseChan, c.session.State)
-				case rs := <-c.RoleSetChan:
-					go rolesSetHandler(c.session.State.User.ID, rs, c.session.State, c.us, c.session)
+				case da := <-r.DiscordAuth:
+					go r.discordAuthHandler(da)
+				case m := <-r.GameMessageChan:
+					go gameMessageHandler(r.session.State.User.ID, m, r.session.State.Guild, r)
+				case cm := <-r.ChatChan:
+					go gameChatHandler(r.session.State.User.ID, cm, r.session.State.Guild, r)
+				case cr := <-r.ChannelsRequest:
+					go sendChannelList(r.session.State.User.ID, cr.GuildID, cr.ResponseChan, r.session.State)
+				case rs := <-r.RoleSetChan:
+					go rolesSetHandler(r.session.State.User.ID, rs, r.session.State, r.us, r.session)
 				}
 			}
 		}
 	Connecting:
 		for {
 			rLog.Info("Waiting for connected state...")
-			connectedState = <-c.status
+			connectedState = <-r.status
 			if connectedState {
 				rLog.WithField("sys", "CONN").Info("Received connected message")
 				break Connecting
@@ -162,7 +162,7 @@ func (c *Client) runner() {
 
 }
 
-func (c *Client) discordAuthHandler(da types.DiscordAuth) {
+func (r *Runner) discordAuthHandler(da types.DiscordAuth) {
 	dLog := log.WithFields(logrus.Fields{
 		"chan": "DAUTH",
 		"gID":  da.GuildSnowflake,
@@ -170,10 +170,10 @@ func (c *Client) discordAuthHandler(da types.DiscordAuth) {
 		"uID":  da.Snowflake,
 	})
 	dLog.Trace("Got discord auth")
-	dUser, err := c.getUserByName(da.GuildSnowflake, da.DiscordInfo.DiscordName)
+	dUser, err := r.getUserByName(da.GuildSnowflake, da.DiscordInfo.DiscordName)
 	if err != nil {
 		dLog.WithError(err).Error("Discord user not found")
-		err = c.das.Remove(da)
+		err = r.das.Remove(da)
 		if err != nil {
 			dLog.WithError(err).Error("Error removing discord auth for PlayerID from the database.")
 		}
@@ -182,13 +182,13 @@ func (c *Client) discordAuthHandler(da types.DiscordAuth) {
 
 	da.Snowflake = dUser.ID
 
-	err = c.das.Upsert(da)
+	err = r.das.Upsert(da)
 	if err != nil {
 		dLog.WithError(err).Error("Error upserting PlayerID ito the database")
 		return
 	}
 
-	err = c.sendPrivateMessage(da.Snowflake,
+	err = r.sendPrivateMessage(da.Snowflake,
 		localizer.MustLocalize(&i18n.LocalizeConfig{
 			DefaultMessage: &i18n.Message{
 				ID:    "UserPINPrompt",
@@ -202,14 +202,14 @@ func (c *Client) discordAuthHandler(da types.DiscordAuth) {
 	}
 }
 
-func (c *Client) resumed(s *discordgo.Session, event *discordgo.Resumed) {
+func (r *Runner) resumed(s *discordgo.Session, event *discordgo.Resumed) {
 	log.WithField("sys", "CONN").Info("Resumed connection")
-	c.status <- true
+	r.status <- true
 }
 
 // This function will be called (due to AddHandler above) when the bot receives
 // the "ready" event from Discord.
-func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
+func (r *Runner) ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.WithField("sys", "CONN").Info("Connection Ready")
 
 	if err := s.UpdateStatus(0, localizer.MustLocalize(&i18n.LocalizeConfig{
@@ -225,15 +225,15 @@ func (c *Client) ready(s *discordgo.Session, event *discordgo.Ready) {
 	for i, guild := range s.State.Guilds {
 		guilds[i] = types.BaseAccount{GuildSnowflake: guild.ID, OwnerSnowflake: guild.OwnerID}
 	}
-	if err := c.as.RemoveNotInDiscordGuildList(guilds); err != nil {
+	if err := r.as.RemoveNotInDiscordGuildList(guilds); err != nil {
 		log.WithError(err).Error("could not sync discord guilds")
 	}
-	c.status <- true
+	r.status <- true
 }
 
 // Returns nil user if they don't exist; Returns error if there was a communications error
-func (c *Client) getUserByName(guildID, name string) (discordgo.User, error) {
-	guild, err := c.session.State.Guild(guildID)
+func (r *Runner) getUserByName(guildID, name string) (discordgo.User, error) {
+	guild, err := r.session.State.Guild(guildID)
 	if err != nil {
 		return discordgo.User{}, fmt.Errorf("guild %s not found searching for user %s", guildID, name)
 	}
@@ -247,6 +247,6 @@ func (c *Client) getUserByName(guildID, name string) (discordgo.User, error) {
 	return discordgo.User{}, fmt.Errorf("discord user not found %s", name)
 }
 
-func (c *Client) getDiscordAuth(snowflake string) (types.DiscordAuth, error) {
-	return c.das.GetByDiscordID(snowflake)
+func (r *Runner) getDiscordAuth(snowflake string) (types.DiscordAuth, error) {
+	return r.das.GetByDiscordID(snowflake)
 }

@@ -141,7 +141,7 @@ func main() {
 	webConfig := newServerConfig(viper.Sub("http"), store)
 
 	// Discord server
-	dr := discord.Runner(dConfig.Token, store.Accounts(), store.DiscordAuths(),
+	dr := discord.NewRunner(dConfig.Token, store.Accounts(), store.DiscordAuths(),
 		store.Users(), store.MessageLocks(), store.ChatQueue())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)

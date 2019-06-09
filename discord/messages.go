@@ -11,10 +11,10 @@ import (
 )
 
 // This function will be called (due to AddHandler above) every time a new
-// message is created on any channel that the autenticated bot has access to.
-func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+// message is created on any channel that the authenticated bot has access to.
+func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	mcLog := log.WithFields(logrus.Fields{"sys": "RUN", "gID": m.GuildID})
-	if !c.mls.Obtain(m.ID, "discord") {
+	if !r.mls.Obtain(m.ID, "discord") {
 		return
 	}
 	// Ignore all messages created by the bot itself
@@ -26,11 +26,11 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 	// Detect PM
 	if m.GuildID == "" {
-		c.interact(s, m)
+		r.interact(s, m)
 		return
 	}
 
-	account, err := c.as.GetByDiscordGuild(m.GuildID)
+	account, err := r.as.GetByDiscordGuild(m.GuildID)
 	if err != nil {
 		mcLog.WithError(err).Error("Could not get account for guild")
 		return
@@ -46,7 +46,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 		mcLog.WithField("gID", guild.OwnerID).Info("Setting owner")
 		account.OwnerSnowflake = guild.OwnerID
-		err = c.as.UpsertBase(account.BaseAccount)
+		err = r.as.UpsertBase(account.BaseAccount)
 		if err != nil {
 			mcLog.WithError(err).Error("Storage error updating account")
 			return
@@ -59,14 +59,14 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	// Detect prefix
 	if strings.HasPrefix(m.Message.Content, account.GetCommandPrefix()) {
 		m.Message.Content = strings.TrimPrefix(m.Message.Content, account.GetCommandPrefix())
-		response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.Content, account, c.as)
+		response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.Content, account, r.as)
 		respond = true
 	}
 
 	// Detect mention
 	for _, mention := range m.Mentions {
 		if mention.ID == s.State.User.ID {
-			response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.Content, account, c.as)
+			response = instruct(s.State.User.ID, m.ChannelID, m.Author.ID, m.Content, account, r.as)
 			respond = true
 		}
 	}
@@ -74,9 +74,9 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	if respond {
 		switch response.responseType {
 		case instructResponsePrivate:
-			err = c.sendPrivateMessage(m.Author.ID, response.message)
+			err = r.sendPrivateMessage(m.Author.ID, response.message)
 		case instructResponseChannel:
-			err = c.sendChannelMessage(c.session.State.User.ID, m.ChannelID, response.message)
+			err = r.sendChannelMessage(r.session.State.User.ID, m.ChannelID, response.message)
 		}
 		return
 	}
@@ -104,7 +104,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				},
 			}
 			go func() {
-				user, err := c.us.GetByDiscordID(m.Author.ID)
+				user, err := r.us.GetByDiscordID(m.Author.ID)
 				if err == nil {
 					found, clan := server.UsersClan(user.PlayerIDs)
 					if found {
@@ -113,7 +113,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				}
 				if len(cm.Message) > 128 {
 					cm.Message = truncateString(cm.Message, 128)
-					err = c.sendChannelMessage(c.session.State.User.ID, cm.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
+					err = r.sendChannelMessage(r.session.State.User.ID, cm.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
 						DefaultMessage: &i18n.Message{
 							ID:    "TruncatedMessage",
 							Other: "*Truncated message to {{.Message}}",
@@ -124,7 +124,7 @@ func (c *Client) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 						csLog.WithError(err).Error("Error sendingmessage")
 					}
 				}
-				err = c.cqs.InsertMessage(cm)
+				err = r.cqs.InsertMessage(cm)
 				if err != nil {
 					mcLog.WithError(err).Error("Storage error saving message")
 				}
@@ -174,8 +174,8 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 	return nil
 }
 
-func (c Client) sendChannelMessage(userID, channelID, message string) error {
-	canSend, err := canSendToChannel(c.session, userID, channelID)
+func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
+	canSend, err := canSendToChannel(r.session, userID, channelID)
 	if err != nil {
 		return err
 	}
@@ -184,12 +184,12 @@ func (c Client) sendChannelMessage(userID, channelID, message string) error {
 		return errors.New("cannot send to channel")
 	}
 
-	_, err = c.session.ChannelMessageSend(channelID, message)
+	_, err = r.session.ChannelMessageSend(channelID, message)
 	return err
 }
 
-func (c Client) sendChannelEmbed(userID, channelID, message string, color int) error {
-	canEmbed, err := canEmbedToChannel(c.session, userID, channelID)
+func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) error {
+	canEmbed, err := canEmbedToChannel(r.session, userID, channelID)
 	if err != nil {
 		return err
 	}
@@ -198,22 +198,22 @@ func (c Client) sendChannelEmbed(userID, channelID, message string, color int) e
 		return errors.New("cannot send to channel")
 	}
 
-	_, err = c.session.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+	_, err = r.session.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 		Description: message,
 		Color:       color,
 	})
 	return err
 }
 
-func (c Client) sendPrivateMessage(snowflake, message string) error {
-	channel, err := c.session.UserChannelCreate(snowflake)
+func (r *Runner) sendPrivateMessage(snowflake, message string) error {
+	channel, err := r.session.UserChannelCreate(snowflake)
 
 	if err != nil {
 		log.WithError(err).Error("Error creating user channel")
 		return err
 	}
 
-	_, err = c.session.ChannelMessageSend(
+	_, err = r.session.ChannelMessageSend(
 		channel.ID,
 		message,
 	)
