@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/poundbot/poundbot/types"
+	"github.com/gorilla/mux"
 )
 
 type daAuthUpserter interface {
@@ -34,14 +35,14 @@ func (d *deprecatedDiscordAuth) upgrade() {
 	d.PlayerID = fmt.Sprintf("%d", d.SteamID)
 }
 
-func newDiscordAuth(dau daAuthUpserter, us daUserGetter, dac chan<- types.DiscordAuth) func(w http.ResponseWriter, r *http.Request) {
+func initDiscordAuth(dau daAuthUpserter, us daUserGetter, dac chan<- types.DiscordAuth, api *mux.Router) {
 	da := discordAuth{dau: dau, us: us, dac: dac}
-	return da.Handle
+	api.HandleFunc("/discord_auth", da.handle)
 }
 
-// Handle takes Discord verification requests from the Rust server
+// handle takes Discord verification requests from the Rust server
 // and sends them to the DiscordAuthsStore and DiscordAuth channel
-func (da *discordAuth) Handle(w http.ResponseWriter, r *http.Request) {
+func (da *discordAuth) handle(w http.ResponseWriter, r *http.Request) {
 	game := r.Context().Value(contextKeyGame).(string)
 	account := r.Context().Value(contextKeyAccount).(types.Account)
 

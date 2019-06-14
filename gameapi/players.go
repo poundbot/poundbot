@@ -5,18 +5,19 @@ import (
 	"net/http"
 
 	"github.com/poundbot/poundbot/types"
+	"github.com/gorilla/mux"
 )
 
 type playerIDs []string
 
 type registeredPlayers struct{}
 
-func newRegisteredPlayers() func(w http.ResponseWriter, r *http.Request) {
+func initPlayers(api *mux.Router) {
 	rp := registeredPlayers{}
-	return rp.Handle
+	api.HandleFunc("/players/registered", rp.handle).Methods(http.MethodGet)
 }
 
-func (p *registeredPlayers) Handle(w http.ResponseWriter, r *http.Request) {
+func (p *registeredPlayers) handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	sc, err := getServerContext(r.Context())
 	if err != nil {

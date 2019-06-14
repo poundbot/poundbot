@@ -7,9 +7,13 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/poundbot/poundbot/storage"
+	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/types"
 )
+
+type raidAlertAdder interface {
+	AddInfo(alertIn time.Duration, ed types.EntityDeath) error
+}
 
 type deprecatedEntityDeath struct {
 	types.EntityDeath
@@ -29,18 +33,18 @@ func (d *deprecatedEntityDeath) upgrade() {
 }
 
 type entityDeath struct {
-	ras        storage.RaidAlertsStore
+	raa        raidAlertAdder
 	minVersion semver.Version
 }
 
-func newEntityDeath(ras storage.RaidAlertsStore) func(w http.ResponseWriter, r *http.Request) {
-	ed := entityDeath{ras: ras, minVersion: semver.Version{Major: 1}}
-	return ed.Handle
+func initEntityDeath(raa raidAlertAdder, api *mux.Router) {
+	ed := entityDeath{raa: raa, minVersion: semver.Version{Major: 1}}
+	api.HandleFunc("/entity_death", ed.handle)
 }
 
-// Handle manages incoming Rust entity death notices and sends them
+// handle manages incoming Rust entity death notices and sends them
 // to the RaidAlertsStore and RaidAlerts channel
-func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
+func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	version, err := semver.Make(r.Header.Get("X-PoundBotRaidAlerts-Version"))
@@ -88,5 +92,5 @@ func (e *entityDeath) Handle(w http.ResponseWriter, r *http.Request) {
 		alertAt = sAlertAt
 	}
 
-	e.ras.AddInfo(alertAt, ed.EntityDeath)
+	e.raa.AddInfo(alertAt, ed.EntityDeath)
 }

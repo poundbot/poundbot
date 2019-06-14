@@ -58,16 +58,12 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 	api := r.PathPrefix("/api").Subrouter()
 	api.Use(serverAuth.Handle)
 	api.Use(requestUUID.Handle)
-	api.HandleFunc(
-		"/entity_death",
-		newEntityDeath(sc.Storage.RaidAlerts()),
-	)
-	api.HandleFunc(
-		"/discord_auth",
-		newDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth),
-	)
-	api.HandleFunc("/chat", newChat(channels.ChatQueue, channels.ChatChan)).
-		Methods(http.MethodGet, http.MethodPost)
+
+	initEntityDeath(sc.Storage.RaidAlerts(), api)
+
+	initDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth, api)
+
+	initChat(channels.ChatQueue, channels.ChatChan, api)
 
 	initMessages(channels.GameMessageChan, channels.ChannelsRequestChan, api)
 
@@ -75,7 +71,9 @@ func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
 
 	initRoles(channels.RoleSetChan, api)
 
-	api.HandleFunc("/players/registered", newRegisteredPlayers()).Methods(http.MethodGet)
+	initPlayers(api)
+
+	// api.HandleFunc("/players/registered", newRegisteredPlayers()).Methods(http.MethodGet)
 
 	s.Handler = r
 

@@ -9,6 +9,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/types"
+	"github.com/gorilla/mux"
 )
 
 var iclock = pbclock.Clock
@@ -39,12 +40,11 @@ type chat struct {
 	minVersion semver.Version
 }
 
-// NewChat initializes a chat handler and returns it
+// initChat initializes a chat handler and returns it
 //
 // cq is the chatQueue for reading messages from
 // in is the channel for server -> discord
-func newChat(cq chatQueue, in chan<- types.ChatMessage) func(w http.ResponseWriter, r *http.Request) {
-
+func initChat(cq chatQueue, in chan<- types.ChatMessage, api *mux.Router) {
 	c := chat{
 		cqs:        cq,
 		in:         in,
@@ -52,16 +52,16 @@ func newChat(cq chatQueue, in chan<- types.ChatMessage) func(w http.ResponseWrit
 		minVersion: semver.Version{Major: 1, Patch: 3},
 	}
 
-	return c.Handle
+	api.HandleFunc("/chat", c.handle).Methods(http.MethodGet, http.MethodPost)
 }
 
-// Handle manages Rust <-> discord chat requests and logging
+// handle manages Rust <-> discord chat requests and logging
 //
 // HTTP POST requests are sent to the "in" chan
 //
 // HTTP GET requests wait for messages and disconnect with http.StatusNoContent
 // after timeout seconds.
-func (c *chat) Handle(w http.ResponseWriter, r *http.Request) {
+func (c *chat) handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	version, err := semver.Make(r.Header.Get("X-PoundBotBetterChat-Version"))

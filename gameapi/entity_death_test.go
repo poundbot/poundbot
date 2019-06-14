@@ -96,8 +96,8 @@ func TestEntityDeath_Handle(t *testing.T) {
 			}
 			var added *types.EntityDeath
 			ras := mocks.RaidAlertsStore{}
-			tt.e.ras = &ras
-			// ras.On("AddInfo", mock.AnythingOfType("types.EntityDeath")).
+			tt.e.raa = &ras
+
 			ras.On("AddInfo", mock.AnythingOfType("time.Duration"), mock.AnythingOfType("types.EntityDeath")).
 				Return(func(t time.Duration, ed types.EntityDeath) error {
 					added = &ed
@@ -118,7 +118,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			req = req.WithContext(ctx)
 
-			handler := http.HandlerFunc(tt.e.Handle)
+			handler := http.HandlerFunc(tt.e.handle)
 			handler.ServeHTTP(rr, req)
 
 			assert.Equal(t, tt.status, rr.Code)

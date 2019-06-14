@@ -120,7 +120,7 @@ func TestChat_Handle(t *testing.T) {
 			})
 
 			req = req.WithContext(ctx)
-			handler := http.HandlerFunc(tt.s.Handle)
+			handler := http.HandlerFunc(tt.s.handle)
 			handler.ServeHTTP(rr, req)
 
 			wg.Wait()
