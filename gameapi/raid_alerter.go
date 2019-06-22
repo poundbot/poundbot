@@ -49,8 +49,12 @@ func (r *RaidAlerter) Run() {
 			}
 
 			for _, result := range alerts {
+				// We only want to send the raid notification when we are the instance
+				// that can remove it. This is a "simple" way of allowing multiple
+				// instances to run against the same DB.
 				if err := r.RaidStore.Remove(result); err != nil {
 					raLog.WithError(err).Error("storage: Could not remove alert")
+					continue
 				}
 				r.RaidNotify <- result
 			}

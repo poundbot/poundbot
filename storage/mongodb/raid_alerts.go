@@ -61,5 +61,5 @@ func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 
 // Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidAlert) error {
-	return r.collection.Remove(alert)
+	return r.collection.Remove(bson.M{"_id": alert.ID})
 }

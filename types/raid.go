@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/messages"
 )
 
@@ -22,6 +23,7 @@ type RaidInventory struct {
 }
 
 type RaidAlert struct {
+	ID            bson.ObjectId `bson:"_id,omitempty"`
 	PlayerID      string
 	ServerName    string
 	ServerKey     string

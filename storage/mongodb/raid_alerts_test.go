@@ -23,6 +23,8 @@ func NewRaidAlerts(t *testing.T) (*RaidAlerts, *mongotest.Collection) {
 func TestRaidAlerts_AddInfo(t *testing.T) {
 	t.Parallel()
 
+	oid := bson.NewObjectId()
+
 	type args struct {
 		alertIn time.Duration
 		ed      types.EntityDeath
@@ -39,6 +41,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 			name: "upsert",
 			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcd", Name: "thing", GridPos: "D7", OwnerIDs: []string{"1", "2"}}},
 			want: types.RaidAlert{
+				ID:            oid,
 				GridPositions: []string{"D8", "D7"},
 				PlayerID:      "2",
 				Items:         map[string]int{"thing": 3},
@@ -62,6 +65,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 			name: "noop",
 			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"5"}}},
 			want: types.RaidAlert{
+				ID:            oid,
 				GridPositions: []string{"D8"},
 				PlayerID:      "2",
 				Items:         map[string]int{"thing": 2},
@@ -81,6 +85,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 			raidAlerts.users = users
 
 			coll.C.Insert(types.RaidAlert{
+				ID:            oid,
 				GridPositions: []string{"D8"},
 				PlayerID:      "2",
 				Items:         map[string]int{"thing": 2},
@@ -108,18 +113,24 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 				}
 				alertAt := rn.AlertAt
 				rn.AlertAt = time.Time{}
-				assert.Equal(t, tt.want, rn)
+
 				if tt.atTimeNew {
 					assert.NotEqual(t, rn.AlertAt, alertAt)
+					// since we don't know the object ID, we empty it.
+					assert.NotEqual(t, rn.ID, "")
+					rn.ID = ""
 				} else {
 					assert.Equal(t, rn.AlertAt, alertAt)
 				}
+
+				assert.Equal(t, tt.want, rn)
 			}
 		})
 	}
 }
 
 func TestRaidAlerts_GetReady(t *testing.T) {
+	oid := bson.NewObjectId()
 	t.Parallel()
 
 	tests := []struct {
@@ -131,11 +142,12 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 		{
 			name: "one of two",
 			alerts: []types.RaidAlert{
-				types.RaidAlert{PlayerID: "1001", AlertAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC)},
+				types.RaidAlert{ID: oid, PlayerID: "1001", AlertAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC)},
 				types.RaidAlert{AlertAt: time.Now().UTC().Add(time.Hour)},
 			},
 			want: []types.RaidAlert{
 				types.RaidAlert{
+					ID:            oid,
 					PlayerID:      "1001",
 					AlertAt:       time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond),
 					ServerName:    "",
@@ -173,6 +185,7 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 }
 
 func TestRaidAlerts_Remove(t *testing.T) {
+	oid := bson.NewObjectId()
 	type args struct {
 		alert types.RaidAlert
 	}
@@ -185,16 +198,16 @@ func TestRaidAlerts_Remove(t *testing.T) {
 	}{
 		{
 			name: "one of two",
-			args: args{alert: types.RaidAlert{PlayerID: "1002"}},
+			args: args{alert: types.RaidAlert{ID: oid}},
 			alerts: []types.RaidAlert{
 				types.RaidAlert{PlayerID: "1001"},
-				types.RaidAlert{PlayerID: "1002"},
+				types.RaidAlert{ID: oid, PlayerID: "1002"},
 			},
 			wantCount: 1,
 		},
 		{
 			name: "none",
-			args: args{alert: types.RaidAlert{PlayerID: "1003"}},
+			args: args{alert: types.RaidAlert{ID: oid, PlayerID: "1003"}},
 			alerts: []types.RaidAlert{
 				types.RaidAlert{PlayerID: "1001"},
 				types.RaidAlert{PlayerID: "1002"},
