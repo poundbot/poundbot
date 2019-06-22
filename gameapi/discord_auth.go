@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/poundbot/poundbot/types"
 	"github.com/gorilla/mux"
+	"github.com/poundbot/poundbot/types"
 )
 
 type daAuthUpserter interface {

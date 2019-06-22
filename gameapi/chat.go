@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/types"
-	"github.com/gorilla/mux"
 )
 
 var iclock = pbclock.Clock

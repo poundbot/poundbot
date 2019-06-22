@@ -44,7 +44,7 @@ func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 			return
 		}
 
-		mcLog.WithField("gID", guild.OwnerID).Info("Setting owner")
+		mcLog.WithField("oID", guild.OwnerID).Info("Setting owner")
 		account.OwnerSnowflake = guild.OwnerID
 		err = r.as.UpsertBase(account.BaseAccount)
 		if err != nil {
@@ -181,7 +181,7 @@ func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
 	}
 
 	if !canSend {
-		return errors.New("cannot send to channel")
+		return errors.New("not permitted to send to channel")
 	}
 
 	_, err = r.session.ChannelMessageSend(channelID, message)
@@ -195,7 +195,7 @@ func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) 
 	}
 
 	if !canEmbed {
-		return errors.New("cannot send to channel")
+		return errors.New("not permitted to embed to channel")
 	}
 
 	_, err = r.session.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{

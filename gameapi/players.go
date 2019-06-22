@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/poundbot/poundbot/types"
 	"github.com/gorilla/mux"
+	"github.com/poundbot/poundbot/types"
 )
 
 type playerIDs []string

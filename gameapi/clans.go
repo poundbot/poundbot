@@ -46,7 +46,7 @@ func initClans(as storage.AccountsStore, us storage.UsersStore, api *mux.Router)
 		Methods(http.MethodPut)
 
 	api.HandleFunc("/clans/{tag}", c.clanHandler).
-	 	Methods(http.MethodDelete, http.MethodPut)
+		Methods(http.MethodDelete, http.MethodPut)
 }
 
 // Handle manages clans sync HTTP requests from the Rust server
