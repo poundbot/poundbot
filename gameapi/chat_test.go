@@ -1,25 +1,29 @@
 package gameapi
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-
-	"context"
-
-	"github.com/stretchr/testify/assert"
-
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/types"
+	"github.com/stretchr/testify/assert"
 )
 
 type chatQueueMock struct {
 	message bool
+}
+
+type discordMessageHandler struct {
+	message *types.ChatMessage
+}
+
+func (dmh *discordMessageHandler) SendChatMessage(cm types.ChatMessage) {
+	dmh.message = &cm
 }
 
 func (cqm chatQueueMock) GetGameServerMessage(sk, tag string, to time.Duration) (types.ChatMessage, bool) {
@@ -69,32 +73,9 @@ func TestChat_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var messageFromRust *types.ChatMessage
-
-			var wg sync.WaitGroup
-
+			dmh := discordMessageHandler{}
 			tt.s.cqs = &chatQueueMock{message: tt.dMessage}
-
-			// Collect any incoming messages
-			if tt.rMessage != nil {
-				in := make(chan types.ChatMessage, 1)
-				defer close(in)
-				tt.s.in = in
-
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for {
-						select {
-						case result := <-in:
-							messageFromRust = &result
-							return
-						case <-time.After(10 * time.Second):
-							return
-						}
-					}
-				}()
-			}
+			tt.s.dm = &dmh
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
 			if err != nil {
@@ -123,11 +104,9 @@ func TestChat_Handle(t *testing.T) {
 			handler := http.HandlerFunc(tt.s.handle)
 			handler.ServeHTTP(rr, req)
 
-			wg.Wait()
-
 			assert.Equal(t, tt.body, rr.Body.String(), "handler returned bad body")
 			assert.Equal(t, tt.status, rr.Code, "handler returned wrong status code")
-			assert.Equal(t, tt.rMessage, messageFromRust, "handler got wrong message from rust")
+			assert.Equal(t, tt.rMessage, dmh.message, "handler got wrong message from rust")
 			// assert.Equal(t, tt.log, hook.LastEntry().Message, "log was incorrect")
 		})
 	}

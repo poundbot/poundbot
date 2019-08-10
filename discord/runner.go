@@ -28,10 +28,10 @@ type Runner struct {
 	us              storage.UsersStore
 	token           string
 	status          chan bool
-	ChatChan        chan types.ChatMessage
+	chatChan        chan types.ChatMessage
 	raidAlertChan   chan types.RaidAlert
 	GameMessageChan chan types.GameMessage
-	DiscordAuth     chan types.DiscordAuth
+	authChan        chan types.DiscordAuth
 	AuthSuccess     chan types.DiscordAuth
 	ChannelsRequest chan types.ServerChannelsRequest
 	RoleSetChan     chan types.RoleSet
@@ -47,8 +47,8 @@ func NewRunner(token string, as storage.AccountsStore, das storage.DiscordAuthsS
 		das:             das,
 		us:              us,
 		token:           token,
-		ChatChan:        make(chan types.ChatMessage),
-		DiscordAuth:     make(chan types.DiscordAuth),
+		chatChan:        make(chan types.ChatMessage),
+		authChan:        make(chan types.DiscordAuth),
 		AuthSuccess:     make(chan types.DiscordAuth),
 		raidAlertChan:   make(chan types.RaidAlert),
 		GameMessageChan: make(chan types.GameMessage),
@@ -82,6 +82,14 @@ func (r *Runner) Start() error {
 
 func (r Runner) RaidNotify(ra types.RaidAlert) {
 	r.raidAlertChan <- ra
+}
+
+func (r Runner) AuthDiscord(da types.DiscordAuth) {
+	r.authChan <- da
+}
+
+func (r Runner) SendChatMessage(cm types.ChatMessage) {
+	r.chatChan <- cm
 }
 
 // Stop stops the runner
@@ -139,11 +147,11 @@ func (r *Runner) runner() {
 							raLog.WithError(err).Error("could not create private channel to send to user")
 						}
 					}()
-				case da := <-r.DiscordAuth:
+				case da := <-r.authChan:
 					go r.discordAuthHandler(da)
 				case m := <-r.GameMessageChan:
 					go gameMessageHandler(r.session.State.User.ID, m, r.session.State.Guild, r)
-				case cm := <-r.ChatChan:
+				case cm := <-r.chatChan:
 					go gameChatHandler(r.session.State.User.ID, cm, r.session.State.Guild, r)
 				case cr := <-r.ChannelsRequest:
 					go sendChannelList(r.session.State.User.ID, cr.GuildID, cr.ResponseChan, r.session.State)

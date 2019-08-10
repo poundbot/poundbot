@@ -16,6 +16,8 @@ const upgradeURL = "https://umod.org/plugins/pound-bot"
 
 type discordHandler interface {
 	RaidNotify(types.RaidAlert)
+	AuthDiscord(types.DiscordAuth)
+	SendChatMessage(types.ChatMessage)
 }
 
 // ServerConfig contains the base Server configuration
@@ -26,9 +28,7 @@ type ServerConfig struct {
 }
 
 type ServerChannels struct {
-	DiscordAuth         chan<- types.DiscordAuth
 	AuthSuccess         <-chan types.DiscordAuth
-	ChatChan            chan<- types.ChatMessage
 	GameMessageChan     chan<- types.GameMessage
 	ChannelsRequestChan chan<- types.ServerChannelsRequest
 	RoleSetChan         chan<- types.RoleSet
@@ -66,9 +66,9 @@ func NewServer(sc *ServerConfig, dh discordHandler, channels ServerChannels) *Se
 
 	initEntityDeath(sc.Storage.RaidAlerts(), api)
 
-	initDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), channels.DiscordAuth, api)
+	initDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), dh, api)
 
-	initChat(channels.ChatQueue, channels.ChatChan, api)
+	initChat(channels.ChatQueue, dh, api)
 
 	initMessages(channels.GameMessageChan, channels.ChannelsRequestChan, api)
 

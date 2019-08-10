@@ -14,6 +14,10 @@ import (
 
 var iclock = pbclock.Clock
 
+type discordMessager interface {
+	SendChatMessage(types.ChatMessage)
+}
+
 type chatQueue interface {
 	GetGameServerMessage(sk, tag string, to time.Duration) (types.ChatMessage, bool)
 }
@@ -35,7 +39,7 @@ func newDiscordChat(cm types.ChatMessage) discordChat {
 // A Chat is for handling discord <-> rust chat
 type chat struct {
 	cqs        chatQueue
-	in         chan<- types.ChatMessage
+	dm         discordMessager
 	timeout    time.Duration
 	minVersion semver.Version
 }
@@ -44,10 +48,10 @@ type chat struct {
 //
 // cq is the chatQueue for reading messages from
 // in is the channel for server -> discord
-func initChat(cq chatQueue, in chan<- types.ChatMessage, api *mux.Router) {
+func initChat(cq chatQueue, dm discordMessager, api *mux.Router) {
 	c := chat{
 		cqs:        cq,
-		in:         in,
+		dm:         dm,
 		timeout:    10 * time.Second,
 		minVersion: semver.Version{Major: 1, Patch: 3},
 	}

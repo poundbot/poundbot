@@ -154,9 +154,7 @@ func main() {
 		webConfig,
 		dr,
 		gameapi.ServerChannels{
-			DiscordAuth:         dr.DiscordAuth,
 			AuthSuccess:         dr.AuthSuccess,
-			ChatChan:            dr.ChatChan,
 			GameMessageChan:     dr.GameMessageChan,
 			ChatQueue:           store.ChatQueue(),
 			ChannelsRequestChan: dr.ChannelsRequest,

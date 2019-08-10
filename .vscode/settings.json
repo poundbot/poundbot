@@ -7,6 +7,7 @@
       "guildid",
       "playerid",
       "poundbot",
+      "semver",
       "ssys",
       "storer",
       "stretchr"

@@ -9,6 +9,10 @@ import (
 	"github.com/poundbot/poundbot/types"
 )
 
+type discordAuthenticator interface {
+	AuthDiscord(types.DiscordAuth)
+}
+
 type daAuthUpserter interface {
 	Upsert(types.DiscordAuth) error
 }
@@ -20,7 +24,7 @@ type daUserGetter interface {
 type discordAuth struct {
 	dau daAuthUpserter
 	us  daUserGetter
-	dac chan<- types.DiscordAuth
+	da  discordAuthenticator
 }
 
 type deprecatedDiscordAuth struct {
@@ -35,8 +39,8 @@ func (d *deprecatedDiscordAuth) upgrade() {
 	d.PlayerID = fmt.Sprintf("%d", d.SteamID)
 }
 
-func initDiscordAuth(dau daAuthUpserter, us daUserGetter, dac chan<- types.DiscordAuth, api *mux.Router) {
-	da := discordAuth{dau: dau, us: us, dac: dac}
+func initDiscordAuth(dau daAuthUpserter, us daUserGetter, dah discordAuthenticator, api *mux.Router) {
+	da := discordAuth{dau: dau, us: us, da: dah}
 	api.HandleFunc("/discord_auth", da.handle)
 }
 
@@ -83,5 +87,5 @@ func (da *discordAuth) handle(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 		return
 	}
-	da.dac <- dAuth.DiscordAuth
+	da.da.AuthDiscord(dAuth.DiscordAuth)
 }
