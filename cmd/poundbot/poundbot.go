@@ -154,11 +154,9 @@ func main() {
 		webConfig,
 		dr,
 		gameapi.ServerChannels{
-			AuthSuccess:         dr.AuthSuccess,
-			GameMessageChan:     dr.GameMessageChan,
-			ChatQueue:           store.ChatQueue(),
-			ChannelsRequestChan: dr.ChannelsRequest,
-			RoleSetChan:         dr.RoleSetChan,
+			AuthSuccess: dr.AuthSuccess,
+			ChatQueue:   store.ChatQueue(),
+			RoleSetChan: dr.RoleSetChan,
 		},
 	)
 

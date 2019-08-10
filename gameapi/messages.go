@@ -5,27 +5,27 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/types"
+	"github.com/sirupsen/logrus"
 )
+
+type discordMessageSender interface {
+	SendGameMessage(types.GameMessage, time.Duration) error
+	ServerChannels(types.ServerChannelsRequest)
+}
 
 // A Chat is for handling discord <-> rust chat
 type messages struct {
-	mChan        chan<- types.GameMessage
-	channelsChan chan<- types.ServerChannelsRequest
-	timeout      time.Duration
+	dms     discordMessageSender
+	timeout time.Duration
 }
 
 // initMessages initializes a chat handler and returns it
-//
-// mChan is the channel for server -> discord
-func initMessages(mChan chan<- types.GameMessage, cChan chan<- types.ServerChannelsRequest, api *mux.Router) {
+func initMessages(dms discordMessageSender, api *mux.Router) {
 	m := messages{
-		mChan:        mChan,
-		channelsChan: cChan,
-		timeout:      10 * time.Second,
+		dms:     dms,
+		timeout: 10 * time.Second,
 	}
 
 	api.HandleFunc("/messages", m.rootHandler).
@@ -50,7 +50,7 @@ func (mh *messages) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	rChan := make(chan types.ServerChannelsResponse)
 
-	mh.channelsChan <- types.ServerChannelsRequest{GuildID: sc.account.GuildSnowflake, ResponseChan: rChan}
+	mh.dms.ServerChannels(types.ServerChannelsRequest{GuildID: sc.account.GuildSnowflake, ResponseChan: rChan})
 
 	response := <-rChan
 	if !response.OK {
@@ -72,8 +72,6 @@ func (mh *messages) rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handle manages Rust <-> discord messages requests and logging
-//
-// HTTP POST requests are sent to the "in" chan
 func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -114,10 +112,7 @@ func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 	mhLog.WithField("message", message).Trace("message")
 
 	// sending message
-	select {
-	case mh.mChan <- message:
-		break
-	case <-time.After(mh.timeout):
+	if err := mh.dms.SendGameMessage(message, mh.timeout); err != nil {
 		mhLog.Error("timed out sending message to channel")
 		if err := handleError(w, types.RESTError{
 			Error:      "internal error sending message to discord handler",

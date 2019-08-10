@@ -10,7 +10,6 @@ type ChatMessage struct {
 	DisplayName string
 	Message     string
 	PlayerID    string
-	SentToUser  bool
 	ServerKey   string `json:"-"`
 	Tag         string
 }

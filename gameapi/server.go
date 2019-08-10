@@ -18,6 +18,8 @@ type discordHandler interface {
 	RaidNotify(types.RaidAlert)
 	AuthDiscord(types.DiscordAuth)
 	SendChatMessage(types.ChatMessage)
+	SendGameMessage(types.GameMessage, time.Duration) error
+	ServerChannels(types.ServerChannelsRequest)
 }
 
 // ServerConfig contains the base Server configuration
@@ -28,11 +30,9 @@ type ServerConfig struct {
 }
 
 type ServerChannels struct {
-	AuthSuccess         <-chan types.DiscordAuth
-	GameMessageChan     chan<- types.GameMessage
-	ChannelsRequestChan chan<- types.ServerChannelsRequest
-	RoleSetChan         chan<- types.RoleSet
-	ChatQueue           storage.ChatQueueStore
+	AuthSuccess <-chan types.DiscordAuth
+	RoleSetChan chan<- types.RoleSet
+	ChatQueue   storage.ChatQueueStore
 }
 
 // A Server runs the HTTP server, notification channels, and DB writing.
@@ -70,7 +70,7 @@ func NewServer(sc *ServerConfig, dh discordHandler, channels ServerChannels) *Se
 
 	initChat(channels.ChatQueue, dh, api)
 
-	initMessages(channels.GameMessageChan, channels.ChannelsRequestChan, api)
+	initMessages(dh, api)
 
 	initClans(sc.Storage.Accounts(), sc.Storage.Users(), api)
 

@@ -1,8 +1,10 @@
 package discord
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/storage"
@@ -30,10 +32,10 @@ type Runner struct {
 	status          chan bool
 	chatChan        chan types.ChatMessage
 	raidAlertChan   chan types.RaidAlert
-	GameMessageChan chan types.GameMessage
+	gameMessageChan chan types.GameMessage
 	authChan        chan types.DiscordAuth
 	AuthSuccess     chan types.DiscordAuth
-	ChannelsRequest chan types.ServerChannelsRequest
+	channelsRequest chan types.ServerChannelsRequest
 	RoleSetChan     chan types.RoleSet
 	shutdown        bool
 }
@@ -51,8 +53,8 @@ func NewRunner(token string, as storage.AccountsStore, das storage.DiscordAuthsS
 		authChan:        make(chan types.DiscordAuth),
 		AuthSuccess:     make(chan types.DiscordAuth),
 		raidAlertChan:   make(chan types.RaidAlert),
-		GameMessageChan: make(chan types.GameMessage),
-		ChannelsRequest: make(chan types.ServerChannelsRequest),
+		gameMessageChan: make(chan types.GameMessage),
+		channelsRequest: make(chan types.ServerChannelsRequest),
 		RoleSetChan:     make(chan types.RoleSet),
 	}
 }
@@ -90,6 +92,19 @@ func (r Runner) AuthDiscord(da types.DiscordAuth) {
 
 func (r Runner) SendChatMessage(cm types.ChatMessage) {
 	r.chatChan <- cm
+}
+
+func (r Runner) SendGameMessage(gm types.GameMessage, timeout time.Duration) error {
+	select {
+	case r.gameMessageChan <- gm:
+		return nil
+	case <-time.After(timeout):
+		return errors.New("no response from discord handler")
+	}
+}
+
+func (r Runner) ServerChannels(scr types.ServerChannelsRequest) {
+	r.channelsRequest <- scr
 }
 
 // Stop stops the runner
@@ -149,11 +164,11 @@ func (r *Runner) runner() {
 					}()
 				case da := <-r.authChan:
 					go r.discordAuthHandler(da)
-				case m := <-r.GameMessageChan:
+				case m := <-r.gameMessageChan:
 					go gameMessageHandler(r.session.State.User.ID, m, r.session.State.Guild, r)
 				case cm := <-r.chatChan:
 					go gameChatHandler(r.session.State.User.ID, cm, r.session.State.Guild, r)
-				case cr := <-r.ChannelsRequest:
+				case cr := <-r.channelsRequest:
 					go sendChannelList(r.session.State.User.ID, cr.GuildID, cr.ResponseChan, r.session.State)
 				case rs := <-r.RoleSetChan:
 					go rolesSetHandler(r.session.State.User.ID, rs, r.session.State, r.us, r.session)
