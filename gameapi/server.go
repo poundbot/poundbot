@@ -14,6 +14,10 @@ import (
 
 const upgradeURL = "https://umod.org/plugins/pound-bot"
 
+type discordHandler interface {
+	RaidNotify(types.RaidAlert)
+}
+
 // ServerConfig contains the base Server configuration
 type ServerConfig struct {
 	BindAddr string
@@ -22,7 +26,6 @@ type ServerConfig struct {
 }
 
 type ServerChannels struct {
-	RaidNotify          chan<- types.RaidAlert
 	DiscordAuth         chan<- types.DiscordAuth
 	AuthSuccess         <-chan types.DiscordAuth
 	ChatChan            chan<- types.ChatMessage
@@ -38,15 +41,17 @@ type Server struct {
 	sc              *ServerConfig
 	channels        ServerChannels
 	shutdownRequest chan struct{}
+	dh              discordHandler
 }
 
 // NewServer creates a Server
-func NewServer(sc *ServerConfig, channels ServerChannels) *Server {
+func NewServer(sc *ServerConfig, dh discordHandler, channels ServerChannels) *Server {
 	s := Server{
 		Server: http.Server{
 			Addr: fmt.Sprintf("%s:%d", sc.BindAddr, sc.Port),
 		},
 		sc:       sc,
+		dh:       dh,
 		channels: channels,
 	}
 
@@ -98,7 +103,7 @@ func (s *Server) Start() error {
 		var newConn = s.sc.Storage.Copy()
 		defer newConn.Close()
 
-		var ra = newRaidAlerter(newConn.RaidAlerts(), s.channels.RaidNotify, s.shutdownRequest)
+		var ra = newRaidAlerter(newConn.RaidAlerts(), s.dh, s.shutdownRequest)
 		ra.Run()
 	}()
 

@@ -29,7 +29,7 @@ type Runner struct {
 	token           string
 	status          chan bool
 	ChatChan        chan types.ChatMessage
-	RaidAlertChan   chan types.RaidAlert
+	raidAlertChan   chan types.RaidAlert
 	GameMessageChan chan types.GameMessage
 	DiscordAuth     chan types.DiscordAuth
 	AuthSuccess     chan types.DiscordAuth
@@ -50,7 +50,7 @@ func NewRunner(token string, as storage.AccountsStore, das storage.DiscordAuthsS
 		ChatChan:        make(chan types.ChatMessage),
 		DiscordAuth:     make(chan types.DiscordAuth),
 		AuthSuccess:     make(chan types.DiscordAuth),
-		RaidAlertChan:   make(chan types.RaidAlert),
+		raidAlertChan:   make(chan types.RaidAlert),
 		GameMessageChan: make(chan types.GameMessage),
 		ChannelsRequest: make(chan types.ServerChannelsRequest),
 		RoleSetChan:     make(chan types.RoleSet),
@@ -78,6 +78,10 @@ func (r *Runner) Start() error {
 		connect(session)
 	}
 	return err
+}
+
+func (r Runner) RaidNotify(ra types.RaidAlert) {
+	r.raidAlertChan <- ra
 }
 
 // Stop stops the runner
@@ -112,7 +116,7 @@ func (r *Runner) runner() {
 					}
 
 					rLog.Info("Received unexpected connected message")
-				case t := <-r.RaidAlertChan:
+				case t := <-r.raidAlertChan:
 					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "pID": t.PlayerID})
 					raLog.Trace("Got raid alert")
 					go func() {

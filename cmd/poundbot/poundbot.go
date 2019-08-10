@@ -152,8 +152,8 @@ func main() {
 	// HTTP API server
 	server := gameapi.NewServer(
 		webConfig,
+		dr,
 		gameapi.ServerChannels{
-			RaidNotify:          dr.RaidAlertChan,
 			DiscordAuth:         dr.DiscordAuth,
 			AuthSuccess:         dr.AuthSuccess,
 			ChatChan:            dr.ChatChan,

@@ -8,7 +8,8 @@
       "playerid",
       "poundbot",
       "ssys",
-      "storer"
+      "storer",
+      "stretchr"
     ],
     "go.formatTool": "goimports"
 }

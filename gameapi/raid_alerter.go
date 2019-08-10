@@ -7,27 +7,31 @@ import (
 	"github.com/poundbot/poundbot/types"
 )
 
-// A RaidStore stores raid information
-type RaidStore interface {
+type raidNotifier interface {
+	RaidNotify(types.RaidAlert)
+}
+
+// A raidStore stores raid information
+type raidStore interface {
 	GetReady() ([]types.RaidAlert, error)
 	Remove(types.RaidAlert) error
 }
 
 // A RaidAlerter sends notifications on raids
 type RaidAlerter struct {
-	RaidStore  RaidStore
-	RaidNotify chan<- types.RaidAlert
-	SleepTime  time.Duration
-	done       <-chan struct{}
+	rs        raidStore
+	rn        raidNotifier
+	SleepTime time.Duration
+	done      <-chan struct{}
 }
 
 // NewRaidAlerter constructs a RaidAlerter
-func newRaidAlerter(ral RaidStore, rnc chan<- types.RaidAlert, done <-chan struct{}) *RaidAlerter {
+func newRaidAlerter(ral raidStore, rn raidNotifier, done <-chan struct{}) *RaidAlerter {
 	return &RaidAlerter{
-		RaidStore:  ral,
-		RaidNotify: rnc,
-		done:       done,
-		SleepTime:  1 * time.Second,
+		rs:        ral,
+		rn:        rn,
+		done:      done,
+		SleepTime: 1 * time.Second,
 	}
 }
 
@@ -42,7 +46,7 @@ func (r *RaidAlerter) Run() {
 			raLog.Warn("Shutting down")
 			return
 		case <-time.After(r.SleepTime):
-			alerts, err := r.RaidStore.GetReady()
+			alerts, err := r.rs.GetReady()
 			if err != nil && err != mgo.ErrNotFound {
 				raLog.WithError(err).Error("could not get raid alert")
 				continue
@@ -52,11 +56,11 @@ func (r *RaidAlerter) Run() {
 				// We only want to send the raid notification when we are the instance
 				// that can remove it. This is a "simple" way of allowing multiple
 				// instances to run against the same DB.
-				if err := r.RaidStore.Remove(result); err != nil {
+				if err := r.rs.Remove(result); err != nil {
 					raLog.WithError(err).Error("storage: Could not remove alert")
 					continue
 				}
-				r.RaidNotify <- result
+				r.rn.RaidNotify(result)
 			}
 		}
 	}
