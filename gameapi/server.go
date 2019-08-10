@@ -20,6 +20,7 @@ type discordHandler interface {
 	SendChatMessage(types.ChatMessage)
 	SendGameMessage(types.GameMessage, time.Duration) error
 	ServerChannels(types.ServerChannelsRequest)
+	SetRole(types.RoleSet, time.Duration) error
 }
 
 // ServerConfig contains the base Server configuration
@@ -31,7 +32,6 @@ type ServerConfig struct {
 
 type ServerChannels struct {
 	AuthSuccess <-chan types.DiscordAuth
-	RoleSetChan chan<- types.RoleSet
 	ChatQueue   storage.ChatQueueStore
 }
 
@@ -74,7 +74,7 @@ func NewServer(sc *ServerConfig, dh discordHandler, channels ServerChannels) *Se
 
 	initClans(sc.Storage.Accounts(), sc.Storage.Users(), api)
 
-	initRoles(channels.RoleSetChan, api)
+	initRoles(dh, api)
 
 	initPlayers(api)
 

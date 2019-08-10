@@ -36,7 +36,7 @@ type Runner struct {
 	authChan        chan types.DiscordAuth
 	AuthSuccess     chan types.DiscordAuth
 	channelsRequest chan types.ServerChannelsRequest
-	RoleSetChan     chan types.RoleSet
+	roleSetChan     chan types.RoleSet
 	shutdown        bool
 }
 
@@ -55,7 +55,7 @@ func NewRunner(token string, as storage.AccountsStore, das storage.DiscordAuthsS
 		raidAlertChan:   make(chan types.RaidAlert),
 		gameMessageChan: make(chan types.GameMessage),
 		channelsRequest: make(chan types.ServerChannelsRequest),
-		RoleSetChan:     make(chan types.RoleSet),
+		roleSetChan:     make(chan types.RoleSet),
 	}
 }
 
@@ -105,6 +105,16 @@ func (r Runner) SendGameMessage(gm types.GameMessage, timeout time.Duration) err
 
 func (r Runner) ServerChannels(scr types.ServerChannelsRequest) {
 	r.channelsRequest <- scr
+}
+
+func(r Runner) SetRole(rs types.RoleSet, timeout time.Duration) error {
+	// sending message
+	select {
+	case r.roleSetChan <- rs:
+		return nil
+	case <-time.After(timeout):
+		return errors.New("no response from discord handler")
+	}
 }
 
 // Stop stops the runner
@@ -170,7 +180,7 @@ func (r *Runner) runner() {
 					go gameChatHandler(r.session.State.User.ID, cm, r.session.State.Guild, r)
 				case cr := <-r.channelsRequest:
 					go sendChannelList(r.session.State.User.ID, cr.GuildID, cr.ResponseChan, r.session.State)
-				case rs := <-r.RoleSetChan:
+				case rs := <-r.roleSetChan:
 					go rolesSetHandler(r.session.State.User.ID, rs, r.session.State, r.us, r.session)
 				}
 			}

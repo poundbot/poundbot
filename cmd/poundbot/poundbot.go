@@ -156,7 +156,6 @@ func main() {
 		gameapi.ServerChannels{
 			AuthSuccess: dr.AuthSuccess,
 			ChatQueue:   store.ChatQueue(),
-			RoleSetChan: dr.RoleSetChan,
 		},
 	)
 

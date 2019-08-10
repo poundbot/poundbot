@@ -11,13 +11,17 @@ import (
 	"github.com/poundbot/poundbot/types"
 )
 
+type discordRoleSetter interface {
+	SetRole(types.RoleSet, time.Duration) error
+}
+
 type roles struct {
-	rsChan  chan<- types.RoleSet
+	drs     discordRoleSetter
 	timeout time.Duration
 }
 
-func initRoles(rsChan chan<- types.RoleSet, api *mux.Router) {
-	r := roles{rsChan: rsChan, timeout: 10 * time.Second}
+func initRoles(drs discordRoleSetter, api *mux.Router) {
+	r := roles{drs: drs, timeout: 10 * time.Second}
 
 	api.HandleFunc("/roles/{role_name}", r.roleHandler).
 		Methods(http.MethodPut)
@@ -59,12 +63,7 @@ func (rs roles) roleHandler(w http.ResponseWriter, r *http.Request) {
 	roleSet.GuildID = sc.account.GuildSnowflake
 	roleSet.SetGame(sc.game)
 
-	// sending message
-	select {
-	case rs.rsChan <- roleSet:
-		w.WriteHeader(http.StatusAccepted)
-		break
-	case <-time.After(rs.timeout):
+	if err := rs.drs.SetRole(roleSet, rs.timeout); err != nil {
 		rhLog.Error("timed out sending message to channel")
 		if err := handleError(w, types.RESTError{
 			Error:      "internal error sending message to discord handler",
