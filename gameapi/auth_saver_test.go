@@ -13,6 +13,7 @@ func TestAuthSaver_Run(t *testing.T) {
 	var mockU *mocks.UsersStore
 	var mockDA *mocks.DiscordAuthsStore
 	done := make(chan struct{})
+	defer close(done)
 
 	tests := []struct {
 		name string

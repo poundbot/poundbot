@@ -23,8 +23,8 @@ func (r *Runner) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	da.Ack = func(authed bool) {
-		if authed {
+	da.Ack = func(authenticated bool) {
+		if authenticated {
 			s.ChannelMessageSend(m.ChannelID, localizer.MustLocalize(&i18n.LocalizeConfig{
 				DefaultMessage: &i18n.Message{
 					ID:    "PinAuthenticated",
@@ -32,9 +32,7 @@ func (r *Runner) interact(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}}))
 			err = r.as.AddRegisteredPlayerIDs(da.GuildSnowflake, []string{da.PlayerID})
 			if err != nil {
-				log.WithFields(logrus.Fields{"sys": "interact()", "playerid": da.PlayerID, "guildid": da.GuildSnowflake, "err": err}).Error(
-					"Could not add player discord account.",
-				)
+				log.WithError(err).WithFields(logrus.Fields{"sys": "interact()", "playerid": da.PlayerID, "guildid": da.GuildSnowflake})
 			}
 			return
 		}

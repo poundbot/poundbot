@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pkg/errors"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -55,7 +56,7 @@ func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDB) *gameapi.Server
 func start(s service, name string) error {
 	if err := s.Start(); err != nil {
 		log.Printf("[MAIN][WARN] Failed to start %s: %s\n", name, err)
-		return err
+		return errors.Wrap(err, fmt.Sprintf("failed to start service %s", name))
 	}
 
 	wg.Add(1)
@@ -145,6 +146,7 @@ func main() {
 		store.Users(), store.MessageLocks(), store.ChatQueue())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v\n", err)
+		os.Exit(1)
 	}
 
 	// HTTP API server
@@ -164,6 +166,7 @@ func main() {
 
 	if err := start(server, "HTTP Server"); err != nil {
 		log.Fatalf("Could not start HTTP server, %v\n", err)
+		os.Exit(1)
 	}
 
 	sc := make(chan os.Signal, 1)

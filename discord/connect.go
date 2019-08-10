@@ -18,10 +18,7 @@ func connect(sess sessionOpener) {
 		err := sess.Open()
 		if err != nil {
 			log.WithFields(logrus.Fields{"sys": "connect"}).WithError(err).Warn(
-				"Error connecting",
-			)
-			log.WithFields(logrus.Fields{"sys": "connect"}).Warn(
-				"Attempting Reconnect...",
+				"Error connecting; Attempting reconnect...",
 			)
 			time.Sleep(1 * time.Second)
 			continue

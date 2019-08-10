@@ -1,7 +1,8 @@
 package discord
 
 import (
-	"errors"
+	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -13,7 +14,7 @@ import (
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the authenticated bot has access to.
 func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	mcLog := log.WithFields(logrus.Fields{"sys": "RUN", "gID": m.GuildID})
+	mcLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "messageCreate", "gID": m.GuildID})
 	if !r.mls.Obtain(m.ID, "discord") {
 		return
 	}
@@ -143,11 +144,13 @@ type messageChannelsGetter interface {
 }
 
 func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsResponse, mgg messageChannelsGetter) error {
+	sclLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "sendChannelList", "gID": guildID, "uID": userID})
 	defer close(ch)
 	guild, err := mgg.Guild(guildID)
 	if err != nil {
 		ch <- types.ServerChannelsResponse{OK: false}
-		return err
+		sclLog.WithError(err).Warn("Could not find guild")
+		return errors.Wrap(err, fmt.Sprintf("could not find guild with id %s", guildID))
 	}
 
 	r := types.ServerChannelsResponse{OK: true}
@@ -155,13 +158,15 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 		canSend, err := canSendToChannel(mgg, userID, channel.ID)
 		if err != nil {
 			ch <- types.ServerChannelsResponse{OK: false}
-			return err
+			sclLog.WithError(err).Warn("Can not send to channel")
+			return errors.Wrap(err, "channel send failed")
 		}
 
 		canEmbed, err := canEmbedToChannel(mgg, userID, channel.ID)
 		if err != nil {
 			ch <- types.ServerChannelsResponse{OK: false}
-			return err
+			sclLog.WithError(err).Warn("Cannot embed to channel")
+			return errors.Wrap(err, "channel embed failed")
 		}
 
 		if channel.Type != discordgo.ChannelTypeGuildText {
@@ -175,9 +180,11 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 }
 
 func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
+	scmLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "sendChannelMessage", "cID": channelID, "uID": userID})
 	canSend, err := canSendToChannel(r.session, userID, channelID)
 	if err != nil {
-		return err
+		scmLog.WithError(err).Warn("Cannot send to channel")
+		return errors.Wrap(err, "cannot send to channel")
 	}
 
 	if !canSend {
@@ -185,13 +192,18 @@ func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
 	}
 
 	_, err = r.session.ChannelMessageSend(channelID, message)
-	return err
+	if err != nil {
+		scmLog.WithError(err).Warn("error sending message to channel")
+	}
+	return errors.Wrap(err, "error sending message to channel")
 }
 
 func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) error {
+	sceLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "sendChannelMessage", "cID": channelID, "uID": userID})
 	canEmbed, err := canEmbedToChannel(r.session, userID, channelID)
 	if err != nil {
-		return err
+		sceLog.WithError(err).Warn("Cannot embed to channel")
+		return errors.Wrap(err, "cannot embed to channel")
 	}
 
 	if !canEmbed {
@@ -202,15 +214,19 @@ func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) 
 		Description: message,
 		Color:       color,
 	})
-	return err
+	if err != nil {
+		sceLog.WithError(err).Warn("error embedding message to channel")
+	}
+	return errors.Wrap(err, "error embedding message to channel")
 }
 
 func (r *Runner) sendPrivateMessage(snowflake, message string) error {
+	spmLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "sendPrivateMessage", "cID": snowflake})
 	channel, err := r.session.UserChannelCreate(snowflake)
 
 	if err != nil {
-		log.WithError(err).Error("Error creating user channel")
-		return err
+		spmLog.WithError(err).Error("Error creating user channel")
+		return errors.Wrap(err, "could not create user channel")
 	}
 
 	_, err = r.session.ChannelMessageSend(
@@ -218,34 +234,36 @@ func (r *Runner) sendPrivateMessage(snowflake, message string) error {
 		message,
 	)
 
-	return err
+	return errors.Wrap(err, "error sending private message")
 }
 
 func canSendToChannel(pg channelPermissionsGetter, userID, channelID string) (bool, error) {
+	cstcLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "canSendToChannel", "uID": userID, "cID": channelID})
 	perms, err := pg.UserChannelPermissions(userID, channelID)
 
 	if err != nil {
-		log.WithError(err).WithField("cID", channelID).Trace("canSendToChannel: error reading permissions for channel")
-		return false, err
+		cstcLog.WithError(err).WithField("cID", channelID).Trace("canSendToChannel: error reading permissions for channel")
+		return false, errors.Wrap(err, "could not read permissions for channel")
 	}
 
 	if discordgo.PermissionSendMessages&^perms != 0 {
-		log.WithField("cID", channelID).Trace("canSendToChannel: cannot send to channel")
+		cstcLog.WithField("cID", channelID).Trace("canSendToChannel: cannot send to channel")
 		return false, nil
 	}
 	return true, nil
 }
 
 func canEmbedToChannel(pg channelPermissionsGetter, userID, channelID string) (bool, error) {
+	cetcLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "canEmbedToChannel", "uID": userID, "cID": channelID})
 	perms, err := pg.UserChannelPermissions(userID, channelID)
 
 	if err != nil {
-		log.WithError(err).WithField("cID", channelID).Trace("canEmbedToChannel: error sending to channel")
+		cetcLog.WithError(err).WithField("cID", channelID).Trace("canEmbedToChannel: error sending to channel")
 		return false, nil
 	}
 
 	if discordgo.PermissionEmbedLinks&^perms != 0 {
-		log.WithField("cID", channelID).Trace("canEmbedToChannel: cannot embed to channel")
+		cetcLog.WithField("cID", channelID).Trace("canEmbedToChannel: cannot embed to channel")
 		return false, err
 	}
 	return true, nil

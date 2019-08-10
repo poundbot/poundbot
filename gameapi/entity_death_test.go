@@ -56,6 +56,7 @@ func TestEntityDeath_Handle(t *testing.T) {
 				OwnerIDs:   []string{"game:1", "game:2", "game:3"},
 				Timestamp:  types.Timestamp{CreatedAt: time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)},
 			},
+			log: "auth success",
 		},
 		{
 			name:   "old API POST empty request",

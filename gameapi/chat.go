@@ -64,10 +64,10 @@ func initChat(cq chatQueue, in chan<- types.ChatMessage, api *mux.Router) {
 func (c *chat) handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	version, err := semver.Make(r.Header.Get("X-PoundBotBetterChat-Version"))
+	version, err := semver.Make(r.Header.Get("X-PoundBotChatRelay-Version"))
 	if err == nil && version.LT(c.minVersion) {
 		w.WriteHeader(http.StatusBadRequest)
-		if _, err := w.Write([]byte("PoundBotBetterChat must be updated. Please download the latest version at " + upgradeURL)); err != nil {
+		if _, err := w.Write([]byte("PoundBotChatRelay must be updated. Please download the latest version at " + upgradeURL)); err != nil {
 			log.WithError(err).Error("Could not write output")
 		}
 		return
@@ -78,7 +78,7 @@ func (c *chat) handle(w http.ResponseWriter, r *http.Request) {
 		log.Info(fmt.Sprintf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error()))
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusForbidden,
 		})
 		return
 	}

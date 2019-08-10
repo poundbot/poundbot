@@ -104,10 +104,10 @@ func (s *Server) Start() error {
 
 	go func() {
 		log.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
-		if err := s.ListenAndServe(); err != nil {
+		if err := s.ListenAndServe(); err != http.ErrServerClosed {
 			log.WithError(err).Warn("HTTP server died with error\n")
 		} else {
-			log.WithError(err).Warn("HTTP server graceful shutdown\n")
+			log.Print("HTTP server graceful shutdown")
 		}
 	}()
 

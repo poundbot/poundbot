@@ -1,8 +1,13 @@
 {
     "files.eol": "\n",
     "cSpell.words": [
+      "bwmarrin",
+      "cetc",
       "discordgo",
+      "guildid",
+      "playerid",
       "poundbot",
+      "ssys",
       "storer"
     ],
     "go.formatTool": "goimports"
