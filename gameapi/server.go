@@ -108,7 +108,7 @@ func (s *Server) Start() error {
 	}()
 
 	go func() {
-		log.Printf("Starting HTTP Server on %s:%d\n", s.sc.BindAddr, s.sc.Port)
+		log.Printf("Starting HTTP Server on %s:%d", s.sc.BindAddr, s.sc.Port)
 		if err := s.ListenAndServe(); err != http.ErrServerClosed {
 			log.WithError(err).Warn("HTTP server died with error\n")
 		} else {

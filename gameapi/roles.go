@@ -71,5 +71,8 @@ func (rs roles) roleHandler(w http.ResponseWriter, r *http.Request) {
 		}); err != nil {
 			rhLog.WithError(err).Error("http response failed to write")
 		}
+		return
 	}
+
+	w.WriteHeader(http.StatusAccepted)
 }
