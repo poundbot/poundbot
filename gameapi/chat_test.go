@@ -73,9 +73,7 @@ func TestChat_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dmh := discordMessageHandler{}
 			tt.s.cqs = &chatQueueMock{message: tt.dMessage}
-			tt.s.dm = &dmh
 
 			req, err := http.NewRequest(tt.method, "/chat", strings.NewReader(tt.rBody))
 			if err != nil {
@@ -106,7 +104,6 @@ func TestChat_Handle(t *testing.T) {
 
 			assert.Equal(t, tt.body, rr.Body.String(), "handler returned bad body")
 			assert.Equal(t, tt.status, rr.Code, "handler returned wrong status code")
-			assert.Equal(t, tt.rMessage, dmh.message, "handler got wrong message from rust")
 			// assert.Equal(t, tt.log, hook.LastEntry().Message, "log was incorrect")
 		})
 	}

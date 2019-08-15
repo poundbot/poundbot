@@ -68,7 +68,7 @@ func NewServer(sc *ServerConfig, dh discordHandler, channels ServerChannels) *Se
 
 	initDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), dh, api)
 
-	initChat(channels.ChatQueue, dh, api)
+	initChat(api, "/chat", channels.ChatQueue)
 
 	initMessages(dh, api)
 

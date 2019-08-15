@@ -23,9 +23,9 @@ func (cq ChatQueue) GetGameServerMessage(sk, tag string, to time.Duration) (type
 
 	iter := cq.collection.With(sess).Find(
 		bson.M{
-			"serverkey":  sk,
-			"tag":        tag,
-			"senttouser": false,
+			"serverkey":    sk,
+			"tag":          tag,
+			"senttoserver": false,
 		},
 	).Tail(to)
 	defer iter.Close()
@@ -33,8 +33,8 @@ func (cq ChatQueue) GetGameServerMessage(sk, tag string, to time.Duration) (type
 	var cm types.ChatMessage
 	for iter.Next(&cm) {
 		err := cq.collection.Update(
-			bson.M{"_id": cm.ID, "senttouser": false},
-			bson.M{"$set": bson.M{"senttouser": true}},
+			bson.M{"_id": cm.ID, "senttoserver": false},
+			bson.M{"$set": bson.M{"senttoserver": true}},
 		)
 		if err != nil {
 			if err != mgo.ErrNotFound {

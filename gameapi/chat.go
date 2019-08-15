@@ -14,10 +14,6 @@ import (
 
 var iclock = pbclock.Clock
 
-type discordMessager interface {
-	SendChatMessage(types.ChatMessage)
-}
-
 type chatQueue interface {
 	GetGameServerMessage(sk, tag string, to time.Duration) (types.ChatMessage, bool)
 }
@@ -39,43 +35,27 @@ func newDiscordChat(cm types.ChatMessage) discordChat {
 // A Chat is for handling discord <-> rust chat
 type chat struct {
 	cqs        chatQueue
-	dm         discordMessager
 	timeout    time.Duration
 	minVersion semver.Version
 }
 
 // initChat initializes a chat handler and returns it
-//
-// cq is the chatQueue for reading messages from
-// in is the channel for server -> discord
-func initChat(cq chatQueue, dm discordMessager, api *mux.Router) {
+func initChat(api *mux.Router, mount string, cq chatQueue) {
 	c := chat{
 		cqs:        cq,
-		dm:         dm,
 		timeout:    10 * time.Second,
 		minVersion: semver.Version{Major: 1, Patch: 3},
 	}
 
-	api.HandleFunc("/chat", c.handle).Methods(http.MethodGet, http.MethodPost)
+	api.HandleFunc(mount, c.handle).Methods(http.MethodGet, http.MethodPost)
 }
 
-// handle manages Rust <-> discord chat requests and logging
+// handle manages Discord to GameServer chat requests
 //
-// HTTP POST requests are sent to the "in" chan
-//
-// HTTP GET requests wait for messages and disconnect with http.StatusNoContent
+// HTTP GET requests wait for messages or disconnect with http.StatusNoContent
 // after timeout seconds.
 func (c *chat) handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-
-	version, err := semver.Make(r.Header.Get("X-PoundBotChatRelay-Version"))
-	if err == nil && version.LT(c.minVersion) {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err := w.Write([]byte("PoundBotChatRelay must be updated. Please download the latest version at " + upgradeURL)); err != nil {
-			log.WithError(err).Error("Could not write output")
-		}
-		return
-	}
 
 	sc, err := getServerContext(r.Context())
 	if err != nil {
