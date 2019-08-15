@@ -89,7 +89,15 @@ func instruct(botID, channelID, authorID, message string, account types.Account,
 
 	if !isOwner {
 		iLog.Trace("Instruction is not from an admin")
-		return instructResponse{responseType: instructResponseNone}
+		return instructResponse{
+			responseType: instructResponseChannel,
+			message: localizer.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "InstructNotAuthorized",
+					Other: "You are not authorized to use this commamd. This is only available to the server owner.",
+				},
+			}),
+		}
 	}
 
 	switch command {
