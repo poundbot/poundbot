@@ -27,16 +27,8 @@ type discordAuth struct {
 	da  discordAuthenticator
 }
 
-type deprecatedDiscordAuth struct {
+type discordAuthRequest struct {
 	types.DiscordAuth
-	SteamID uint64
-}
-
-func (d *deprecatedDiscordAuth) upgrade() {
-	if d.SteamID == 0 {
-		return
-	}
-	d.PlayerID = fmt.Sprintf("%d", d.SteamID)
 }
 
 func initDiscordAuth(dau daAuthUpserter, us daUserGetter, dah discordAuthenticator, api *mux.Router) {
@@ -52,7 +44,7 @@ func (da *discordAuth) handle(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
-	var dAuth deprecatedDiscordAuth
+	var dAuth discordAuthRequest
 
 	err := decoder.Decode(&dAuth)
 	if err != nil {
@@ -60,10 +52,7 @@ func (da *discordAuth) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dAuth.upgrade()
-	dAuth.PlayerID = fmt.Sprintf("%s:%s", game, dAuth.PlayerID)
-
-	user, err := da.us.GetByPlayerID(dAuth.PlayerID)
+	user, err := da.us.GetByPlayerID(fmt.Sprintf("%s:%s", game, dAuth.PlayerID))
 	if err == nil {
 		handleError(w, types.RESTError{
 			StatusCode: http.StatusMethodNotAllowed,
