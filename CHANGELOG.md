@@ -12,13 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed deprecated support for discord auth with uint64 SteamID
 - Removed version checks in gameapi handlers
 - Refactored API between gameapi and discord packages
+- New player check API (`GET /discord_auth/check/{player_id}`)
 - New roles API (`PUT /roles/{role_name}`)
 - New server channels list (`GET /api/messages`)
 - Added `CHANGELOG.md`. Hello!
 
 ### Changed
 
-- `rustconn` renamed to `gameapi` and several refactorings.
+- `rustconn` renamed to `gameapi` and other refactors.
 - Refactoring in `discord` package to make some methods more testable.
 - Refactored `discord.Client` to `discord.Runner`
 
