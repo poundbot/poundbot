@@ -7,9 +7,10 @@ import (
 
 var log = pblog.Log.WithField("proc", "API")
 
-func logWithRequest(sc serverContext) *logrus.Entry {
+func logWithRequest(requestURI string, sc serverContext) *logrus.Entry {
 	return log.WithFields(
 		logrus.Fields{
+			"URI": requestURI,
 			"rID": sc.requestUUID,
 			"sID": sc.account.ID.Hex(),
 		},

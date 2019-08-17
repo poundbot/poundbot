@@ -10,12 +10,12 @@ import (
 	"github.com/poundbot/poundbot/storage"
 )
 
-type ServerAuth struct {
+type serverAuth struct {
 	as storage.AccountsStore
 }
 
-func (sa ServerAuth) Handle(next http.Handler) http.Handler {
-	minVersion := semver.Version{Major: 1}
+func (sa serverAuth) handle(next http.Handler) http.Handler {
+	minVersion := semver.Version{Major: 2}
 
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

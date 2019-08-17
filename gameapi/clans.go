@@ -2,6 +2,7 @@ package gameapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -39,13 +40,13 @@ type clans struct {
 	us storage.UsersStore
 }
 
-func initClans(as storage.AccountsStore, us storage.UsersStore, api *mux.Router) {
+func initClans(api *mux.Router, path string, as storage.AccountsStore, us storage.UsersStore) {
 	c := clans{as: as, us: us}
 
-	api.HandleFunc("/clans", c.rootHandler).
+	api.HandleFunc(path, c.rootHandler).
 		Methods(http.MethodPut)
 
-	api.HandleFunc("/clans/{tag}", c.clanHandler).
+	api.HandleFunc(fmt.Sprintf("%s/{tag}", path), c.clanHandler).
 		Methods(http.MethodDelete, http.MethodPut)
 }
 
@@ -53,23 +54,27 @@ func initClans(as storage.AccountsStore, us storage.UsersStore, api *mux.Router)
 // These requests are a complete refresh of all clans
 func (c *clans) rootHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
 	sc, err := getServerContext(r.Context())
+	rhLog := logWithRequest(r.RequestURI, sc)
+
 	if err != nil {
-		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		rhLog.WithError(err).Info("Can't find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
 		})
 		return
 	}
-	log.Printf("[%s] %s: Updating all clans for %s:%s", sc.requestUUID, sc.game, sc.account.ID.Hex(), sc.server.Name)
+
+	rhLog.Info("Updating all clans")
 
 	decoder := json.NewDecoder(r.Body)
 
 	var sClans []serverClan
 	err = decoder.Decode(&sClans)
 	if err != nil {
-		log.Println(err.Error())
+		rhLog.WithError(err).Warn("Could not decode clans")
 		handleError(w, types.RESTError{StatusCode: http.StatusBadRequest, Error: "Could not decode clans"})
 		return
 	}
@@ -83,7 +88,7 @@ func (c *clans) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = c.as.SetClans(sc.serverKey, clans)
 	if err != nil {
-		log.Printf("Error updating clans: %s\n", err)
+		rhLog.WithError(err).Error("Error updating clans")
 		handleError(w, types.RESTError{StatusCode: http.StatusInternalServerError, Error: "Could not set clans"})
 	}
 }
@@ -91,9 +96,12 @@ func (c *clans) rootHandler(w http.ResponseWriter, r *http.Request) {
 // Handle manages individual clan REST requests form the Rust server
 func (c *clans) clanHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
 	sc, err := getServerContext(r.Context())
+	chLog := logWithRequest(r.RequestURI, sc)
+
 	if err != nil {
-		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		chLog.WithError(err).Info("Can't find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -106,23 +114,23 @@ func (c *clans) clanHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodDelete:
-		log.Printf("[%s] %s: Removing clan \"%s\" for %s:%s\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name)
+		chLog.Infof("Removing clan \"%s\"", tag)
 		err := c.as.RemoveClan(sc.serverKey, tag)
 		if err != nil {
 			handleError(w, types.RESTError{
 				Error:      "Could not remove clan",
 				StatusCode: http.StatusInternalServerError,
 			})
-			log.Printf("[%s] %s: Error removing clan \"%s\" for %s:%s: %v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
+			chLog.WithError(err).Errorf("Error removing clan \"%s\"", tag)
 		}
 		return
 	case http.MethodPut:
-		log.Printf("[%s] %s: Updating clan \"%s\" for %s:%s\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name)
+		chLog.Infof("Updating clan \"%s\"", tag)
 		decoder := json.NewDecoder(r.Body)
 		var sClan serverClan
 		err := decoder.Decode(&sClan)
 		if err != nil {
-			log.Printf("[%s] %s: Error decoding clan \"%s\" for %s:%s: %v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
+			chLog.WithError(err).Errorf("Error decoding clan \"%s\"", tag)
 			handleError(w, types.RESTError{
 				Error:      "Could not decode clan data",
 				StatusCode: http.StatusBadRequest,
@@ -140,7 +148,7 @@ func (c *clans) clanHandler(w http.ResponseWriter, r *http.Request) {
 				Error:      "Could not add clan",
 				StatusCode: http.StatusInternalServerError,
 			})
-			log.Printf("[%s] %s: Error adding clan \"%s\" for %s:%s: %v\n", sc.requestUUID, sc.game, tag, sc.account.ID.Hex(), sc.server.Name, err)
+			chLog.WithError(err).Errorf("Error adding clan \"%s\"", tag)
 		}
 	}
 }

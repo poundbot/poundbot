@@ -2,10 +2,9 @@ package gameapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/types"
@@ -20,10 +19,10 @@ type roles struct {
 	timeout time.Duration
 }
 
-func initRoles(drs discordRoleSetter, api *mux.Router) {
+func initRoles(api *mux.Router, path string, drs discordRoleSetter) {
 	r := roles{drs: drs, timeout: 10 * time.Second}
 
-	api.HandleFunc("/roles/{role_name}", r.roleHandler).
+	api.HandleFunc(fmt.Sprintf("%s/{role_name}", path), r.roleHandler).
 		Methods(http.MethodPut)
 }
 
@@ -34,15 +33,16 @@ func (rs roles) roleHandler(w http.ResponseWriter, r *http.Request) {
 	role := vars["role_name"]
 
 	sc, err := getServerContext(r.Context())
+	rhLog := logWithRequest(r.RequestURI, sc)
+
 	if err != nil {
+		rhLog.Info("Could not find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
 		})
 		return
 	}
-
-	rhLog := log.WithFields(logrus.Fields{"uri": r.RequestURI, "requestID": sc.requestUUID, "accountID": sc.account.ID.Hex(), "serverName": sc.server.Name})
 
 	decoder := json.NewDecoder(r.Body)
 	var roleSet types.RoleSet

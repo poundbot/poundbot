@@ -2,12 +2,12 @@ package gameapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/poundbot/poundbot/types"
-	"github.com/sirupsen/logrus"
 )
 
 type discordMessageSender interface {
@@ -22,23 +22,27 @@ type messages struct {
 }
 
 // initMessages initializes a chat handler and returns it
-func initMessages(dms discordMessageSender, api *mux.Router) {
+func initMessages(api *mux.Router, path string, dms discordMessageSender) {
 	m := messages{
 		dms:     dms,
 		timeout: 10 * time.Second,
 	}
 
-	api.HandleFunc("/messages", m.rootHandler).
+	api.HandleFunc(path, m.rootHandler).
 		Methods(http.MethodGet)
 
-	api.HandleFunc("/messages/{channel}", m.channelHandler).
+	api.HandleFunc(fmt.Sprintf("%s/{channel}", path), m.channelHandler).
 		Methods(http.MethodPost)
 }
 
 func (mh *messages) rootHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
 	sc, err := getServerContext(r.Context())
+	rhLog := logWithRequest(r.RequestURI, sc)
+
 	if err != nil {
+		rhLog.WithError(err).Info("Can't find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -46,15 +50,13 @@ func (mh *messages) rootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mhLog := log.WithFields(logrus.Fields{"uri": r.RequestURI, "requestID": sc.requestUUID, "accountID": sc.account.ID.Hex(), "serverName": sc.server.Name})
-
 	rChan := make(chan types.ServerChannelsResponse)
 
 	mh.dms.ServerChannels(types.ServerChannelsRequest{GuildID: sc.account.GuildSnowflake, ResponseChan: rChan})
 
 	response := <-rChan
 	if !response.OK {
-		mhLog.Error("rootHandler: Could not get channels")
+		rhLog.Error("rootHandler: Could not get channels")
 		handleError(w, types.RESTError{
 			Error:      "Could not get channels",
 			StatusCode: http.StatusInternalServerError,
@@ -64,14 +66,14 @@ func (mh *messages) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 	b, err := json.Marshal(response)
 	if err != nil {
-		mhLog.WithError(err).Error("error encoding response")
+		rhLog.WithError(err).Error("error encoding response")
 		return
 	}
 
 	w.Write(b)
 }
 
-// Handle manages Rust <-> discord messages requests and logging
+// channelHandler manages Rust <-> discord messages requests and logging
 func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -79,15 +81,16 @@ func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 	channel := vars["channel"]
 
 	sc, err := getServerContext(r.Context())
+	mhLog := logWithRequest(r.RequestURI, sc)
+
 	if err != nil {
+		mhLog.WithError(err).Info("Can't find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
 		})
 		return
 	}
-
-	mhLog := log.WithFields(logrus.Fields{"uri": r.RequestURI, "requestID": sc.requestUUID, "accountID": sc.account.ID.Hex(), "serverName": sc.server.Name})
 
 	decoder := json.NewDecoder(r.Body)
 	var message types.GameMessage
@@ -109,7 +112,7 @@ func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 	eChan := make(chan error)
 	message.ErrorResponse = eChan
 
-	mhLog.WithField("message", message).Trace("message")
+	mhLog.Tracef("Incoming message %v", message)
 
 	// sending message
 	if err := mh.dms.SendGameMessage(message, mh.timeout); err != nil {
@@ -143,6 +146,8 @@ func (mh *messages) channelHandler(w http.ResponseWriter, r *http.Request) {
 				mhLog.WithError(err).Error("http response failed to write")
 			}
 		}
+
+		mhLog.WithError(err).Trace("message chan returned")
 	case <-time.After(mh.timeout):
 		mhLog.Error("timed out receiving discord response")
 		if err := handleError(w, types.RESTError{

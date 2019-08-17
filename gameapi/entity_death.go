@@ -37,9 +37,9 @@ type entityDeath struct {
 	minVersion semver.Version
 }
 
-func initEntityDeath(raa raidAlertAdder, api *mux.Router) {
+func initEntityDeath(api *mux.Router, path string, raa raidAlertAdder) {
 	ed := entityDeath{raa: raa, minVersion: semver.Version{Major: 1}}
-	api.HandleFunc("/entity_death", ed.handle)
+	api.HandleFunc(path, ed.handle)
 }
 
 // handle manages incoming Rust entity death notices and sends them
@@ -47,16 +47,12 @@ func initEntityDeath(raa raidAlertAdder, api *mux.Router) {
 func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	version, err := semver.Make(r.Header.Get("X-PoundBotRaidAlerts-Version"))
-	if err == nil && version.LT(e.minVersion) {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("PoundBotRaidAlerts must be updated. Please download the latest version at " + upgradeURL))
-		return
-	}
-
 	sc, err := getServerContext(r.Context())
+
+	edLog := logWithRequest(r.RequestURI, sc)
+
 	if err != nil {
-		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		edLog.WithError(err).Info("Can't find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -68,7 +64,7 @@ func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 	var ed deprecatedEntityDeath
 	err = decoder.Decode(&ed)
 	if err != nil {
-		log.Printf("[%s](%s:%s) Invalid JSON: %s", sc.requestUUID, sc.account.ID.Hex(), sc.server.Name, err.Error())
+		edLog.WithError(err).Error("Invalid JSON")
 		handleError(w, types.RESTError{
 			Error:      "Invalid request",
 			StatusCode: http.StatusBadRequest,

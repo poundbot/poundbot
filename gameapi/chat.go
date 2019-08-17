@@ -40,14 +40,14 @@ type chat struct {
 }
 
 // initChat initializes a chat handler and returns it
-func initChat(api *mux.Router, mount string, cq chatQueue) {
+func initChat(api *mux.Router, path string, cq chatQueue) {
 	c := chat{
 		cqs:        cq,
 		timeout:    10 * time.Second,
 		minVersion: semver.Version{Major: 1, Patch: 3},
 	}
 
-	api.HandleFunc(mount, c.handle).Methods(http.MethodGet, http.MethodPost)
+	api.HandleFunc(path, c.handle).Methods(http.MethodGet, http.MethodPost)
 }
 
 // handle manages Discord to GameServer chat requests

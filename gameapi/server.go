@@ -56,29 +56,21 @@ func NewServer(sc *ServerConfig, dh discordHandler, channels ServerChannels) *Se
 	}
 
 	requestUUID := RequestUUID{}
-	serverAuth := ServerAuth{as: sc.Storage.Accounts()}
+	sa := serverAuth{as: sc.Storage.Accounts()}
 	r := mux.NewRouter()
 
 	// Handles all /api requests, and sets the server auth handler
 	api := r.PathPrefix("/api").Subrouter()
-	api.Use(serverAuth.Handle)
+	api.Use(sa.handle)
 	api.Use(requestUUID.Handle)
 
-	initEntityDeath(sc.Storage.RaidAlerts(), api)
-
-	initDiscordAuth(sc.Storage.DiscordAuths(), sc.Storage.Users(), dh, api)
-
+	initEntityDeath(api, "/entity_death", sc.Storage.RaidAlerts())
+	initDiscordAuth(api, "/discord_auth", sc.Storage.DiscordAuths(), sc.Storage.Users(), dh)
 	initChat(api, "/chat", channels.ChatQueue)
-
-	initMessages(dh, api)
-
-	initClans(sc.Storage.Accounts(), sc.Storage.Users(), api)
-
-	initRoles(dh, api)
-
-	initPlayers(api)
-
-	// api.HandleFunc("/players/registered", newRegisteredPlayers()).Methods(http.MethodGet)
+	initMessages(api, "/messages", dh)
+	initClans(api, "/clans", sc.Storage.Accounts(), sc.Storage.Users())
+	initRoles(api, "/roles", dh)
+	initPlayers(api, "/players")
 
 	s.Handler = r
 

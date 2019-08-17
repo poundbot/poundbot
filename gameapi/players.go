@@ -2,6 +2,7 @@ package gameapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -12,16 +13,19 @@ type playerIDs []string
 
 type registeredPlayers struct{}
 
-func initPlayers(api *mux.Router) {
+func initPlayers(api *mux.Router, path string) {
 	rp := registeredPlayers{}
-	api.HandleFunc("/players/registered", rp.handle).Methods(http.MethodGet)
+	api.HandleFunc(fmt.Sprintf("%s/registered", path), rp.handle).Methods(http.MethodGet)
 }
 
 func (p *registeredPlayers) handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
 	sc, err := getServerContext(r.Context())
+	hLog := logWithRequest(r.RequestURI, sc)
+
 	if err != nil {
-		log.Printf("[%s](%s:%s) Can't find server: %s", sc.requestUUID, sc.account.ID.Hex(), sc.serverKey, err.Error())
+		hLog.WithError(err).Info("Can't find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
@@ -33,11 +37,10 @@ func (p *registeredPlayers) handle(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		b, err := json.Marshal(sc.account.GetRegisteredPlayerIDs(sc.game))
 		if err != nil {
-			log.Printf("[%s] %s", sc.requestUUID, err.Error())
+			hLog.WithError(err).Info("Could not marshal JSON")
 			return
 		}
 
 		w.Write(b)
-
 	}
 }

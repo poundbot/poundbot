@@ -31,31 +31,43 @@ type discordAuthRequest struct {
 	types.DiscordAuth
 }
 
-func initDiscordAuth(dau daAuthUpserter, us daUserGetter, dah discordAuthenticator, api *mux.Router) {
+func initDiscordAuth(api *mux.Router, path string, dau daAuthUpserter, us daUserGetter, dah discordAuthenticator) {
 	da := discordAuth{dau: dau, us: us, da: dah}
-	api.HandleFunc("/discord_auth", da.handle).Methods("PUT")
-	api.HandleFunc("/discord_auth/check/{player_id}", da.checkPlayer).Methods("GET")
+	api.HandleFunc(path, da.createDiscordAuth).Methods("PUT")
+	api.HandleFunc(fmt.Sprintf("%s/check/{player_id}", path), da.checkPlayer).Methods("GET")
 }
 
-// handle takes Discord verification requests from the Rust server
+// createDiscordAuth takes Discord verification requests from the Rust server
 // and sends them to the DiscordAuthsStore and DiscordAuth channel
-func (da *discordAuth) handle(w http.ResponseWriter, r *http.Request) {
+func (da *discordAuth) createDiscordAuth(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	game := r.Context().Value(contextKeyGame).(string)
-	account := r.Context().Value(contextKeyAccount).(types.Account)
+	sc, err := getServerContext(r.Context())
+
+	params := mux.Vars(r)
+	hLog := logWithRequest(r.RequestURI, sc).WithField("pID", params["player_id"])
+
+	if err != nil {
+		hLog.WithError(err).Info("Can't find server")
+		handleError(w, types.RESTError{
+			Error:      "Error finding server identity",
+			StatusCode: http.StatusInternalServerError,
+		})
+		return
+	}
 
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
 	var dAuth discordAuthRequest
 
-	err := decoder.Decode(&dAuth)
+	err = decoder.Decode(&dAuth)
 	if err != nil {
-		log.Println(err.Error())
+		hLog.WithError(err).Info("Bad request")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	dAuth.PlayerID = fmt.Sprintf("%s:%s", game, dAuth.PlayerID)
+	dAuth.PlayerID = fmt.Sprintf("%s:%s", sc.game, dAuth.PlayerID)
 
 	user, err := da.us.GetByPlayerID(dAuth.PlayerID)
 	if err == nil {
@@ -66,7 +78,7 @@ func (da *discordAuth) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dAuth.GuildSnowflake = account.GuildSnowflake
+	dAuth.GuildSnowflake = sc.account.GuildSnowflake
 
 	err = da.dau.Upsert(dAuth.DiscordAuth)
 	if err != nil {
@@ -82,10 +94,10 @@ func (da *discordAuth) checkPlayer(w http.ResponseWriter, r *http.Request) {
 	sc, err := getServerContext(r.Context())
 
 	params := mux.Vars(r)
-	cpLog := logWithRequest(sc).WithField("pID", params["player_id"])
+	cpLog := logWithRequest(r.RequestURI, sc).WithField("pID", params["player_id"])
 
 	if err != nil {
-		cpLog.Info("Can't find server")
+		cpLog.WithError(err).Info("Can't find server")
 		handleError(w, types.RESTError{
 			Error:      "Error finding server identity",
 			StatusCode: http.StatusInternalServerError,
