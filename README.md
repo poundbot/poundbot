@@ -21,7 +21,7 @@ Please note you **WILL NOT** get support for this, but some people have asked fo
 
 `go run cmd/poundbot/poundbot.go`
 
-You can also build poundbot and run it. This is outside of the scope of this codument.
+You can also build poundbot and run it. This is outside of the scope of this document.
 
 ### Configuration
 
