@@ -1,4 +1,8 @@
+# PoundBot
+
 [PoundBot](https://github.com/poundbot/poundbot) is a [Discord](https://discord.gg/) bot for game servers.
+
+Build Status: [![CircleCI](https://circleci.com/gh/poundbot/poundbot.svg?style=svg)](https://circleci.com/gh/poundbot/poundbot)
 
 ## Supported games
 
