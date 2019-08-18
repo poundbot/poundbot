@@ -41,4 +41,6 @@ who to send messages to from their in-game identity.
 Find us on Discord on the [PoundBot server](https://discord.gg/ZPNtWEf).
 
 ## Thanks
-Talha for Turkish translation and testing!
+
+* Talha for Turkish translation and testing!
+* Reis from [Game Team War](http://gameteamwar.com/) for the PoundBot logo design
