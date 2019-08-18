@@ -1,40 +1,45 @@
 [PoundBot](https://github.com/poundbot/poundbot) is a [Discord](https://discord.gg/) bot for game servers.
 
-This plugin is the base communication layer to the bot. You must intall other plugins to provide additional
-functionality. Currently, the bot supports the following:
+# PoundBot Self Hosting
 
-* [Pound Bot Chat Relay](https://umod.org/plugins/pound-bot-chat-relay) - Bidirectional chat to a [Discord](https://discord.gg/) channel (Universal)
-* [Pound Bot Clans](https://umod.org/plugins/pound-bot-clans) - Clan syncing (Universal)
-* [Pound Bot Raid Alerts](https://umod.org/plugins/pound-bot-raid-alerts) - Raid alerts for Rust
+Please note you **WILL NOT** get support for this, but some people have asked for it, so here it is.
 
-## Setup
+## Requirements
 
-** Important update! As of 1.1.1, we now have a HTTPS API. Please set your `api_url` to `https://api.poundbot.com/` **
+* [go 1.11+](https://golang.org)
+* [MongoDB](https://mongodb.org]
+* a rust server, and PoundbotConnector.cs plugin.
 
-1. Download `PoundBot.cs` and add it to your plugins directory.
-2. Add the bot to your Discord server at [https://add.poundbot.com/](https://add.poundbot.com/) 
-3. Command PoundBot with `!pb server add myservername` in the channel you want your chat relay to occur.
-4. PoundBot will whisper you your API key and instructions on where to put it.
+## Running
+
+```go run cmd/poundbot/poundbot.go```
+
+You can also build poundbot and run it. This is outside of the scope of this codument.
 
 ## Configuration
 
-### Default Configuration
+### Initialize a new config.json
+
+Create a new configuration file with
+```poundbot -init```
+
+### Sample Config
 
 ```json
 {
-  "api_url": "https://api.poundbot.com/",
-  "api_key": "API KEY HERE"
+  "discord": {
+    "token": "YOUR DISCORD BOT AUTH TOKEN"
+  },
+  "http": {
+    "bind_addr": "",
+    "port": 9090
+  },
+  "mongo": {
+    "database": "poundbot",
+    "dial-addr": "mongodb://localhost"
+  }
 }
 ```
-
-## Authenticating with PoundBot
-
-Authenticating with PoundBot associates your stem account with discord. This is necessary to determine
-who to send messages to from their in-game identity.
-
-1. In chat, type `/pbreg "Your Username#7263"`
-2. PoundBot should message you asking for the PIN number displayed in chat.
-3. Respond to PoundBot with that PIN number and you should be connected!
 
 ## Getting Help
 
@@ -44,3 +49,29 @@ Find us on Discord on the [PoundBot server](https://discord.gg/ZPNtWEf).
 
 * Talha for Turkish translation and testing!
 * Akay from [Game Team War](http://gameteamwar.com/) for the PoundBot logo design.
+
+## License
+
+```text
+MIT License
+
+Copyright (c) 2018 MrPoundsign
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
