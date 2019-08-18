@@ -1,29 +1,32 @@
 [PoundBot](https://github.com/poundbot/poundbot) is a [Discord](https://discord.gg/) bot for game servers.
 
-# PoundBot Self Hosting
+## Supported games
+
+You can find the plugins for games supported by uMod on [the uMod site](https://umod.org/plugins/pound-bot).
+
+## PoundBot Self Hosting
 
 Please note you **WILL NOT** get support for this, but some people have asked for it, so here it is.
 
-## Requirements
+### Requirements
 
 * [go 1.11+](https://golang.org)
-* [MongoDB](https://mongodb.org]
-* a rust server, and PoundbotConnector.cs plugin.
+* [MongoDB 4.0+](https://mongodb.org)
 
-## Running
+### Running
 
-```go run cmd/poundbot/poundbot.go```
+`go run cmd/poundbot/poundbot.go`
 
 You can also build poundbot and run it. This is outside of the scope of this codument.
 
-## Configuration
+### Configuration
 
-### Initialize a new config.json
+#### Initialize a new config.json
 
 Create a new configuration file with
-```poundbot -init```
+`poundbot -init`
 
-### Sample Config
+#### Sample Config
 
 ```json
 {
@@ -36,7 +39,14 @@ Create a new configuration file with
   },
   "mongo": {
     "database": "poundbot",
-    "dial-addr": "mongodb://localhost"
+    "dial-addr": "mongodb://localhost",
+    "ssl": {
+      "enabled": false,
+      "insecure": false
+    }
+  },
+  "profiler": {
+    "port": 6061
   }
 }
 ```
