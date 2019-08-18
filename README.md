@@ -43,4 +43,4 @@ Find us on Discord on the [PoundBot server](https://discord.gg/ZPNtWEf).
 ## Thanks
 
 * Talha for Turkish translation and testing!
-* Reis from [Game Team War](http://gameteamwar.com/) for the PoundBot logo design
+* Akay from [Game Team War](http://gameteamwar.com/) for the PoundBot logo design.
