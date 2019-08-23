@@ -181,7 +181,7 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 
 func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
 	scmLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "sendChannelMessage", "cID": channelID, "uID": userID})
-	canSend, err := canSendToChannel(r.session, userID, channelID)
+	canSend, err := canSendToChannel(r.session.State, userID, channelID)
 	if err != nil {
 		scmLog.WithError(err).Warn("Cannot send to channel")
 		return errors.Wrap(err, "cannot send to channel")
@@ -200,7 +200,7 @@ func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
 
 func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) error {
 	sceLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "sendChannelMessage", "cID": channelID, "uID": userID})
-	canEmbed, err := canEmbedToChannel(r.session, userID, channelID)
+	canEmbed, err := canEmbedToChannel(r.session.State, userID, channelID)
 	if err != nil {
 		sceLog.WithError(err).Warn("Cannot embed to channel")
 		return errors.Wrap(err, "cannot embed to channel")
