@@ -17,10 +17,6 @@ import (
 
 var iclock = pbclock.Clock
 
-type RunnerConfig struct {
-	Token string
-}
-
 type Runner struct {
 	session         *discordgo.Session
 	cqs             storage.ChatQueueStore
@@ -107,7 +103,7 @@ func (r Runner) ServerChannels(scr types.ServerChannelsRequest) {
 	r.channelsRequest <- scr
 }
 
-func(r Runner) SetRole(rs types.RoleSet, timeout time.Duration) error {
+func (r Runner) SetRole(rs types.RoleSet, timeout time.Duration) error {
 	// sending message
 	select {
 	case r.roleSetChan <- rs:

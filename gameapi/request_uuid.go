@@ -8,19 +8,19 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-type RequestUUID struct{}
+type requestUUID struct{}
 
-func (ru RequestUUID) Handle(next http.Handler) http.Handler {
+func (ru requestUUID) handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			requestUUID := r.Header.Get("X-Request-ID")
 			if requestUUID == "" {
-				ruid, err := uuid.NewV4()
+				rUUID, err := uuid.NewV4()
 				if err != nil {
 					http.Error(w, "could not create UUID", http.StatusInternalServerError)
 					return
 				}
-				requestUUID = ruid.String()
+				requestUUID = rUUID.String()
 			}
 
 			ctx := context.WithValue(r.Context(), contextKeyRequestUUID, requestUUID)

@@ -55,14 +55,14 @@ func NewServer(sc *ServerConfig, dh discordHandler, channels ServerChannels) *Se
 		channels: channels,
 	}
 
-	requestUUID := RequestUUID{}
+	rUUID := requestUUID{}
 	sa := serverAuth{as: sc.Storage.Accounts()}
 	r := mux.NewRouter()
 
 	// Handles all /api requests, and sets the server auth handler
 	api := r.PathPrefix("/api").Subrouter()
 	api.Use(sa.handle)
-	api.Use(requestUUID.Handle)
+	api.Use(rUUID.handle)
 
 	initEntityDeath(api, "/entity_death", sc.Storage.RaidAlerts())
 	initDiscordAuth(api, "/discord_auth", sc.Storage.DiscordAuths(), sc.Storage.Users(), dh)

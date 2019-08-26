@@ -39,8 +39,12 @@ type service interface {
 	Stop()
 }
 
-func newDiscordConfig(cfg *viper.Viper) *discord.RunnerConfig {
-	return &discord.RunnerConfig{
+type runnerConfig struct {
+	Token string
+}
+
+func newDiscordConfig(cfg *viper.Viper) runnerConfig {
+	return runnerConfig{
 		Token: cfg.GetString("token"),
 	}
 }
