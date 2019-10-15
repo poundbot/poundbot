@@ -125,7 +125,7 @@ func (a Account) ServerFromKey(apiKey string) (AccountServer, error) {
 
 // GetCommandPrefix the Discord command prefix. Defaults to "!pb"
 func (a Account) GetCommandPrefix() string {
-	if a.CommandPrefix == "" {
+	if len(a.CommandPrefix) == 0 {
 		return "!pb"
 	}
 	return a.CommandPrefix

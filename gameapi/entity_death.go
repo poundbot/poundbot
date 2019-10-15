@@ -78,7 +78,7 @@ func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 		ed.OwnerIDs[i] = fmt.Sprintf("%s:%s", sc.game, ed.OwnerIDs[i])
 	}
 
-	if ed.ServerName == "" {
+	if len(ed.ServerName) == 0 {
 		ed.ServerName = sc.server.Name
 	}
 	alertAt := 10 * time.Second

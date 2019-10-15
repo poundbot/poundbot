@@ -26,7 +26,7 @@ func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	var err error
 
 	// Detect PM
-	if m.GuildID == "" {
+	if len(m.GuildID) == 0 {
 		r.interact(s, m)
 		return
 	}
@@ -37,7 +37,7 @@ func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		return
 	}
 
-	if account.OwnerSnowflake == "" {
+	if len(account.OwnerSnowflake) == 0 {
 		mcLog.Info("Guild is missing owner")
 		guild, err := s.Guild(m.GuildID)
 		if err != nil {

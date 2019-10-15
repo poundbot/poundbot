@@ -37,7 +37,7 @@ func gameMessageHandler(userID string, m types.GameMessage, gf guildFinder, ms g
 
 	channelID := ""
 
-	if m.Snowflake == "" {
+	if len(m.Snowflake) == 0 {
 		sendErrorResponse(m.ErrorResponse, fmt.Errorf("no server defined"))
 		mhLog.Error("no guild id provided with channel name")
 		return
@@ -57,7 +57,7 @@ func gameMessageHandler(userID string, m types.GameMessage, gf guildFinder, ms g
 		}
 	}
 
-	if channelID == "" {
+	if len(channelID) == 0 {
 		sendErrorResponse(m.ErrorResponse, errors.New("channel not found"))
 		mhLog.Info("could not find channel")
 		return
