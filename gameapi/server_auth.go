@@ -38,9 +38,11 @@ func (sa serverAuth) handle(next http.Handler) http.Handler {
 			}
 
 			game := r.Header.Get("X-PoundBot-Game")
-			// TOGO: Eventually remove this
-			if game == "" {
-				game = "rust"
+
+			if len(game) == 0 {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Missing X-PoundBot-Game header."))
+				return
 			}
 
 			account, err := sa.as.GetByServerKey(s[1])
