@@ -261,12 +261,12 @@ func TestAccounts_Remove(t *testing.T) {
 			name:      "not found",
 			args:      args{"nonexistant"},
 			wantErr:   true,
-			wantCount: 3,
+			wantCount: 0,
 		},
 		{
 			name:      "upsert",
 			args:      args{"snowflake2"},
-			wantCount: 2,
+			wantCount: 1,
 		},
 	}
 	for _, tt := range tests {
@@ -299,12 +299,19 @@ func TestAccounts_Remove(t *testing.T) {
 				t.Errorf("Accounts.Remove() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			count, err := coll.C.Count()
+			count, err := coll.C.Find(bson.M{"disabled": true}).Count()
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, tt.wantCount, count, "Count is wrong")
+			assert.Equal(t, tt.wantCount, count, "Disabled count is wrong")
+
+			count, err = coll.C.Count()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, 3, count, "All count is wrong")
 		})
 	}
 }

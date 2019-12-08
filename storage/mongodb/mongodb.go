@@ -100,7 +100,7 @@ func (m MongoDB) RaidAlerts() storage.RaidAlertsStore {
 	}
 }
 
-// ServerAccounts implements storage.Storage.ServerAccounts
+// Accounts implements storage.Storage.ServerAccounts
 func (m MongoDB) Accounts() storage.AccountsStore {
 	return Accounts{collection: m.session.DB(m.dbname).C(accountsCollection)}
 }

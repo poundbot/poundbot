@@ -47,7 +47,10 @@ func (s Accounts) UpsertBase(account types.BaseAccount) error {
 }
 
 func (s Accounts) Remove(key string) error {
-	return s.collection.Remove(bson.M{accountsKeyField: key})
+	return s.collection.Update(
+		bson.M{accountsKeyField: key},
+		bson.M{"$set": bson.M{"disabled": true}},
+	)
 }
 
 func (s Accounts) AddClan(serverKey string, clan types.Clan) error {
