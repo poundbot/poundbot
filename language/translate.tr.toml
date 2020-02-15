@@ -1,3 +1,19 @@
-[InstructCommandServerChatHereResponse]
-hash = "sha1-20a6ffa93644d4a9c1684988695dfa912bbfc42a"
-other = "Sunucu {{.Name}} ({{.ID}}) sohbet kanalı artık burada olacak."
+[InstructCommandStatus]
+hash = "sha1-48a3661d846478fa991a825ebd10b78671444b5b"
+other = "status"
+
+[InstructCommandUnregister]
+hash = "sha1-6e736da0538cc13b3027e1b2df7d4e15fe99d3c2"
+other = "unregister"
+
+[InstructInvalidCommand]
+hash = "sha1-099f3e365187b964e2892332a2cc7996ba267374"
+other = "Invalid command. See `help`"
+
+[InstructNotAuthorized]
+hash = "sha1-a0fff1fc1961cef6a8e96b28259e3a098f1cdde2"
+other = "You are not authorized to use this commamd. This is only available to the server owner."
+
+[PINNotRequested]
+hash = "sha1-49bb9d8173a548ff877ab5179e7772562911a874"
+other = "ERROR: PIN is not required at this time. Check `status` or `help`."

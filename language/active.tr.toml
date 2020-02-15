@@ -27,7 +27,7 @@ hash = "sha1-561e32aae36c4fd90e2b835bd2b3b1e47c5ac704"
 other = "sohbetkanalı"
 
 [InstructCommandServerChatHereResponse]
-hash = "sha1-20a6ffa93644d4a9c1684988695dfa912bbfc42a"
+hash = "sha1-2a6fa3afc92880c9a23e54b24dbcfc66018d576a"
 other = "Sunucu {{.Name}} ({{.ID}}) sohbet kanalı artık burada olacak."
 
 [InstructCommandServerDelete]
@@ -78,20 +78,24 @@ other = "Geçersiz sunucu ID'si. `yardım` komutuyla destek alabilirsin."
 hash = "sha1-82efc86f1b24d255d8929c5246ed7f600cd44c22"
 other = "Birden fazla sunucu kayıt etmişsiniz. `yardım` komutuyla destek alabilirsin."
 
+[InternalError]
+hash = "sha1-51c49c603676bddc9f4eb42b58d215092cd9c72c"
+other = "Bir hata oluştu, lütfen daha sonra tekrar dene."
+
 [InvalidCommand]
 hash = "sha1-87f4d877a6a140853aaaf433244b77e91e92ad78"
 other = "Girdiğiniz komut hatalı: {{.Command}}"
 
-[PinAuthenticated]
+[PINAuthenticated]
 hash = "sha1-87bdf039b7c039d93497d62b805f71956691f666"
 other = "Senkronize işlemin başarılı!"
 
-[PinInternalError]
+[PINInternalError]
 hash = "sha1-51c49c603676bddc9f4eb42b58d215092cd9c72c"
 other = "Bir hata oluştu, lütfen daha sonra tekrar dene."
 
-[PinInvalid]
-hash = "sha1-1ba597fb10f5130fc7df63a746ff4d985e4d4d1a"
+[PINInvalid]
+hash = "sha1-778f44ecb24e6a22a34d38cc99d6c919c9b8467f"
 other = "Girmiş olduğunuz PIN kodu geçersiz."
 
 [TruncatedMessage]
