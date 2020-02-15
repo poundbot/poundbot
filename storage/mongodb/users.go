@@ -45,7 +45,7 @@ func (u Users) UpsertPlayer(info storage.UserInfoGetter) error {
 				userSnowflakeField: info.GetDiscordID(),
 				"createdat":        time.Now().UTC(),
 			},
-			"updatedat": time.Now().UTC(),
+			"$set":      bson.M{"updatedat": time.Now().UTC()},
 			"$addToSet": bson.M{userPlayerIDsField: info.GetPlayerID()},
 		},
 	)
