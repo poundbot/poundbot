@@ -65,6 +65,12 @@ func HelpText() string {
 	return buf.String()
 }
 
+func DMHelpText() string {
+	buf := new(bytes.Buffer)
+	executeTemplate("DMHelpText.tmpl", buf, nil)
+	return buf.String()
+}
+
 func RaidAlert(serverName string, gridPositions, items []string) string {
 	sort.Strings(items)
 	return fmt.Sprintf(`

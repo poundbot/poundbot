@@ -2,8 +2,9 @@ package discord
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -27,7 +28,15 @@ func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 
 	// Detect PM
 	if len(m.GuildID) == 0 {
-		r.interact(s, m)
+		go func() {
+			d := dm{
+				us:       r.us,
+				as:       r.as,
+				das:      r.das,
+				authChan: r.AuthSuccess,
+			}
+			s.ChannelMessageSend(m.ChannelID, d.process(m))
+		}()
 		return
 	}
 

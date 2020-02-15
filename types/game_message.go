@@ -20,7 +20,7 @@ type GameMessageEmbedStyle struct {
 
 // ColorInt converts the Color string to an integer
 func (es GameMessageEmbedStyle) ColorInt() int {
-	c, err := ParseHexColor(es.Color)
+	c, err := parseHexColor(es.Color)
 	if err != nil {
 		nColor, ok := colornames.Map[es.Color]
 		if !ok {
@@ -36,6 +36,7 @@ type GameMessagePart struct {
 	Escape  bool
 }
 
+// GameMessage is a message from the game server intended for discord
 type GameMessage struct {
 	Type          GameMessageType
 	EmbedStyle    GameMessageEmbedStyle
@@ -45,7 +46,7 @@ type GameMessage struct {
 	ErrorResponse chan<- error `json:"-"`
 }
 
-func ParseHexColor(s string) (c color.RGBA, err error) {
+func parseHexColor(s string) (c color.RGBA, err error) {
 	c.A = 0xff
 	switch len(s) {
 	case 7:

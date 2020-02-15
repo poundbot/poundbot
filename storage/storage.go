@@ -37,6 +37,7 @@ type UsersStore interface {
 	GetByDiscordID(snowflake string) (types.User, error)
 	GetPlayerIDsByDiscordIDs(snowflakes []string) ([]string, error)
 	UpsertPlayer(info UserInfoGetter) error
+	RemovePlayerID(snowflake, playerID string) error
 }
 
 // DiscordAuthsStore is for accessing the discord -> user authentications

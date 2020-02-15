@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [UNRELEASED]
+
+### Added
+
+- New DM commands `help`, `status`, `unregister`
+  - `help` - displays DM help
+  - `status` - displays a users status (registere games)
+  - `unregister` - allows a user to remove themselves from poundbot or specific games.
+
 ## 4.0.1
 
 ### Fixes

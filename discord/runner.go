@@ -90,6 +90,7 @@ func (r Runner) SendChatMessage(cm types.ChatMessage) {
 	r.chatChan <- cm
 }
 
+// SendGameMessage sends a message from the game to a discord channel
 func (r Runner) SendGameMessage(gm types.GameMessage, timeout time.Duration) error {
 	select {
 	case r.gameMessageChan <- gm:
@@ -99,6 +100,7 @@ func (r Runner) SendGameMessage(gm types.GameMessage, timeout time.Duration) err
 	}
 }
 
+// ServerChannels sends a request to get the visible chnnels for a discord guild
 func (r Runner) ServerChannels(scr types.ServerChannelsRequest) {
 	r.channelsRequest <- scr
 }
@@ -278,8 +280,4 @@ func (r *Runner) getUserByName(guildID, name string) (discordgo.User, error) {
 	}
 
 	return discordgo.User{}, fmt.Errorf("discord user not found %s", name)
-}
-
-func (r *Runner) getDiscordAuth(snowflake string) (types.DiscordAuth, error) {
-	return r.das.GetByDiscordID(snowflake)
 }
