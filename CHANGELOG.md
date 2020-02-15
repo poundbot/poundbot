@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- Updatedd all module dependencies
+
 ### Added
 
 - New DM commands `help`, `status`, `unregister`
