@@ -64,36 +64,36 @@ type MongoDB struct {
 }
 
 // Copy implements storage.Storage.Copy
-func (m MongoDB) Copy() storage.Storage {
-	return MongoDB{dbname: m.dbname, session: m.session.Copy()}
+func (m *MongoDB) Copy() storage.Storage {
+	return &MongoDB{dbname: m.dbname, session: m.session.Copy()}
 }
 
-func (m MongoDB) ChatQueue() storage.ChatQueueStore {
+func (m *MongoDB) ChatQueue() storage.ChatQueueStore {
 	return ChatQueue{collection: m.session.DB(m.dbname).C(chatQueueCollection)}
 }
 
 // MessageLocks implements MessageLocks
-func (m MongoDB) MessageLocks() storage.MessageLocksStore {
+func (m *MongoDB) MessageLocks() storage.MessageLocksStore {
 	return MessageLocks{collection: m.session.DB(m.dbname).C(messageLocksCollection)}
 }
 
 // Close implements Close
-func (m MongoDB) Close() {
+func (m *MongoDB) Close() {
 	m.session.Close()
 }
 
 // Users implements storage.Storage.Users
-func (m MongoDB) Users() storage.UsersStore {
+func (m *MongoDB) Users() storage.UsersStore {
 	return Users{collection: m.session.DB(m.dbname).C(usersCollection)}
 }
 
 // DiscordAuths implements storage.Storage.DiscordAuths
-func (m MongoDB) DiscordAuths() storage.DiscordAuthsStore {
+func (m *MongoDB) DiscordAuths() storage.DiscordAuthsStore {
 	return DiscordAuths{collection: m.session.DB(m.dbname).C(discordAuthsCollection)}
 }
 
 // RaidAlerts implements storage.Storage.RaidAlerts
-func (m MongoDB) RaidAlerts() storage.RaidAlertsStore {
+func (m *MongoDB) RaidAlerts() storage.RaidAlertsStore {
 	return RaidAlerts{
 		collection: m.session.DB(m.dbname).C(raidAlertsCollection),
 		users:      m.Users(),
@@ -101,12 +101,12 @@ func (m MongoDB) RaidAlerts() storage.RaidAlertsStore {
 }
 
 // Accounts implements storage.Storage.ServerAccounts
-func (m MongoDB) Accounts() storage.AccountsStore {
+func (m *MongoDB) Accounts() storage.AccountsStore {
 	return Accounts{collection: m.session.DB(m.dbname).C(accountsCollection)}
 }
 
 // Init implements Init
-func (m MongoDB) Init() {
+func (m *MongoDB) Init() {
 	log.Printf("Database is %s\n", m.dbname)
 	mongoDB := m.session.DB(m.dbname)
 	userColl := mongoDB.C(usersCollection)
