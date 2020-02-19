@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
+	"errors"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
@@ -159,7 +159,7 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 	if err != nil {
 		ch <- types.ServerChannelsResponse{OK: false}
 		sclLog.WithError(err).Warn("Could not find guild")
-		return errors.Wrap(err, fmt.Sprintf("could not find guild with id %s", guildID))
+		return fmt.Errorf("could not find guild with id %s: %w", guildID, err)
 	}
 
 	r := types.ServerChannelsResponse{OK: true}
@@ -168,14 +168,14 @@ func sendChannelList(userID, guildID string, ch chan<- types.ServerChannelsRespo
 		if err != nil {
 			ch <- types.ServerChannelsResponse{OK: false}
 			sclLog.WithError(err).Warn("Can not send to channel")
-			return errors.Wrap(err, "channel send failed")
+			return fmt.Errorf("channel send failed, %w", err)
 		}
 
 		canEmbed, err := canEmbedToChannel(mgg, userID, channel.ID)
 		if err != nil {
 			ch <- types.ServerChannelsResponse{OK: false}
 			sclLog.WithError(err).Warn("Cannot embed to channel")
-			return errors.Wrap(err, "channel embed failed")
+			return fmt.Errorf("channel embed failed, %w", err)
 		}
 
 		if channel.Type != discordgo.ChannelTypeGuildText {
@@ -193,7 +193,7 @@ func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
 	canSend, err := canSendToChannel(r.session.State, userID, channelID)
 	if err != nil {
 		scmLog.WithError(err).Warn("Cannot send to channel")
-		return errors.Wrap(err, "cannot send to channel")
+		return fmt.Errorf("cannot send to channel, %w", err)
 	}
 
 	if !canSend {
@@ -204,7 +204,7 @@ func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
 	if err != nil {
 		scmLog.WithError(err).Warn("error sending message to channel")
 	}
-	return errors.Wrap(err, "error sending message to channel")
+	return fmt.Errorf("error sending message to channel, %w", err)
 }
 
 func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) error {
@@ -212,7 +212,7 @@ func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) 
 	canEmbed, err := canEmbedToChannel(r.session.State, userID, channelID)
 	if err != nil {
 		sceLog.WithError(err).Warn("Cannot embed to channel")
-		return errors.Wrap(err, "cannot embed to channel")
+		return fmt.Errorf("cannot embed to channel, %w", err)
 	}
 
 	if !canEmbed {
@@ -226,7 +226,7 @@ func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) 
 	if err != nil {
 		sceLog.WithError(err).Warn("error embedding message to channel")
 	}
-	return errors.Wrap(err, "error embedding message to channel")
+	return fmt.Errorf("error embedding message to channel, %w", err)
 }
 
 func (r *Runner) sendPrivateMessage(snowflake, message string) error {
@@ -235,7 +235,7 @@ func (r *Runner) sendPrivateMessage(snowflake, message string) error {
 
 	if err != nil {
 		spmLog.WithError(err).Error("Error creating user channel")
-		return errors.Wrap(err, "could not create user channel")
+		return fmt.Errorf("could not create user channel, %w", err)
 	}
 
 	_, err = r.session.ChannelMessageSend(
@@ -243,7 +243,7 @@ func (r *Runner) sendPrivateMessage(snowflake, message string) error {
 		message,
 	)
 
-	return errors.Wrap(err, "error sending private message")
+	return fmt.Errorf("error sending private message, %w", err)
 }
 
 func canSendToChannel(pg channelPermissionsGetter, userID, channelID string) (bool, error) {
@@ -252,7 +252,7 @@ func canSendToChannel(pg channelPermissionsGetter, userID, channelID string) (bo
 
 	if err != nil {
 		cstcLog.WithError(err).WithField("cID", channelID).Trace("canSendToChannel: error reading permissions for channel")
-		return false, errors.Wrap(err, "could not read permissions for channel")
+		return false, fmt.Errorf("could not read permissions for channel, %w", err)
 	}
 
 	if discordgo.PermissionSendMessages&^perms != 0 {

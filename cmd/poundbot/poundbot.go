@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pkg/errors"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -60,7 +59,7 @@ func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDB) *gameapi.Server
 func start(s service, name string) error {
 	if err := s.Start(); err != nil {
 		log.Printf("[MAIN][WARN] Failed to start %s: %s\n", name, err)
-		return errors.Wrap(err, fmt.Sprintf("failed to start service %s", name))
+		return fmt.Errorf("failed to start service %s: %w", name, err)
 	}
 
 	wg.Add(1)
