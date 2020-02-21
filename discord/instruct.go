@@ -263,6 +263,17 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		},
 	})
 
+	if len(account.Servers)-1 < serverID {
+		return instructResponse{
+			responseType: instructResponseChannel,
+			message: localizer.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "InstructCommandServerDoesNotExist",
+					Other: "Invalid server ID. Check server list.",
+				},
+			}),
+		}
+	}
 	server := account.Servers[serverID]
 
 	switch instructions[0] {
