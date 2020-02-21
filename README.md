@@ -14,8 +14,8 @@ Please note you **WILL NOT** get support for this, but some people have asked fo
 
 ### Requirements
 
-* [go 1.11+](https://golang.org)
-* [MongoDB 4.0+](https://mongodb.org)
+* [go 1.13+](https://golang.org)
+* [MongoDB 4.2+](https://mongodb.org)
 
 ### Running
 
@@ -42,8 +42,8 @@ Create a new configuration file with
     "port": 9090
   },
   "mongo": {
+    "dial": "mongodb://localhost",
     "database": "poundbot",
-    "dial-addr": "mongodb://localhost",
     "ssl": {
       "enabled": false,
       "insecure": false

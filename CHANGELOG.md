@@ -9,7 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updatedd all module dependencies
+- Updated all module dependencies
+- `mongodb.dial-addr` is now `mongodb.dial`
+- Hopefully creates less DB connections.
+- Env vars can be used for config values.
+  - `.` is replaced with `_`
+  - examples:
+    - `DISCORD_TOKEN=token` sets `discord.token` to `token`
+    - Booleans must be 1 or `true` otherwise they are false.
+      - `MONGO_SSL_ENABLED=1` sets `mongo.ssl.enabled` to `true`
+      - `MONGO_SSL_ENABLED=0` sets `mongo.ssl.enabled` to `false`
+      - `MONGO_SSL_ENABLED=true` sets `mongo.ssl.enabled` to `true`
+      - `MONGO_SSL_ENABLED=yes` sets `mongo.ssl.enabled` to `false`
 
 ### Added
 
