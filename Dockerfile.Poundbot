@@ -1,0 +1,36 @@
+FROM golang:1.13.8-alpine
+
+# Move to working directory /build
+WORKDIR /build
+
+ENV MONGO_DIAL="mongodb://mongo:27017/"
+ENV MONGO_DATABASE="pountbot"
+ENV MONGO_SSL_ENABLED="0"
+ENV DISCORD_TOKEN=none
+
+# Copy and download dependency using go mod
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+# Copy the code into the container
+COPY . .
+
+# Build the application
+RUN go build -o poundbot cmd/poundbot/poundbot.go
+
+# Move to /dist directory as the place for resulting binary folder
+WORKDIR /dist
+
+COPY ./templates ./templates
+COPY ./language ./language
+
+# Copy binary from build to main folder
+RUN cp /build/poundbot .
+RUN cp /build/config.json .
+
+# Export necessary port
+EXPOSE 9090 6061
+
+# Command to run when starting the container
+CMD ["/dist/poundbot"]

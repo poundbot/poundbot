@@ -1,19 +1,23 @@
 {
-    "files.eol": "\n",
-    "cSpell.words": [
-      "Upserter",
-      "authorid",
-      "blang",
-      "bwmarrin",
-      "cetc",
-      "discordgo",
-      "guildid",
-      "playerid",
-      "poundbot",
-      "semver",
-      "ssys",
-      "storer",
-      "stretchr"
-    ],
-    "go.formatTool": "goimports"
+  "files.eol": "\n",
+  "cSpell.words": [
+    "Upserter",
+    "authorid",
+    "blang",
+    "bwmarrin",
+    "cetc",
+    "discordgo",
+    "guildid",
+    "playerid",
+    "poundbot",
+    "semver",
+    "ssys",
+    "storer",
+    "stretchr"
+  ],
+  "go.formatTool": "goimports",
+  "files.associations": {
+    "*.tmpl": "gogo"
+  },
+  "go.lintOnSave": "workspace"
 }

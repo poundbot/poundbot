@@ -40,20 +40,10 @@ type service interface {
 	Stop()
 }
 
-type runnerConfig struct {
-	Token string
-}
-
-func newDiscordConfig(cfg *viper.Viper) runnerConfig {
-	return runnerConfig{
-		Token: cfg.GetString("token"),
-	}
-}
-
 func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDB) *gameapi.ServerConfig {
 	return &gameapi.ServerConfig{
-		BindAddr: cfg.GetString("bind_address"),
-		Port:     cfg.GetInt("port"),
+		BindAddr: cfg.GetString("http.bind_address"),
+		Port:     cfg.GetInt("http.port"),
 		Storage:  storage,
 	}
 }
@@ -149,11 +139,10 @@ func main() {
 
 	store.Init()
 
-	dConfig := newDiscordConfig(viper.Sub("discord"))
-	webConfig := newServerConfig(viper.Sub("http"), store)
+	webConfig := newServerConfig(viper.GetViper(), store)
 
 	// Discord server
-	dr := discord.NewRunner(dConfig.Token, store.Accounts(), store.DiscordAuths(),
+	dr := discord.NewRunner(viper.GetString("discord.token"), store.Accounts(), store.DiscordAuths(),
 		store.Users(), store.MessageLocks(), store.ChatQueue())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v", err)

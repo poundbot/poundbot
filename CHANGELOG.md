@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       - `MONGO_SSL_ENABLED=0` sets `mongo.ssl.enabled` to `false`
       - `MONGO_SSL_ENABLED=true` sets `mongo.ssl.enabled` to `true`
       - `MONGO_SSL_ENABLED=yes` sets `mongo.ssl.enabled` to `false`
+- Fixed crash with `!pb server ID` when ID did not exist.
+- Added some docker configs
 
 ### Added
 
@@ -31,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 4.0.1
 
-### Fixes
+### Changed
 
 - Attempt to fix removal of accounts on false `GuildDelete` from discord/discordgo
 
@@ -47,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New roles API (`PUT /roles/{role_name}`)
 - New server channels list (`GET /api/messages`)
 - Added `CHANGELOG.md`. Hello!
+- Messages sent to embed now properly return an error if permission to post is not available.
 
 ### Changed
 
@@ -57,7 +60,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Removed chat post support in favor of messages API
-
-### Fixes
-
-- Messages sent to embed now properly return an error if permission to post is not available.
