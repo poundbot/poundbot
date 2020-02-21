@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strings"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -100,8 +101,8 @@ func main() {
 	viper.SetDefault("http.port", 9090)
 	viper.SetDefault("discord.token", "YOUR DISCORD BOT AUTH TOKEN")
 	viper.SetDefault("profiler.port", 6061)
-
-	// var loaded = false
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
 
 	if *writeConfigForce {
 		*writeConfig = true
@@ -112,7 +113,6 @@ func main() {
 			flag.Usage()
 			os.Exit(1)
 		}
-		// loaded = true
 	}
 
 	if *writeConfig {
