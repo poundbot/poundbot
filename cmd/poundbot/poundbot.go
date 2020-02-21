@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"strings"
 
 	"net/http"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/poundbot/poundbot/discord"
 	"github.com/poundbot/poundbot/gameapi"
+	pblog "github.com/poundbot/poundbot/log"
 	"github.com/poundbot/poundbot/messages"
 	"github.com/poundbot/poundbot/storage/mongodb"
 	"github.com/spf13/viper"
@@ -32,6 +32,7 @@ var (
 	writeConfigForce = flag.Bool("init", false, "Forces writing of config and exits\nWARNING! This will destroy your config file")
 	wg               sync.WaitGroup
 	killChan         = make(chan struct{})
+	log              = pblog.Log
 )
 
 type service interface {
@@ -59,7 +60,7 @@ func newServerConfig(cfg *viper.Viper, storage *mongodb.MongoDB) *gameapi.Server
 
 func start(s service, name string) error {
 	if err := s.Start(); err != nil {
-		log.Printf("[MAIN][WARN] Failed to start %s: %s\n", name, err)
+		log.Warnf("Failed to start %s: %s", name, err)
 		return fmt.Errorf("failed to start service %s: %w", name, err)
 	}
 
@@ -67,7 +68,7 @@ func start(s service, name string) error {
 	go func() {
 		defer wg.Done()
 		<-killChan
-		log.Printf("[MAIN] Requesting %s shutdown...\n", name)
+		log.Printf("Requesting %s shutdown...", name)
 		s.Stop()
 	}()
 
@@ -75,7 +76,7 @@ func start(s service, name string) error {
 }
 
 func versionString() string {
-	return fmt.Sprintf("PoundBot %s (%s @ %s)\n", version, buildstamp, githash)
+	return fmt.Sprintf("PoundBot %s (%s @ %s)", version, buildstamp, githash)
 }
 
 func main() {
@@ -83,7 +84,7 @@ func main() {
 	flag.Parse()
 	// If the version flag is set, print the version and quit.
 
-	fmt.Println(versionString())
+	log.Println(versionString())
 	if *versionFlag {
 		return
 	}
@@ -93,7 +94,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
-	viper.SetDefault("mongo.dial-addr", "mongodb://localhost")
+	viper.SetDefault("mongo.dial", "mongodb://localhost:27017")
 	viper.SetDefault("mongo.database", "poundbot")
 	viper.SetDefault("mongo.ssl.enabled", false)
 	viper.SetDefault("mongo.ssl.insecure", false)
@@ -120,7 +121,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Could not write config: %s", err)
 		}
-		log.Printf("Wrote new config file to %s\n", viper.ConfigFileUsed())
+		log.Printf("Wrote new config file to %s", viper.ConfigFileUsed())
 		os.Exit(0)
 	}
 
@@ -128,15 +129,22 @@ func main() {
 		log.Fatal(http.ListenAndServe("localhost:"+viper.GetString("profiler.port"), nil))
 	}()
 
+	dialAddr := viper.GetString("mongo.dial-addr")
+	if len(dialAddr) != 0 {
+		log.Warn("DEPRICATION WARNING: mongo.dial-addr has been renamed to mongo.dial.")
+	} else {
+		dialAddr = viper.GetString("mongo.dial")
+	}
+
 	store, err := mongodb.NewMongoDB(mongodb.Config{
-		DialAddress: viper.GetString("mongo.dial-addr"),
+		DialAddress: dialAddr,
 		Database:    viper.GetString("mongo.database"),
 		SSL:         viper.GetBool("mongo.ssl.enabled"),
 		InsecureSSL: viper.GetBool("mongo.ssl.insecure"),
 	})
 
 	if err != nil {
-		log.Panicf("Could not connect to DB: %v\n", err)
+		log.Panicf("Could not connect to DB: %v", err)
 	}
 
 	store.Init()
@@ -148,7 +156,7 @@ func main() {
 	dr := discord.NewRunner(dConfig.Token, store.Accounts(), store.DiscordAuths(),
 		store.Users(), store.MessageLocks(), store.ChatQueue())
 	if err := start(dr, "Discord"); err != nil {
-		log.Fatalf("Could not start Discord, %v\n", err)
+		log.Fatalf("Could not start Discord, %v", err)
 		os.Exit(1)
 	}
 
@@ -180,7 +188,7 @@ func main() {
 	)
 	<-sc
 
-	log.Println("[MAIN] Stopping...")
+	log.Warn("Stopping...")
 	for i := 0; i < servicesCount; i++ {
 		go func() { killChan <- struct{}{} }()
 	}

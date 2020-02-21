@@ -1,7 +1,6 @@
 package mongodb
 
 import (
-	"log"
 	"time"
 
 	"github.com/globalsign/mgo"

@@ -2,12 +2,14 @@ package mongodb
 
 import (
 	"crypto/tls"
-	"log"
 	"net"
 
 	"github.com/globalsign/mgo"
+	pblog "github.com/poundbot/poundbot/log"
 	"github.com/poundbot/poundbot/storage"
 )
+
+var log = pblog.Log.WithField("sys", "MONGO")
 
 const (
 	accountsCollection     = "accounts"
