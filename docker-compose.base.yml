@@ -1,27 +1,20 @@
 version: "3.7"
 services:
   poundbot:
-    container_name: poundbot
     build:
       context: .
       dockerfile: Dockerfile.Poundbot
-    ports:
-      - 9090:9090
     env_file: .poundbot.env
     depends_on:
       - mongo
   pb-proxy:
     image: pb-proxy
-    build: _docker/nginx/dev/
+    build: _docker/nginx/
     ports:
-      - 8081:80
-    depends_on:
-      - poundbot
+      - 127.0.0.1:8080:8080
   mongo:
     image: mongo:4.2
-    container_name: mongo
-    ports:
-      - 27017:27017
+    restart: unless-stopped
     volumes:
       - poundbot-data:/data/db
 volumes:

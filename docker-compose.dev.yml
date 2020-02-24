@@ -1,0 +1,10 @@
+version: "3.7"
+services:
+  poundbot:
+    ports:
+      - 127.0.0.1:9090:9090
+      - 0:0:0:0:0:0:0:1:9090:9090
+    env_file: .poundbot-dev.env
+  mongo:
+    ports:
+      - 27017:27017

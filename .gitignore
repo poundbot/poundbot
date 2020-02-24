@@ -4,3 +4,4 @@
 /templates
 /.idea
 /*.env
+docker-compose.override.yml
