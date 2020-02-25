@@ -1,14 +1,15 @@
 package mongotest
 
 import (
-	"crypto/tls"
+	"context"
 	"fmt"
-	"log"
-	"net"
 	"os"
 	"sync"
+	"time"
 
-	"github.com/globalsign/mgo"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const defaultDial = "mongodb://localhost"
@@ -18,8 +19,8 @@ var s sync.Mutex
 var dbs = [1000]bool{}
 
 type Collection struct {
-	db *mgo.Database
-	C  *mgo.Collection
+	db *mongo.Database
+	C  *mongo.Collection
 	id int
 }
 
@@ -41,48 +42,26 @@ func NewCollection(collection string) (*Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Collection{db: db, C: db.C(collection), id: id}, nil
+
+	return &Collection{db: db, C: db.Collection(collection), id: id}, nil
 }
 
 func (c *Collection) Close() {
 	s.Lock()
 	defer s.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	dbs[c.id] = false
-	c.db.DropDatabase()
+	c.db.Drop(ctx)
 
 }
 
-func newDb(dbId int) (*mgo.Database, error) {
+func newDb(dbId int) (*mongo.Database, error) {
 	dial := os.Getenv("MONGODB_DIAL")
 	if dial == "" {
 		dial = defaultDial
-	}
-
-	var sErr error
-	var sess *mgo.Session
-	if os.Getenv("MONGODB_SSL") != "" {
-		dialInfo, err := mgo.ParseURL(dial)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-
-		dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-			tlsConfig := &tls.Config{
-				InsecureSkipVerify: true,
-			}
-			conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
-			if err != nil {
-				log.Println(err)
-			}
-			return conn, err
-		}
-		sess, sErr = mgo.DialWithInfo(dialInfo)
-	} else {
-		sess, sErr = mgo.Dial(dial)
-	}
-	if sErr != nil {
-		return nil, sErr
 	}
 
 	db := os.Getenv("MONGODB_DB")
@@ -90,7 +69,25 @@ func newDb(dbId int) (*mgo.Database, error) {
 		db = defaultDb
 	}
 
-	mdb := sess.DB(fmt.Sprintf("%s-%d", db, dbId))
-	mdb.DropDatabase()
+	// var sErr error
+	var client *mongo.Client
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(dial))
+	if err != nil {
+		return nil, err
+	}
+
+	client.Connect(context.Background())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		return nil, err
+	}
+
+	mdb := client.Database(fmt.Sprintf("%s-%d", db, dbId))
+	mdb.Drop(context.Background())
+
 	return mdb, nil
 }

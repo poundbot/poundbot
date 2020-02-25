@@ -2,10 +2,11 @@ package discord
 
 import (
 	"errors"
+
 	"github.com/bwmarrin/discordgo"
-	"github.com/globalsign/mgo"
 	"github.com/poundbot/poundbot/types"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type roleGuildGetter interface {
@@ -86,7 +87,7 @@ func rolesSetHandler(userID string, rs types.RoleSet, state roleGuildGetter, rpg
 
 		u, err := rpg.GetByDiscordID(member.User.ID)
 		if err != nil {
-			if err != mgo.ErrNotFound {
+			if err != mongo.ErrNoDocuments {
 				rsLog.WithError(err).Error("storage error finding user")
 				continue
 			}
