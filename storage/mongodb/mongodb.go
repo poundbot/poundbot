@@ -6,6 +6,8 @@ import (
 
 	pblog "github.com/poundbot/poundbot/log"
 	"github.com/poundbot/poundbot/storage"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -27,6 +29,10 @@ const (
 type Config struct {
 	DialAddress string // the mongo dial address
 	Database    string // the database name
+}
+
+type collection struct {
+	options map[string]interface{}
 }
 
 // NewMongoDB returns a connected Mgo
@@ -104,48 +110,89 @@ func (m *MongoDB) Accounts() storage.AccountsStore {
 	return Accounts{collection: m.client.Database(m.dbname).Collection(accountsCollection)}
 }
 
+func (m *MongoDB) ensureCapped(name string) {
+	ecLog := log.WithField("sys", "enureCapped").WithField("coll", name)
+	mongoDB := m.client.Database(m.dbname)
+	c := mongoDB.RunCommand(context.Background(), //bson.D{
+		bson.D{
+			primitive.E{Key: "create", Value: name},
+			primitive.E{Key: "capped", Value: true},
+			primitive.E{Key: "size", Value: 16384},
+			primitive.E{Key: "max", Value: 100},
+		},
+	)
+
+	if c.Err() != nil {
+		switch c.Err().(type) {
+		case mongo.CommandError:
+			if c.Err().(mongo.CommandError).Name == "NamespaceExists" {
+				c = mongoDB.RunCommand(context.Background(), //bson.D{
+					bson.D{
+						primitive.E{Key: "convertToCapped", Value: name},
+						primitive.E{Key: "capped", Value: true},
+						primitive.E{Key: "size", Value: 16384},
+						primitive.E{Key: "max", Value: 100},
+					},
+				)
+				if c.Err() != nil {
+					ecLog.WithError(c.Err()).Fatal("could not convert to capped")
+				}
+			}
+		default:
+			ecLog.WithError(c.Err()).Fatal("error running command")
+		}
+	}
+}
+
 // Init implements Init
 func (m *MongoDB) Init() {
 	log.Printf("Database is %s", m.dbname)
-	// mongoDB := m.client.Database(m.dbname)
-	// userColl := mongoDB.Collection(usersCollection)
-	// discordAuthColl := mongoDB.Collection(discordAuthsCollection)
+	mongoDB := m.client.Database(m.dbname)
+	// discordAuthColl :=
 	// accountColl := mongoDB.Collection(accountsCollection)
 	// messageLocksColl := mongoDB.Collection(messageLocksCollection)
 	// chatQueueColl := mongoDB.Collection(chatQueueCollection)
 
-	// chatQueueColl.Create(&mgo.CollectionInfo{
-	// 	Capped:   true,
-	// 	MaxBytes: 16384,
-	// 	MaxDocs:  1000,
-	// })
+	m.ensureCapped(chatQueueCollection)
+	m.ensureCapped(messageLocksCollection)
 
-	// messageLocksColl.Create(&mgo.CollectionInfo{
-	// 	Capped:   true,
-	// 	MaxBytes: 16384,
-	// 	MaxDocs:  1000,
-	// })
+	mongoDB.Collection(messageLocksCollection).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys: bson.D{
+				primitive.E{Key: "messageid", Value: 1},
+			},
+			Options: options.Index().SetUnique(true),
+		},
+	)
 
-	// messageLocksColl.EnsureIndex(mgo.Index{
-	// 	Key:      []string{"messageid"},
-	// 	Unique:   true,
-	// 	DropDups: true,
-	// })
+	mongoDB.Collection(usersCollection).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys: bson.D{
+				primitive.E{Key: "playerids", Value: 1},
+			},
+			Options: options.Index().SetUnique(true),
+		},
+	)
 
-	// userColl.EnsureIndex(mgo.Index{
-	// 	Key:      []string{"playerids"},
-	// 	Unique:   true,
-	// 	DropDups: true,
-	// })
+	mongoDB.Collection(discordAuthsCollection).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys: bson.D{
+				primitive.E{Key: "playerid", Value: 1},
+			},
+			Options: options.Index().SetUnique(true),
+		},
+	)
 
-	// discordAuthColl.EnsureIndex(mgo.Index{
-	// 	Key:      []string{"playerid"},
-	// 	Unique:   true,
-	// 	DropDups: true,
-	// })
-
-	// accountColl.EnsureIndex(mgo.Index{
-	// 	Key:    []string{"servers.key"},
-	// 	Unique: false,
-	// })
+	mongoDB.Collection(accountsCollection).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys: bson.D{
+				primitive.E{Key: "servers.key", Value: 1},
+			},
+			Options: options.Index().SetUnique(true),
+		},
+	)
 }
