@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [UNRELEASED]
+## 4.0.2-RC1
 
 ### Changed
 
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       - `MONGO_SSL_ENABLED=yes` sets `mongo.ssl.enabled` to `false`
 - Fixed crash with `!pb server ID` when ID did not exist.
 - Added some docker configs
+- Updated to new mongo driver
 
 ### Added
 
