@@ -226,7 +226,11 @@ func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) 
 	if err != nil {
 		sceLog.WithError(err).Warn("error embedding message to channel")
 	}
-	return fmt.Errorf("error embedding message to channel, %w", err)
+
+	if err != nil {
+		return fmt.Errorf("error embedding message to channel, %w", err)
+	}
+	return nil
 }
 
 func (r *Runner) sendPrivateMessage(snowflake, message string) error {
@@ -243,7 +247,10 @@ func (r *Runner) sendPrivateMessage(snowflake, message string) error {
 		message,
 	)
 
-	return fmt.Errorf("error sending private message, %w", err)
+	if err != nil {
+		return fmt.Errorf("error sending private message, %w", err)
+	}
+	return nil
 }
 
 func canSendToChannel(pg channelPermissionsGetter, userID, channelID string) (bool, error) {
