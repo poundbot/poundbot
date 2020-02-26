@@ -21,6 +21,7 @@ type MessageLocks struct {
 }
 
 func (ml MessageLocks) Obtain(mID, mType string) bool {
+	oLog := log.WithField("ssys", "Obtain")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	ci, err := ml.collection.UpdateOne(
@@ -34,14 +35,14 @@ func (ml MessageLocks) Obtain(mID, mType string) bool {
 		options.Update().SetUpsert(true),
 	)
 	if err != nil {
-		log.Printf("Could not create log for %s:%s", mID, mType)
+		// oLog.WithError(err).Printf("Could not create log for %s:%s", mID, mType)
 		return false
 	}
 	if ci.UpsertedID == nil {
 		return false
 	}
 	if ci.MatchedCount != 0 {
-		log.Printf("Matched but no UpsertedId for %s:%s", mID, mType)
+		oLog.Printf("Matched but no UpsertedId for %s:%s", mID, mType)
 		return false
 	}
 	return true

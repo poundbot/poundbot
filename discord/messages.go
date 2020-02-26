@@ -203,8 +203,9 @@ func (r *Runner) sendChannelMessage(userID, channelID, message string) error {
 	_, err = r.session.ChannelMessageSend(channelID, message)
 	if err != nil {
 		scmLog.WithError(err).Warn("error sending message to channel")
+		return fmt.Errorf("error sending message to channel, %w", err)
 	}
-	return fmt.Errorf("error sending message to channel, %w", err)
+	return nil
 }
 
 func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) error {

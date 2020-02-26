@@ -68,13 +68,29 @@ type MongoDB struct {
 	client  *mongo.Client
 }
 
+func (m MongoDB) newConnection() (*mongo.Database, error) {
+	var client *mongo.Client
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(m.address))
+	if err != nil {
+		return nil, err
+	}
+
+	err = client.Connect(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Database(m.dbname), nil
+}
+
 // Copy implements storage.Storage.Copy
 func (m *MongoDB) Copy() storage.Storage {
 	return m
 }
 
 func (m *MongoDB) ChatQueue() storage.ChatQueueStore {
-	return ChatQueue{collection: m.client.Database(m.dbname).Collection(chatQueueCollection)}
+	return ChatQueue{collection: m.client.Database(m.dbname).Collection(chatQueueCollection), cloner: m}
 }
 
 // MessageLocks implements MessageLocks
