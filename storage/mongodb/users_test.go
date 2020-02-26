@@ -3,13 +3,11 @@
 package mongodb
 
 import (
-	"context"
 	"testing"
 
 	"github.com/poundbot/poundbot/storage/mongodb/mongotest"
 	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var baseUser = types.BaseUser{
@@ -56,7 +54,7 @@ func TestUsers_GetByPlayerID(t *testing.T) {
 			users, coll := NewUsers(t)
 			defer coll.Close()
 
-			users.collection.InsertOne(context.TODO(), baseUser)
+			users.collection.Insert(baseUser)
 
 			got, err := users.GetByPlayerID(tt.args.gameUserID)
 			if (err != nil) != tt.wantErr {
@@ -89,7 +87,7 @@ func TestUsers_UpsertPlayer(t *testing.T) {
 	tests := []struct {
 		name      string
 		player    player
-		wantCount int64
+		wantCount int
 		wantErr   bool
 	}{
 		{
@@ -108,7 +106,7 @@ func TestUsers_UpsertPlayer(t *testing.T) {
 			users, coll := NewUsers(t)
 			defer coll.Close()
 
-			_, err := users.collection.InsertOne(context.TODO(), baseUser)
+			err := users.collection.Insert(baseUser)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -118,7 +116,7 @@ func TestUsers_UpsertPlayer(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			count, err := users.collection.CountDocuments(context.TODO(), bson.M{})
+			count, err := users.collection.Count()
 			if err != nil {
 				t.Fatal(err)
 			}

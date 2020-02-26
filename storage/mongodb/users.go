@@ -1,14 +1,12 @@
 package mongodb
 
 import (
-	"context"
 	"time"
 
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage"
 	"github.com/poundbot/poundbot/types"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const userPlayerIDsField = "playerids"
@@ -16,43 +14,31 @@ const userSnowflakeField = "snowflake"
 
 // A Users implements db.UsersStore
 type Users struct {
-	collection *mongo.Collection
+	collection *mgo.Collection
 }
 
 // Get implements db.UsersStore.Get
 func (u Users) GetByPlayerID(gameUserID string) (types.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 	var user types.User
-	err := u.collection.FindOne(ctx, bson.M{userPlayerIDsField: gameUserID}).Decode(&user)
+	err := u.collection.Find(bson.M{userPlayerIDsField: gameUserID}).One(&user)
 	return user, err
 }
 
 func (u Users) GetByDiscordID(snowflake string) (types.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 	var user types.User
-	err := u.collection.FindOne(ctx, bson.M{userSnowflakeField: snowflake}).Decode(&user)
+	err := u.collection.Find(bson.M{userSnowflakeField: snowflake}).One(&user)
 	return user, err
 }
 
 func (u Users) GetPlayerIDsByDiscordIDs(snowflakes []string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	ids, err := u.collection.Distinct(ctx, userPlayerIDsField, bson.M{userSnowflakeField: bson.M{"$in": snowflakes}})
-	playerIDs := make([]string, len(ids))
-	for i, id := range ids {
-		playerIDs[i] = id.(string)
-	}
+	var playerIDs []string
+	err := u.collection.Find(bson.M{userSnowflakeField: bson.M{"$in": snowflakes}}).
+		Distinct(userPlayerIDsField, &playerIDs)
 	return playerIDs, err
 }
 
 func (u Users) UpsertPlayer(info storage.UserInfoGetter) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err := u.collection.UpdateOne(
-		ctx,
+	_, err := u.collection.Upsert(
 		bson.M{userSnowflakeField: info.GetDiscordID()},
 		bson.M{
 			"$setOnInsert": bson.M{
@@ -62,26 +48,20 @@ func (u Users) UpsertPlayer(info storage.UserInfoGetter) error {
 			"$set":      bson.M{"updatedat": time.Now().UTC()},
 			"$addToSet": bson.M{userPlayerIDsField: info.GetPlayerID()},
 		},
-		options.Update().SetUpsert(true),
 	)
 
 	return err
 }
 
 func (u Users) RemovePlayerID(snowflake, playerID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	if playerID == "all" {
-		_, err := u.collection.DeleteOne(
-			ctx,
+		err := u.collection.Remove(
 			bson.M{userSnowflakeField: snowflake},
 		)
 		return err
 	}
 
-	_, err := u.collection.UpdateOne(
-		ctx,
+	err := u.collection.Update(
 		bson.M{userSnowflakeField: snowflake},
 		bson.M{
 			"$set": bson.M{

@@ -1,9 +1,9 @@
 package types
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import "github.com/globalsign/mgo/bson"
 
 type ChatMessage struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty"`
+	ID           bson.ObjectId `bson:"_id,omitempty"`
 	DiscordInfo  `bson:",inline" json:"-"`
 	ChannelID    string `json:"-"`
 	ClanTag      string

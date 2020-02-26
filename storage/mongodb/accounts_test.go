@@ -3,17 +3,14 @@
 package mongodb
 
 import (
-	"context"
 	"testing"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/storage/mongodb/mongotest"
 	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var baseAccount = types.Account{
@@ -46,17 +43,17 @@ func TestAccounts_All(t *testing.T) {
 			name: "some",
 			want: []types.Account{
 				types.Account{
-					ID:        primitive.NewObjectID(),
+					ID:        bson.NewObjectId(),
 					Timestamp: types.Timestamp{CreatedAt: time.Now().UTC().Truncate(time.Millisecond)},
 					Servers:   []types.AccountServer{types.AccountServer{Key: "key", Clans: []types.Clan{}}},
 				},
 				types.Account{
-					ID:        primitive.NewObjectID(),
+					ID:        bson.NewObjectId(),
 					Timestamp: types.Timestamp{CreatedAt: time.Now().UTC().Add(-1 * time.Hour).Truncate(time.Millisecond)},
 					Servers:   []types.AccountServer{types.AccountServer{Key: "key2", Clans: []types.Clan{}}},
 				},
 				types.Account{
-					ID:        primitive.NewObjectID(),
+					ID:        bson.NewObjectId(),
 					Timestamp: types.Timestamp{CreatedAt: time.Now().UTC().Add(-2 * time.Hour).Truncate(time.Millisecond)},
 					Servers:   []types.AccountServer{types.AccountServer{Key: "key3", Clans: []types.Clan{}}},
 				},
@@ -69,7 +66,7 @@ func TestAccounts_All(t *testing.T) {
 			defer coll.Close()
 
 			for _, account := range tt.want {
-				coll.C.InsertOne(context.TODO(), account)
+				coll.C.Insert(account)
 			}
 
 			var res []types.Account
@@ -85,7 +82,7 @@ func TestAccounts_All(t *testing.T) {
 func TestAccounts_GetByDiscordGuild(t *testing.T) {
 	t.Parallel()
 
-	id := primitive.NewObjectID()
+	id := bson.NewObjectId()
 
 	tests := []struct {
 		name    string
@@ -129,7 +126,7 @@ func TestAccounts_GetByDiscordGuild(t *testing.T) {
 			}
 
 			for _, account := range make {
-				coll.C.InsertOne(context.TODO(), account)
+				coll.C.Insert(account)
 			}
 
 			got, err := accounts.GetByDiscordGuild(tt.key)
@@ -144,7 +141,7 @@ func TestAccounts_GetByDiscordGuild(t *testing.T) {
 func TestAccounts_GetByServerKey(t *testing.T) {
 	t.Parallel()
 
-	id := primitive.NewObjectID()
+	id := bson.NewObjectId()
 
 	type args struct {
 		key string
@@ -187,7 +184,7 @@ func TestAccounts_GetByServerKey(t *testing.T) {
 			}
 
 			for _, account := range docs {
-				coll.C.InsertOne(context.TODO(), account)
+				coll.C.Insert(account)
 			}
 
 			got, err := accounts.GetByServerKey(tt.args.key)
@@ -210,7 +207,7 @@ func TestAccounts_UpsertBase(t *testing.T) {
 	tests := []struct {
 		name      string
 		account   types.Account
-		wantCount int64
+		wantCount int
 		wantErr   bool
 	}{
 		{
@@ -229,7 +226,7 @@ func TestAccounts_UpsertBase(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			_, err := coll.C.InsertOne(context.TODO(), baseAccount)
+			err := coll.C.Insert(baseAccount)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -238,7 +235,7 @@ func TestAccounts_UpsertBase(t *testing.T) {
 				t.Fatalf("Accounts.UpsertBase() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			count, err := coll.C.CountDocuments(context.TODO(), bson.M{})
+			count, err := coll.C.Count()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -257,7 +254,7 @@ func TestAccounts_Remove(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      args
-		wantCount int64
+		wantCount int
 		wantErr   bool
 	}{
 		{
@@ -293,7 +290,7 @@ func TestAccounts_Remove(t *testing.T) {
 			}
 
 			for _, account := range make {
-				_, err := coll.C.InsertOne(context.TODO(), account)
+				err := coll.C.Insert(account)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -302,19 +299,19 @@ func TestAccounts_Remove(t *testing.T) {
 				t.Errorf("Accounts.Remove() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			count, err := coll.C.CountDocuments(context.TODO(), bson.M{"disabled": true})
+			count, err := coll.C.Find(bson.M{"disabled": true}).Count()
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			assert.Equal(t, tt.wantCount, count, "Disabled count is wrong")
 
-			count, err = coll.C.CountDocuments(context.TODO(), bson.M{})
+			count, err = coll.C.Count()
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, int64(3), count, "All count is wrong")
+			assert.Equal(t, 3, count, "All count is wrong")
 		})
 	}
 }
@@ -328,13 +325,13 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 
 	docs := []types.Account{
 		types.Account{
-			ID:          primitive.NewObjectID(),
+			ID:          bson.NewObjectId(),
 			Timestamp:   types.Timestamp{CreatedAt: iclock().Now().UTC().Truncate(time.Millisecond)},
 			BaseAccount: types.BaseAccount{GuildSnowflake: "snowflake1"},
 			Disabled:    true,
 		},
 		types.Account{
-			ID:          primitive.NewObjectID(),
+			ID:          bson.NewObjectId(),
 			Timestamp:   types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 			BaseAccount: types.BaseAccount{GuildSnowflake: "snowflake2"},
 			Disabled:    false,
@@ -342,7 +339,7 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 	}
 
 	for _, doc := range docs {
-		_, err := coll.C.InsertOne(context.TODO(), doc)
+		err := coll.C.Insert(doc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -385,19 +382,14 @@ func TestAccounts_RemoveNotInDiscordGuildList(t *testing.T) {
 		return
 	}
 
-	count, err := coll.C.CountDocuments(context.TODO(), bson.M{})
+	count, err := coll.C.Count()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, int64(3), count, "Count is wrong")
+	assert.Equal(t, 3, count, "Count is wrong")
 
-	c, err := coll.C.Find(context.TODO(), bson.M{}, options.Find().
-		SetSort(map[string]int{accountsKeyField: 1}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = c.All(context.TODO(), &docs)
+	err = coll.C.Find(bson.M{}).Sort(accountsKeyField).All(&docs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -438,10 +430,10 @@ func TestAccounts_AddClan(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			id := primitive.NewObjectID()
+			id := bson.NewObjectId()
 			tt.want.ID = id
 
-			coll.C.InsertOne(context.TODO(), types.Account{
+			coll.C.Insert(types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers:   []types.AccountServer{types.AccountServer{Key: "key2", Clans: []types.Clan{types.Clan{Tag: "bloops"}}}},
@@ -452,8 +444,7 @@ func TestAccounts_AddClan(t *testing.T) {
 			}
 
 			var account types.Account
-			f := coll.C.FindOne(context.TODO(), bson.M{})
-			f.Decode(&account)
+			coll.C.Find(bson.M{}).One(&account)
 			assert.Equal(t, tt.want, account)
 		})
 	}
@@ -462,7 +453,7 @@ func TestAccounts_AddClan(t *testing.T) {
 func TestAccounts_RemoveClan(t *testing.T) {
 	t.Parallel()
 
-	id := primitive.NewObjectID()
+	id := bson.NewObjectId()
 
 	type args struct {
 		key     string
@@ -489,7 +480,7 @@ func TestAccounts_RemoveClan(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			coll.C.InsertOne(context.TODO(), types.Account{
+			coll.C.Insert(types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers:   []types.AccountServer{types.AccountServer{Key: "key2", Clans: []types.Clan{types.Clan{Tag: "bloops"}, types.Clan{Tag: "bloops2"}}}},
@@ -500,7 +491,7 @@ func TestAccounts_RemoveClan(t *testing.T) {
 			}
 
 			var account types.Account
-			coll.C.FindOne(context.TODO(), bson.M{}).Decode(&account)
+			coll.C.Find(bson.M{}).One(&account)
 			assert.Equal(t, tt.want, account)
 		})
 	}
@@ -509,7 +500,7 @@ func TestAccounts_RemoveClan(t *testing.T) {
 func TestAccounts_SetClans(t *testing.T) {
 	t.Parallel()
 
-	id := primitive.NewObjectID()
+	id := bson.NewObjectId()
 
 	type args struct {
 		key   string
@@ -550,7 +541,7 @@ func TestAccounts_SetClans(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			coll.C.InsertOne(context.TODO(), types.Account{
+			coll.C.Insert(types.Account{
 				ID:        id,
 				Timestamp: types.Timestamp{CreatedAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond)},
 				Servers: []types.AccountServer{types.AccountServer{
@@ -564,7 +555,7 @@ func TestAccounts_SetClans(t *testing.T) {
 			}
 
 			var account types.Account
-			coll.C.FindOne(context.TODO(), bson.M{serverKeyField: tt.args.key}).Decode(&account)
+			coll.C.Find(bson.M{serverKeyField: tt.args.key}).One(&account)
 			assert.Equal(t, tt.want, account)
 		})
 	}
@@ -591,13 +582,13 @@ func TestAccounts_AddServer(t *testing.T) {
 			accounts, coll := NewAccounts(t)
 			defer coll.Close()
 
-			coll.C.InsertOne(context.TODO(), baseAccount)
+			coll.C.Insert(baseAccount)
 
 			if err := accounts.AddServer(tt.args.snowflake, tt.args.server); (err != nil) != tt.wantErr {
 				t.Errorf("Accounts.AddServer() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			var account types.Account
-			coll.C.FindOne(context.TODO(), bson.M{serverKeyField: tt.args.snowflake}).Decode(&account)
+			coll.C.Find(bson.M{serverKeyField: tt.args.snowflake}).One(&account)
 			assert.Equal(t, tt.want, account)
 		})
 	}

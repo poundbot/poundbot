@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/pbclock"
 	"github.com/poundbot/poundbot/types"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type chatQueueMock struct {
@@ -82,16 +82,11 @@ func TestChat_Handle(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			id, err := primitive.ObjectIDFromHex("5cafadc080e1a9498fea8f03")
-			if err != nil {
-				t.Fatal(err)
-			}
-
 			ctx := context.WithValue(context.Background(), contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyServerKey, "bloop")
 			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
-				ID: id,
+				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"),
 				Servers: []types.AccountServer{
 					{
 						Key:  "bloop",

@@ -3,8 +3,8 @@ package gameapi
 import (
 	"time"
 
+	"github.com/globalsign/mgo"
 	"github.com/poundbot/poundbot/types"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type raidNotifier interface {
@@ -47,7 +47,7 @@ func (r *RaidAlerter) Run() {
 			return
 		case <-time.After(r.SleepTime):
 			alerts, err := r.rs.GetReady()
-			if err != nil && err != mongo.ErrNoDocuments {
+			if err != nil && err != mgo.ErrNotFound {
 				raLog.WithError(err).Error("could not get raid alert")
 				continue
 			}

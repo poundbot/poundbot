@@ -2,9 +2,9 @@ package discord
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/globalsign/mgo"
 	"github.com/poundbot/poundbot/types"
 	"github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type guildCreateAccountStorer interface {
@@ -37,7 +37,7 @@ func (g guildCreate) guildCreate(s *discordgo.Session, gc *discordgo.GuildCreate
 
 	account, err := g.as.GetByDiscordGuild(gc.ID)
 	if err != nil {
-		if err != mongo.ErrNoDocuments {
+		if err != mgo.ErrNotFound {
 			// Some other storage error
 			log.WithError(err).Error("Error loading account")
 			return
@@ -107,7 +107,7 @@ func guildMemberAdd(uf userFinder, gma guildMemberAdder, gID, uID string) {
 	}
 	_, err = gma.GetByDiscordGuild(gID)
 	if err != nil {
-		if err != mongo.ErrNoDocuments {
+		if err != mgo.ErrNotFound {
 			gmaLog.WithError(err).Trace("Could not get account for guild")
 		}
 		return
@@ -138,7 +138,7 @@ func guildMemberRemove(uf userFinder, gmr guildMemberRemover, gID, uID string) {
 	}
 	account, err := gmr.GetByDiscordGuild(gID)
 	if err != nil {
-		if err != mongo.ErrNoDocuments {
+		if err != mgo.ErrNotFound {
 			gmrLog.WithError(err).Trace("Could not get account for guild ID")
 		}
 		return

@@ -1,12 +1,8 @@
 package mongodb
 
 import (
-	"context"
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 // type messageLock struct {
@@ -17,32 +13,27 @@ import (
 
 // A MessageLocks implements db.MessageLocksStore
 type MessageLocks struct {
-	collection *mongo.Collection
+	collection *mgo.Collection
 }
 
 func (ml MessageLocks) Obtain(mID, mType string) bool {
-	oLog := log.WithField("ssys", "Obtain")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	ci, err := ml.collection.UpdateOne(
-		ctx,
+	ci, err := ml.collection.Upsert(
 		bson.M{"messageid": mID},
 		bson.M{
 			"$setOnInsert": bson.M{
 				"lockedat": iclock().Now().UTC(),
 			},
 		},
-		options.Update().SetUpsert(true),
 	)
 	if err != nil {
-		// oLog.WithError(err).Printf("Could not create log for %s:%s", mID, mType)
+		log.Printf("Could not create log for %s:%s", mID, mType)
 		return false
 	}
-	if ci.UpsertedID == nil {
+	if ci.UpsertedId == nil {
 		return false
 	}
-	if ci.MatchedCount != 0 {
-		oLog.Printf("Matched but no UpsertedId for %s:%s", mID, mType)
+	if ci.Matched != 0 {
+		log.Printf("Matched but no UpsertedId for %s:%s", mID, mType)
 		return false
 	}
 	return true

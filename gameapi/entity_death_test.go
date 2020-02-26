@@ -9,11 +9,12 @@ import (
 
 	"context"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage/mocks"
 	"github.com/poundbot/poundbot/types"
+	// "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestEntityDeath_Handle(t *testing.T) {
@@ -108,16 +109,11 @@ func TestEntityDeath_Handle(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			id, err := primitive.ObjectIDFromHex("5cafadc080e1a9498fea8f03")
-			if err != nil {
-				t.Fatal(err)
-			}
-
 			ctx := context.WithValue(context.Background(), contextKeyServerKey, "bloop")
 			ctx = context.WithValue(ctx, contextKeyRequestUUID, "request-1")
 			ctx = context.WithValue(ctx, contextKeyGame, "game")
 			ctx = context.WithValue(ctx, contextKeyAccount, types.Account{
-				ID: id,
+				ID: bson.ObjectIdHex("5cafadc080e1a9498fea8f03"),
 				Servers: []types.AccountServer{
 					{Key: "bloop", Name: "server1"},
 				},

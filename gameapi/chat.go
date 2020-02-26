@@ -69,7 +69,6 @@ func (c *chat) handle(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		log.Trace("new gameservermessage get")
 		m, found := c.cqs.GetGameServerMessage(sc.serverKey, "chat", c.timeout)
 		if !found {
 			w.WriteHeader(http.StatusNoContent)

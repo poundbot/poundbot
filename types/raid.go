@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/messages"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type EntityDeath struct {
@@ -23,7 +23,7 @@ type RaidInventory struct {
 }
 
 type RaidAlert struct {
-	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	ID            bson.ObjectId `bson:"_id,omitempty"`
 	PlayerID      string
 	ServerName    string
 	ServerKey     string
