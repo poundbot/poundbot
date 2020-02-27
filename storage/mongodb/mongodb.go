@@ -2,7 +2,10 @@ package mongodb
 
 import (
 	"crypto/tls"
+	"errors"
+	"fmt"
 	"net"
+	"net/url"
 
 	"github.com/globalsign/mgo"
 	pblog "github.com/poundbot/poundbot/log"
@@ -30,9 +33,17 @@ type Config struct {
 }
 
 // NewMongoDB returns a connected Mgo
-func NewMongoDB(mc Config) (*MongoDB, error) {
+func NewMongoDB(dial, db string) (*MongoDB, error) {
 	var sErr error
 	var sess *mgo.Session
+
+	mc, err := parseDialURL(dial)
+	if err != nil {
+		return nil, fmt.Errorf("invalid dial url: %w", err)
+	}
+
+	mc.Database = db
+
 	if mc.SSL {
 		dialInfo, err := mgo.ParseURL(mc.DialAddress)
 		if err != nil {
@@ -109,7 +120,7 @@ func (m *MongoDB) Accounts() storage.AccountsStore {
 
 // Init implements Init
 func (m *MongoDB) Init() {
-	log.Printf("Database is %s\n", m.dbname)
+	log.Printf("Database is %s", m.dbname)
 	mongoDB := m.session.DB(m.dbname)
 	userColl := mongoDB.C(usersCollection)
 	discordAuthColl := mongoDB.C(discordAuthsCollection)
@@ -151,4 +162,37 @@ func (m *MongoDB) Init() {
 		Key:    []string{"servers.key"},
 		Unique: false,
 	})
+}
+
+func parseDialURL(dialURL string) (*Config, error) {
+	u, err := url.Parse(dialURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.Scheme != "mongodb" {
+		return nil, errors.New("scheme for mongodb dial should be mongodb://")
+	}
+
+	c := Config{DialAddress: fmt.Sprintf("mongodb://%s/", u.Host)}
+
+	q := u.Query()
+
+	if q.Get("ssl") == "true" || q.Get("tls") == "true" {
+		q.Del("ssl")
+		q.Del("tls")
+
+		c.SSL = true
+		if q.Get("tlsInsecure") == "true" {
+			q.Del("tlsInsecure")
+			c.InsecureSSL = true
+		}
+	}
+
+	u.RawQuery = q.Encode()
+
+	// u.RawQuery = u.Query().Encode()
+
+	c.DialAddress = u.String()
+	return &c, nil
 }

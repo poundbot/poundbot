@@ -124,10 +124,10 @@ func main() {
 		dialAddr = viper.GetString("mongo.dial")
 	}
 
-	store, err := mongodb.NewMongoDB(mongodb.Config{
-		DialAddress: dialAddr,
-		Database:    viper.GetString("mongo.database"),
-	})
+	store, err := mongodb.NewMongoDB(
+		dialAddr,
+		viper.GetString("mongo.database"),
+	)
 
 	if err != nil {
 		log.Panicf("Could not connect to DB: %v", err)
