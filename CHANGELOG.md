@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Added MongoDB connection URL handling for SSL/TLS
-
-### Changed
-- reverted back to mgo driver for now
+- Can now be run without a config file, using only env vars.
+- Changed default config file to `poundbot.yml`. You can still use 
+  `-c config.json` to load the normal config file
+- Looks for config file in the following directories:
+  1. `/etc/poundbot`
+  2. `$HOME/.poundbot`
+  3. `.`
 
 ## 4.0.2-RC2
 

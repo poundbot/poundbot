@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"syscall"
@@ -27,7 +27,7 @@ var (
 	buildstamp       = "NOWISH, I GUESS"
 	githash          = "GIT HASHY WITH IT"
 	versionFlag      = flag.Bool("v", false, "Displays the version and then quits")
-	configLocation   = flag.String("c", ".", "The config.json location")
+	configFile       = flag.String("c", "", "The config file")
 	writeConfig      = flag.Bool("w", false, "Writes a config and exits")
 	writeConfigForce = flag.Bool("init", false, "Forces writing of config and exits\nWARNING! This will destroy your config file")
 	wg               sync.WaitGroup
@@ -83,7 +83,15 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	viper.SetConfigFile(fmt.Sprintf("%s/config.json", filepath.Clean(*configLocation)))
+	if len(*configFile) == 0 {
+		viper.SetConfigName("poundbot.yml")
+		viper.AddConfigPath("/etc/poundbot")
+		viper.AddConfigPath("$HOME/.poundbot")
+		viper.AddConfigPath(".")
+	} else {
+		viper.SetConfigFile(*configFile)
+	}
+
 	viper.SetDefault("mongo.dial", "mongodb://localhost:27017")
 	viper.SetDefault("mongo.database", "poundbot")
 	viper.SetDefault("http.bind_addr", "")
@@ -93,15 +101,19 @@ func main() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	if *writeConfigForce {
-		*writeConfig = true
+	if len(viper.ConfigFileUsed()) == 0 {
+		log.Info("No config file found. Using defaults and env only.")
 	} else {
+
 		err := viper.ReadInConfig() // Find and read the config file
 		if err != nil {
-			log.Println(err)
-			flag.Usage()
+			log.Warnf("Error reading config file: %s,%s", reflect.TypeOf(err), err)
 			os.Exit(1)
 		}
+	}
+
+	if *writeConfigForce {
+		*writeConfig = true
 	}
 
 	if *writeConfig {
