@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Added MongoDB connection URL handling for SSL/TLS
+  - This eliminates `mongo.ssl` config options.
 - Can now be run without a config file, using only env vars.
 - Changed default config file to `poundbot.yml`. You can still use 
   `-c config.json` to load the normal config file
@@ -33,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `.` is replaced with `_`
   - examples:
     - `DISCORD_TOKEN=token` sets `discord.token` to `token`
-    - Booleans must be 1 or `true` otherwise they are false.
+    - Booleans must be `1` or `true` otherwise they are false.
 - Fixed crash with `!pb server ID` when ID did not exist.
 - Added some docker configs
 - Updated to new mongo driver

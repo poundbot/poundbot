@@ -44,10 +44,6 @@ Create a new configuration file with
   "mongo": {
     "dial": "mongodb://localhost",
     "database": "poundbot",
-    "ssl": {
-      "enabled": false,
-      "insecure": false
-    }
   },
   "profiler": {
     "port": 6061
