@@ -37,7 +37,7 @@ jobs: # basic units of work in a run
 
           # Store the results of our tests in the $TEST_RESULTS directory
           command: |
-            gotestsum --junitfile ${TEST_RESULTS}/unit/go.xml -- ./... -tags integration -timeout 10s -race
+            gotestsum --junitfile ${TEST_RESULTS}/unit/junit.xml -- ./... -tags integration -timeout 10s -race
 
       - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: /tmp/test-reports
