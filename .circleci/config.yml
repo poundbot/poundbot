@@ -10,7 +10,6 @@ jobs: # basic units of work in a run
 
     environment: # environment variables for the build itself
       TEST_RESULTS: /tmp/test-reports # path to where test results will be saved
-      GO111MODULE: "on"
       GOMAXPROCS: 4
       POUNDBOT_DIR: /home/circleci/project
 
@@ -25,13 +24,23 @@ jobs: # basic units of work in a run
 
       # Normally, this step would be in a custom primary image;
       # we've added it here for the sake of explanation.
-      - run: go mod download
+      - run:
+        name: Install go modules
+        command: go mod download
 
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
 
+  test:
+    docker: # run the steps with Docker
+      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
+      - image: circleci/golang:1.14.1 #
+      # CircleCI PostgreSQL images available at: https://hub.docker.com/r/circleci/postgres/
+      - image: circleci/mongo
+    steps:
+      - checkout
       - run:
           name: Run unit tests
 
@@ -40,9 +49,18 @@ jobs: # basic units of work in a run
             gotestsum --junitfile ${TEST_RESULTS}/unit/junit.xml -- ./... -tags integration -timeout 10s -race
             echo "done"
 
-        - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-            path: /tmp/test-reports
-            destination: raw-test-output
+      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: /tmp/test-reports
+          destination: raw-test-output
 
-        - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
-            path: /tmp/test-reports/unit
+      - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          path: /tmp/test-reports/unit
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+        requires: 
+          - build
