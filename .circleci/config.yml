@@ -4,7 +4,7 @@ jobs: # basic units of work in a run
   build: # runs not using Workflows must have a `build` job as entry point
     docker: # run the steps with Docker
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
-      - image: circleci/golang:1.13 #
+      - image: circleci/golang:1.14.1 #
       # CircleCI PostgreSQL images available at: https://hub.docker.com/r/circleci/postgres/
       - image: circleci/mongo
 
@@ -37,7 +37,7 @@ jobs: # basic units of work in a run
 
           # Store the results of our tests in the $TEST_RESULTS directory
           command: |
-            gotestsum --junitfile ${TEST_RESULTS}/unit/gotestsum-report.xml -- ./... -tags integration -timeout 10s -race
+            gotestsum --junitfile ${TEST_RESULTS}/unit/junit.xml -- ./... -tags integration -timeout 10s -race
 
       - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
           path: /tmp/test-reports
