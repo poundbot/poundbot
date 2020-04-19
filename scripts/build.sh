@@ -11,10 +11,10 @@ env GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o $BUILD_DIR/windows
 env GOOS=linux GOARCH=amd64 go build -ldflags="$PB_LDFLAGS" -o $BUILD_DIR/linux/poundbot-$PB_VERSION $MAIN/cmd/poundbot/poundbot.go
 env GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o $BUILD_DIR/windows/migrate-$PB_VERSION.exe $MAIN/cmd/migrate/migrate.go
 env GOOS=linux GOARCH=amd64 go build -ldflags="$PB_LDFLAGS" -o $BUILD_DIR/linux/migrate-$PB_VERSION $MAIN/cmd/migrate/migrate.go
-upx $BUILD_DIR/linux/poundbot-$PB_VERSION
-upx $BUILD_DIR/windows/poundbot-$PB_VERSION.exe
-upx $BUILD_DIR/linux/migrate-$PB_VERSION
-upx $BUILD_DIR/windows/migrate-$PB_VERSION.exe
+# upx $BUILD_DIR/linux/poundbot-$PB_VERSION
+# upx $BUILD_DIR/windows/poundbot-$PB_VERSION.exe
+# upx $BUILD_DIR/linux/migrate-$PB_VERSION
+# upx $BUILD_DIR/windows/migrate-$PB_VERSION.exe
 
 cp $LANGUAGE_DIR/active*.toml $BUILD_DIR/linux/language
 cp $LANGUAGE_DIR/active*.toml $BUILD_DIR/windows/language
