@@ -12,13 +12,13 @@ type RaidAlertsStore struct {
 	mock.Mock
 }
 
-// AddInfo provides a mock function with given fields: alertIn, ed
-func (_m *RaidAlertsStore) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
-	ret := _m.Called(alertIn, ed)
+// AddInfo provides a mock function with given fields: alertIn, validUntil, ed
+func (_m *RaidAlertsStore) AddInfo(alertIn time.Duration, validUntil time.Duration, ed types.EntityDeath) error {
+	ret := _m.Called(alertIn, validUntil, ed)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(time.Duration, types.EntityDeath) error); ok {
-		r0 = rf(alertIn, ed)
+	if rf, ok := ret.Get(0).(func(time.Duration, time.Duration, types.EntityDeath) error); ok {
+		r0 = rf(alertIn, validUntil, ed)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -49,6 +49,20 @@ func (_m *RaidAlertsStore) GetReady() ([]types.RaidAlert, error) {
 	return r0, r1
 }
 
+// IncrementNotifyCount provides a mock function with given fields: _a0
+func (_m *RaidAlertsStore) IncrementNotifyCount(_a0 types.RaidAlert) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(types.RaidAlert) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Remove provides a mock function with given fields: _a0
 func (_m *RaidAlertsStore) Remove(_a0 types.RaidAlert) error {
 	ret := _m.Called(_a0)
@@ -56,6 +70,20 @@ func (_m *RaidAlertsStore) Remove(_a0 types.RaidAlert) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(types.RaidAlert) error); ok {
 		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SetMessageID provides a mock function with given fields: _a0, _a1
+func (_m *RaidAlertsStore) SetMessageID(_a0 types.RaidAlert, _a1 string) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(types.RaidAlert, string) error); ok {
+		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}

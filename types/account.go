@@ -9,15 +9,17 @@ import (
 )
 
 type AccountServer struct {
-	Name      string
-	Key       string
-	Address   string
-	Clans     []Clan
-	RaidDelay string
-	Timestamp `bson:",inline"`
-	Channels  []AccountServerChannel `bson:",omitempty" json:"channels"`
+	Name                string
+	Key                 string
+	Address             string
+	Clans               []Clan
+	RaidDelay           string
+	RaidNotifyFrequency string
+	Timestamp           `bson:",inline"`
+	Channels            []AccountServerChannel `bson:",omitempty" json:"channels"`
 }
 
+// ChannelIDForTag returns the discord channel id for a message tag
 func (s AccountServer) ChannelIDForTag(tag string) (channel string, found bool) {
 	for i := range s.Channels {
 		for _, cTag := range s.Channels[i].Tags {
@@ -29,6 +31,7 @@ func (s AccountServer) ChannelIDForTag(tag string) (channel string, found bool) 
 	return "", false
 }
 
+// TagsForChannelID returns the message tags for a discord channel ID
 func (s AccountServer) TagsForChannelID(channelID string) (tags []string, found bool) {
 	for i := range s.Channels {
 		if s.Channels[i].ChannelID == channelID {
@@ -38,6 +41,7 @@ func (s AccountServer) TagsForChannelID(channelID string) (tags []string, found 
 	return tags, false
 }
 
+// RemoveTag removes a message type tag
 func (s *AccountServer) RemoveTag(tag string) (found bool) {
 	for i := range s.Channels {
 		sTags := s.Channels[i].Tags
@@ -56,6 +60,7 @@ func (s *AccountServer) RemoveTag(tag string) (found bool) {
 	return false
 }
 
+// SetChannelIDForTag sets the discord channel ID for a message tag
 func (s *AccountServer) SetChannelIDForTag(channel string, tag string) (changed bool) {
 	c, found := s.ChannelIDForTag(tag)
 	if found {
@@ -79,6 +84,7 @@ func (s *AccountServer) SetChannelIDForTag(channel string, tag string) (changed 
 	return true
 }
 
+// UsersClan returns the clan for a given set of playerIDs
 func (s AccountServer) UsersClan(playerIDs []string) (bool, Clan) {
 	for _, clan := range s.Clans {
 		for _, member := range clan.Members {

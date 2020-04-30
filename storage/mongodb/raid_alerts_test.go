@@ -26,20 +26,26 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 	oid := bson.NewObjectId()
 
 	type args struct {
-		alertIn time.Duration
-		ed      types.EntityDeath
+		alertIn    time.Duration
+		validUntil time.Duration
+		ed         types.EntityDeath
 	}
 	tests := []struct {
-		name      string
-		args      args
-		want      types.RaidAlert
-		atTimeNew bool
-		wantCount int
-		wantErr   bool
+		name          string
+		args          args
+		want          types.RaidAlert
+		atTimeNew     bool
+		validUntilNew bool
+		wantCount     int
+		wantErr       bool
 	}{
 		{
 			name: "upsert",
-			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcd", Name: "thing", GridPos: "D7", OwnerIDs: []string{"1", "2"}}},
+			args: args{
+				alertIn:    time.Hour,
+				validUntil: time.Hour,
+				ed:         types.EntityDeath{ServerKey: "abcd", Name: "thing", GridPos: "D7", OwnerIDs: []string{"1", "2"}},
+			},
 			want: types.RaidAlert{
 				ID:            oid,
 				GridPositions: []string{"D8", "D7"},
@@ -51,19 +57,26 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		},
 		{
 			name: "insert",
-			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"1", "3"}}},
+			args: args{
+				alertIn:    time.Hour,
+				validUntil: time.Hour,
+				ed:         types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"1", "3"}},
+			},
 			want: types.RaidAlert{
 				GridPositions: []string{"D7"},
 				PlayerID:      "3",
 				Items:         map[string]int{"thing": 1},
 				ServerKey:     "abcde",
 			},
-			atTimeNew: true,
-			wantCount: 2,
+			atTimeNew:     true,
+			validUntilNew: true,
+			wantCount:     2,
 		},
 		{
 			name: "noop",
-			args: args{alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"5"}}},
+			args: args{
+				alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"5"}},
+			},
 			want: types.RaidAlert{
 				ID:            oid,
 				GridPositions: []string{"D8"},
@@ -95,7 +108,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 			usersColl.C.Insert(types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"2"}}})
 			usersColl.C.Insert(types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"3"}}})
 
-			if err := raidAlerts.AddInfo(tt.args.alertIn, tt.args.ed); (err != nil) != tt.wantErr {
+			if err := raidAlerts.AddInfo(tt.args.alertIn, tt.args.validUntil, tt.args.ed); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.AddInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
@@ -112,6 +125,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 					t.Fatal(err)
 				}
 				alertAt := rn.AlertAt
+				validUntil := rn.ValidUntil
 				rn.AlertAt = time.Time{}
 
 				if tt.atTimeNew {
@@ -121,6 +135,15 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 					rn.ID = ""
 				} else {
 					assert.Equal(t, rn.AlertAt, alertAt)
+				}
+
+				if tt.validUntilNew {
+					assert.NotEqual(t, rn.ValidUntil, validUntil)
+					// since we don't know the object ID, we empty it.
+					assert.NotEqual(t, rn.ID, "")
+					rn.ID = ""
+				} else {
+					assert.Equal(t, rn.ValidUntil, validUntil)
 				}
 
 				assert.Equal(t, tt.want, rn)
@@ -185,20 +208,19 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 }
 
 func TestRaidAlerts_Remove(t *testing.T) {
+	// t.Parallel()
+
 	oid := bson.NewObjectId()
-	type args struct {
-		alert types.RaidAlert
-	}
 	tests := []struct {
 		name      string
-		args      args
+		alert     types.RaidAlert
 		alerts    []types.RaidAlert
 		wantCount int
 		wantErr   bool
 	}{
 		{
-			name: "one of two",
-			args: args{alert: types.RaidAlert{ID: oid}},
+			name:  "one of two",
+			alert: types.RaidAlert{ID: oid},
 			alerts: []types.RaidAlert{
 				types.RaidAlert{PlayerID: "1001"},
 				types.RaidAlert{ID: oid, PlayerID: "1002"},
@@ -206,8 +228,8 @@ func TestRaidAlerts_Remove(t *testing.T) {
 			wantCount: 1,
 		},
 		{
-			name: "none",
-			args: args{alert: types.RaidAlert{ID: oid, PlayerID: "1003"}},
+			name:  "none",
+			alert: types.RaidAlert{ID: oid, PlayerID: "1003"},
 			alerts: []types.RaidAlert{
 				types.RaidAlert{PlayerID: "1001"},
 				types.RaidAlert{PlayerID: "1002"},
@@ -226,7 +248,7 @@ func TestRaidAlerts_Remove(t *testing.T) {
 				coll.C.Insert(alert)
 			}
 
-			if err := raidAlerts.Remove(tt.args.alert); (err != nil) != tt.wantErr {
+			if err := raidAlerts.Remove(tt.alert); (err != nil) != tt.wantErr {
 				t.Errorf("RaidAlerts.Remove() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

@@ -23,13 +23,17 @@ type RaidInventory struct {
 }
 
 type RaidAlert struct {
-	ID            bson.ObjectId `bson:"_id,omitempty"`
-	PlayerID      string
-	ServerName    string
-	ServerKey     string
-	GridPositions []string
-	Items         map[string]int
-	AlertAt       time.Time
+	ID               bson.ObjectId `bson:"_id,omitempty"`
+	PlayerID         string
+	ServerName       string
+	ServerKey        string
+	GridPositions    []string
+	Items            map[string]int
+	AlertAt          time.Time
+	ValidUntil       time.Time
+	MessageID        string // The private message ID in discord
+	NotifyCount      int
+	MessageIDChannel chan string // The channel to receive the message ID for updating
 }
 
 func (rn RaidAlert) String() string {

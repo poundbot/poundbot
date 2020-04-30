@@ -17,7 +17,7 @@ type RaidAlerts struct {
 }
 
 // AddInfo implements storage.RaidAlertsStore.AddInfo
-func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
+func (r RaidAlerts) AddInfo(alertIn, invalidIn time.Duration, ed types.EntityDeath) error {
 	for _, pid := range ed.OwnerIDs {
 		// Checking if the user exists, just bail if not
 		_, err := r.users.GetByPlayerID(pid)
@@ -26,10 +26,14 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 		}
 
 		_, err = r.collection.Upsert(
-			bson.M{"playerid": pid},
+			bson.M{
+				"playerid":  pid,
+				"serverkey": ed.ServerKey,
+			},
 			bson.M{
 				"$setOnInsert": bson.M{
 					"alertat":    time.Now().UTC().Add(alertIn),
+					"validuntil": time.Now().UTC().Add(invalidIn),
 					"servername": ed.ServerName,
 					"serverkey":  ed.ServerKey,
 				},
@@ -48,7 +52,7 @@ func (r RaidAlerts) AddInfo(alertIn time.Duration, ed types.EntityDeath) error {
 // GetReady implements storage.RaidAlertsStore.GetReady
 func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 	var alerts []types.RaidAlert
-	// change := mgo.Change{Remove: true}
+
 	err := r.collection.Find(
 		bson.M{
 			"alertat": bson.M{
@@ -62,4 +66,26 @@ func (r RaidAlerts) GetReady() ([]types.RaidAlert, error) {
 // Remove implements storage.RaidAlertsStore.Remove
 func (r RaidAlerts) Remove(alert types.RaidAlert) error {
 	return r.collection.Remove(bson.M{"_id": alert.ID})
+}
+
+func (r RaidAlerts) IncrementNotifyCount(ra types.RaidAlert) error {
+	return r.collection.Update(
+		bson.M{"_id": ra.ID},
+		bson.M{
+			"$inc": bson.M{
+				"notifycount": 1,
+			},
+		},
+	)
+}
+
+func (r RaidAlerts) SetMessageID(ra types.RaidAlert, messageID string) error {
+	return r.collection.Update(
+		bson.M{"_id": ra.ID},
+		bson.M{
+			"$set": bson.M{
+				"messageid": messageID,
+			},
+		},
+	)
 }

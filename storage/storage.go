@@ -63,8 +63,10 @@ type DiscordAuthsStore interface {
 // Remove deletes a raid alert
 type RaidAlertsStore interface {
 	GetReady() ([]types.RaidAlert, error)
-	AddInfo(alertIn time.Duration, ed types.EntityDeath) error
+	AddInfo(alertIn, validUntil time.Duration, ed types.EntityDeath) error
 	Remove(types.RaidAlert) error
+	IncrementNotifyCount(types.RaidAlert) error
+	SetMessageID(types.RaidAlert, string) error
 }
 
 // AccountsStore is for accounts storage

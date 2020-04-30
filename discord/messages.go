@@ -84,7 +84,7 @@ func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 	if respond {
 		switch response.responseType {
 		case instructResponsePrivate:
-			err = r.sendPrivateMessage(m.Author.ID, response.message)
+			_, err = r.sendPrivateMessage(m.Author.ID, response.message)
 		case instructResponseChannel:
 			err = r.sendChannelMessage(r.session.State.User.ID, m.ChannelID, response.message)
 		}
@@ -234,24 +234,25 @@ func (r *Runner) sendChannelEmbed(userID, channelID, message string, color int) 
 	return nil
 }
 
-func (r *Runner) sendPrivateMessage(snowflake, message string) error {
+func (r *Runner) sendPrivateMessage(snowflake, message string) (string, error) {
 	spmLog := log.WithFields(logrus.Fields{"sys": "RUN", "ssys": "sendPrivateMessage", "cID": snowflake})
 	channel, err := r.session.UserChannelCreate(snowflake)
 
 	if err != nil {
 		spmLog.WithError(err).Error("Error creating user channel")
-		return fmt.Errorf("could not create user channel, %w", err)
+		return "", fmt.Errorf("could not create user channel, %w", err)
 	}
 
-	_, err = r.session.ChannelMessageSend(
+	m, err := r.session.ChannelMessageSend(
 		channel.ID,
 		message,
 	)
 
 	if err != nil {
-		return fmt.Errorf("error sending private message, %w", err)
+		return "", fmt.Errorf("error sending private message, %w", err)
 	}
-	return nil
+
+	return m.ID, nil
 }
 
 func canSendToChannel(pg channelPermissionsGetter, userID, channelID string) (bool, error) {

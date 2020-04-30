@@ -76,6 +76,20 @@ func (_m *UsersStore) GetPlayerIDsByDiscordIDs(snowflakes []string) ([]string, e
 	return r0, r1
 }
 
+// RemovePlayerID provides a mock function with given fields: snowflake, playerID
+func (_m *UsersStore) RemovePlayerID(snowflake string, playerID string) error {
+	ret := _m.Called(snowflake, playerID)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(snowflake, playerID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpsertPlayer provides a mock function with given fields: info
 func (_m *UsersStore) UpsertPlayer(info storage.UserInfoGetter) error {
 	ret := _m.Called(info)

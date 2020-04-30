@@ -189,10 +189,11 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			return instructResponse{responseType: instructResponseNone}
 		}
 		server := types.AccountServer{
-			Name:      strings.Join(parts[1:], " "),
-			Key:       ruid.String(),
-			Channels:  []types.AccountServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
-			RaidDelay: "1m",
+			Name:                strings.Join(parts[1:], " "),
+			Key:                 ruid.String(),
+			Channels:            []types.AccountServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
+			RaidDelay:           "1m",
+			RaidNotifyFrequency: "10m",
 		}
 		err = au.AddServer(guildID, server)
 		if err != nil {
@@ -260,6 +261,13 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		DefaultMessage: &i18n.Message{
 			ID:    "InstructCommandServerRaidDelay",
 			Other: "raiddelay",
+		},
+	})
+
+	raidNotifyFrequencyCmd := localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID:    "InstructCommandServerRaidNotifyFrequency",
+			Other: "raidnotifyfrequency",
 		},
 	})
 
@@ -406,6 +414,55 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 					"Name":      server.Name,
 					"ID":        fmt.Sprint(serverID + 1),
 					"RaidDelay": server.RaidDelay,
+				},
+			}), //fmt.Sprintf("RaidDelay for %d:%s is now %s", serverID+1, server.Name, server.RaidDelay),
+		}
+
+	case raidNotifyFrequencyCmd:
+		isLog = isLog.WithField("cmd", "server raidNotifyFrequency")
+		isLog.Trace("server raidNotifyFrequency")
+		if len(instructions) != 2 {
+			return instructResponse{
+				responseType: instructResponseChannel,
+				message: localizer.MustLocalize(&i18n.LocalizeConfig{
+					DefaultMessage: &i18n.Message{
+						ID:    "InstructCommandServerRaidNotificationFrequencyUsage",
+						Other: "Usage: `server [id] raidnotificationfrequency <duration>`",
+					},
+				}),
+			}
+		}
+		_, err := time.ParseDuration(instructions[1])
+		if err != nil {
+			return instructResponse{
+				responseType: instructResponseChannel,
+				message: localizer.MustLocalize(&i18n.LocalizeConfig{
+					DefaultMessage: &i18n.Message{
+						ID:    "InstructCommandServerRaidNotificationFrequencyInvalidFormat",
+						Other: "Invalid duration format. Examples: `5m` = 5 minutes, `1h` = 1 hour, `1s` = 1 second",
+					},
+				}),
+			}
+		}
+
+		server.RaidNotifyFrequency = instructions[1]
+
+		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
+			isLog.WithError(err).Error("storage error updating server")
+			return instructResponse{message: "Internal error. Please try again."}
+		}
+
+		return instructResponse{
+			responseType: instructResponseChannel,
+			message: localizer.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "InstructCommandServerChatHereResponse",
+					Other: "RaidNotifyFrequency for {{.ID}}:{{.Name}} is now {{.RaidNotifyFrequency}}",
+				},
+				TemplateData: map[string]string{
+					"Name":                server.Name,
+					"ID":                  fmt.Sprint(serverID + 1),
+					"RaidNotifyFrequency": server.RaidDelay,
 				},
 			}), //fmt.Sprintf("RaidDelay for %d:%s is now %s", serverID+1, server.Name, server.RaidDelay),
 		}

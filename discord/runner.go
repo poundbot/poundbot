@@ -147,11 +147,11 @@ func (r *Runner) runner() {
 					}
 
 					rLog.Info("Received unexpected connected message")
-				case t := <-r.raidAlertChan:
-					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "pID": t.PlayerID})
+				case raidAlert := <-r.raidAlertChan:
+					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "pID": raidAlert.PlayerID})
 					raLog.Trace("Got raid alert")
 					go func() {
-						raUser, err := r.us.GetByPlayerID(t.PlayerID)
+						raUser, err := r.us.GetByPlayerID(raidAlert.PlayerID)
 						if err != nil {
 							raLog.WithError(err).Error("Player not found trying to send raid alert")
 							return
@@ -165,10 +165,14 @@ func (r *Runner) runner() {
 							return
 						}
 
-						err = r.sendPrivateMessage(user.ID, t.String())
+						id, err := r.sendPrivateMessage(user.ID, raidAlert.String())
 						if err != nil {
 							raLog.WithError(err).Error("could not create private channel to send to user")
+							return
 						}
+
+						raidAlert.MessageIDChannel <- id
+						close(raidAlert.MessageIDChannel)
 					}()
 				case da := <-r.authChan:
 					go r.discordAuthHandler(da)
@@ -223,7 +227,7 @@ func (r *Runner) discordAuthHandler(da types.DiscordAuth) {
 		return
 	}
 
-	err = r.sendPrivateMessage(da.Snowflake,
+	_, err = r.sendPrivateMessage(da.Snowflake,
 		localizer.MustLocalize(&i18n.LocalizeConfig{
 			DefaultMessage: &i18n.Message{
 				ID:    "UserPINPrompt",

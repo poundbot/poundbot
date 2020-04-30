@@ -12,7 +12,7 @@ import (
 )
 
 type raidAlertAdder interface {
-	AddInfo(alertIn time.Duration, ed types.EntityDeath) error
+	AddInfo(alertIn, validUntil time.Duration, ed types.EntityDeath) error
 }
 
 type deprecatedEntityDeath struct {
@@ -82,11 +82,17 @@ func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 		ed.ServerName = sc.server.Name
 	}
 	alertAt := 10 * time.Second
+	validUntil := 15 * time.Minute
 
 	sAlertAt, err := time.ParseDuration(sc.server.RaidDelay)
 	if err == nil {
 		alertAt = sAlertAt
 	}
 
-	e.raa.AddInfo(alertAt, ed.EntityDeath)
+	sValidUntil, err := time.ParseDuration(sc.server.RaidDelay)
+	if err == nil {
+		validUntil = sValidUntil
+	}
+
+	e.raa.AddInfo(alertAt, validUntil, ed.EntityDeath)
 }

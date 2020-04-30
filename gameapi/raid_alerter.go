@@ -14,6 +14,8 @@ type raidNotifier interface {
 // A raidStore stores raid information
 type raidStore interface {
 	GetReady() ([]types.RaidAlert, error)
+	IncrementNotifyCount(types.RaidAlert) error
+	SetMessageID(types.RaidAlert, string) error
 	Remove(types.RaidAlert) error
 }
 
@@ -52,15 +54,29 @@ func (r *RaidAlerter) Run() {
 				continue
 			}
 
-			for _, result := range alerts {
-				// We only want to send the raid notification when we are the instance
-				// that can remove it. This is a "simple" way of allowing multiple
-				// instances to run against the same DB.
-				if err := r.rs.Remove(result); err != nil {
-					raLog.WithError(err).Error("storage: Could not remove alert")
+			for _, alert := range alerts {
+				// Increment notify count should ensure we're the node that should notify for this action.
+				if err := r.rs.IncrementNotifyCount(alert); err != nil {
 					continue
 				}
-				r.rn.RaidNotify(result)
+
+				if alert.ValidUntil.Before(time.Now()) {
+					if err := r.rs.Remove(alert); err != nil {
+						raLog.WithError(err).Error("storage: Could not remove alert")
+						continue
+					}
+				}
+
+				r.rn.RaidNotify(alert)
+				go func(ra types.RaidAlert) {
+					newMessageID := <-ra.MessageIDChannel
+					if newMessageID != ra.MessageID {
+						err := r.rs.SetMessageID(ra, newMessageID)
+						if err != nil {
+							raLog.WithError(err).Error("storage: Could not set message ID")
+						}
+					}
+				}(alert)
 			}
 		}
 	}
