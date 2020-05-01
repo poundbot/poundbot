@@ -8,15 +8,19 @@ import (
 )
 
 type raidNotifier interface {
-	RaidNotify(types.RaidAlert)
+	RaidNotify(types.RaiAlertWithMessageChannel)
 }
 
 // A raidStore stores raid information
 type raidStore interface {
 	GetReady() ([]types.RaidAlert, error)
 	IncrementNotifyCount(types.RaidAlert) error
-	SetMessageID(types.RaidAlert, string) error
 	Remove(types.RaidAlert) error
+	messageIDSetter
+}
+
+type messageIDSetter interface {
+	SetMessageID(types.RaidAlert, string) error
 }
 
 // A RaidAlerter sends notifications on raids
@@ -25,6 +29,7 @@ type RaidAlerter struct {
 	rn        raidNotifier
 	SleepTime time.Duration
 	done      <-chan struct{}
+	miu       func(ra types.RaiAlertWithMessageChannel, is messageIDSetter)
 }
 
 // NewRaidAlerter constructs a RaidAlerter
@@ -34,6 +39,22 @@ func newRaidAlerter(ral raidStore, rn raidNotifier, done <-chan struct{}) *RaidA
 		rn:        rn,
 		done:      done,
 		SleepTime: 1 * time.Second,
+		miu:       messageIDUpdate,
+	}
+}
+
+func messageIDUpdate(ra types.RaiAlertWithMessageChannel, is messageIDSetter) {
+	raLog := log.WithField("sys", "RALERT")
+	newMessageID, ok := <-ra.MessageIDChannel
+	if !ok {
+		raLog.Trace("messageID channel close")
+	}
+	raLog.Tracef("New message ID is %s", newMessageID)
+	if newMessageID != ra.MessageID {
+		err := is.SetMessageID(ra.RaidAlert, newMessageID)
+		if err != nil {
+			raLog.WithError(err).Error("storage: Could not set message ID")
+		}
 	}
 }
 
@@ -55,28 +76,33 @@ func (r *RaidAlerter) Run() {
 			}
 
 			for _, alert := range alerts {
+				shouldNotify := true
+				raLog.Tracef("Processing alert %s, %d", alert.ID, alert.NotifyCount)
+
 				// Increment notify count should ensure we're the node that should notify for this action.
 				if err := r.rs.IncrementNotifyCount(alert); err != nil {
-					continue
+					raLog.WithError(err).Trace("could not increment")
+					shouldNotify = false
 				}
 
 				if alert.ValidUntil.Before(time.Now()) {
+					raLog.Trace("removing")
 					if err := r.rs.Remove(alert); err != nil {
+						raLog.Trace("coul not remove")
 						raLog.WithError(err).Error("storage: Could not remove alert")
 						continue
 					}
 				}
 
-				r.rn.RaidNotify(alert)
-				go func(ra types.RaidAlert) {
-					newMessageID := <-ra.MessageIDChannel
-					if newMessageID != ra.MessageID {
-						err := r.rs.SetMessageID(ra, newMessageID)
-						if err != nil {
-							raLog.WithError(err).Error("storage: Could not set message ID")
-						}
+				if shouldNotify {
+					message := types.RaiAlertWithMessageChannel{
+						RaidAlert:        alert,
+						MessageIDChannel: make(chan string),
 					}
-				}(alert)
+					log.Trace("notifying")
+					r.rn.RaidNotify(message)
+					go r.miu(message, r.rs)
+				}
 			}
 		}
 	}

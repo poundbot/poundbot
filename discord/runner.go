@@ -27,7 +27,7 @@ type Runner struct {
 	token           string
 	status          chan bool
 	chatChan        chan types.ChatMessage
-	raidAlertChan   chan types.RaidAlert
+	raidAlertChan   chan types.RaiAlertWithMessageChannel
 	gameMessageChan chan types.GameMessage
 	authChan        chan types.DiscordAuth
 	AuthSuccess     chan types.DiscordAuth
@@ -48,7 +48,7 @@ func NewRunner(token string, as storage.AccountsStore, das storage.DiscordAuthsS
 		chatChan:        make(chan types.ChatMessage),
 		authChan:        make(chan types.DiscordAuth),
 		AuthSuccess:     make(chan types.DiscordAuth),
-		raidAlertChan:   make(chan types.RaidAlert),
+		raidAlertChan:   make(chan types.RaiAlertWithMessageChannel),
 		gameMessageChan: make(chan types.GameMessage),
 		channelsRequest: make(chan types.ServerChannelsRequest),
 		roleSetChan:     make(chan types.RoleSet),
@@ -78,7 +78,7 @@ func (r *Runner) Start() error {
 	return err
 }
 
-func (r Runner) RaidNotify(ra types.RaidAlert) {
+func (r Runner) RaidNotify(ra types.RaiAlertWithMessageChannel) {
 	r.raidAlertChan <- ra
 }
 
@@ -151,6 +151,7 @@ func (r *Runner) runner() {
 					raLog := rLog.WithFields(logrus.Fields{"chan": "RAID", "pID": raidAlert.PlayerID})
 					raLog.Trace("Got raid alert")
 					go func() {
+						defer close(raidAlert.MessageIDChannel)
 						raUser, err := r.us.GetByPlayerID(raidAlert.PlayerID)
 						if err != nil {
 							raLog.WithError(err).Error("Player not found trying to send raid alert")
@@ -165,14 +166,16 @@ func (r *Runner) runner() {
 							return
 						}
 
-						id, err := r.sendPrivateMessage(user.ID, raidAlert.String())
+						id, err := r.sendPrivateMessage(user.ID, raidAlert.MessageID, raidAlert.String())
 						if err != nil {
 							raLog.WithError(err).Error("could not create private channel to send to user")
 							return
 						}
 
+						raLog.Tracef("setting message ID to %s", id)
+
 						raidAlert.MessageIDChannel <- id
-						close(raidAlert.MessageIDChannel)
+
 					}()
 				case da := <-r.authChan:
 					go r.discordAuthHandler(da)
@@ -228,6 +231,7 @@ func (r *Runner) discordAuthHandler(da types.DiscordAuth) {
 	}
 
 	_, err = r.sendPrivateMessage(da.Snowflake,
+		"",
 		localizer.MustLocalize(&i18n.LocalizeConfig{
 			DefaultMessage: &i18n.Message{
 				ID:    "UserPINPrompt",

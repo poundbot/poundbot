@@ -81,6 +81,11 @@ func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 	if len(ed.ServerName) == 0 {
 		ed.ServerName = sc.server.Name
 	}
+
+	if len(ed.ServerKey) == 8 {
+		ed.ServerKey = sc.server.Key
+	}
+
 	alertAt := 10 * time.Second
 	validUntil := 15 * time.Minute
 
@@ -89,7 +94,7 @@ func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 		alertAt = sAlertAt
 	}
 
-	sValidUntil, err := time.ParseDuration(sc.server.RaidDelay)
+	sValidUntil, err := time.ParseDuration(sc.server.RaidNotifyFrequency)
 	if err == nil {
 		validUntil = sValidUntil
 	}

@@ -42,7 +42,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		{
 			name: "upsert",
 			args: args{
-				alertIn:    time.Hour,
+				alertIn:    time.Minute,
 				validUntil: time.Hour,
 				ed:         types.EntityDeath{ServerKey: "abcd", Name: "thing", GridPos: "D7", OwnerIDs: []string{"1", "2"}},
 			},
@@ -58,7 +58,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		{
 			name: "insert",
 			args: args{
-				alertIn:    time.Hour,
+				alertIn:    time.Minute,
 				validUntil: time.Hour,
 				ed:         types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"1", "3"}},
 			},
@@ -75,7 +75,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 		{
 			name: "noop",
 			args: args{
-				alertIn: time.Hour, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"5"}},
+				alertIn: time.Minute, ed: types.EntityDeath{ServerKey: "abcde", Name: "thing", GridPos: "D7", OwnerIDs: []string{"5"}},
 			},
 			want: types.RaidAlert{
 				ID:            oid,
@@ -97,12 +97,15 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 
 			raidAlerts.users = users
 
+			existingValidUntil := time.Now().UTC().Add(time.Hour).Truncate(time.Millisecond)
+
 			coll.C.Insert(types.RaidAlert{
 				ID:            oid,
 				GridPositions: []string{"D8"},
 				PlayerID:      "2",
 				Items:         map[string]int{"thing": 2},
 				ServerKey:     "abcd",
+				ValidUntil:    existingValidUntil,
 			})
 
 			usersColl.C.Insert(types.BaseUser{GamesInfo: types.GamesInfo{PlayerIDs: []string{"2"}}})
@@ -145,7 +148,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 					assert.NotEqual(t, rn.ID, "")
 					rn.ID = ""
 				} else {
-					assert.Equal(t, rn.ValidUntil, validUntil)
+					assert.Equal(t, existingValidUntil, validUntil)
 				}
 
 				assert.Equal(t, tt.want, rn)

@@ -23,26 +23,38 @@ type RaidInventory struct {
 }
 
 type RaidAlert struct {
-	ID               bson.ObjectId `bson:"_id,omitempty"`
-	PlayerID         string
-	ServerName       string
-	ServerKey        string
-	GridPositions    []string
-	Items            map[string]int
-	AlertAt          time.Time
-	ValidUntil       time.Time
-	MessageID        string // The private message ID in discord
-	NotifyCount      int
-	MessageIDChannel chan string `bson:"-"` // The channel to receive the message ID for updating
+	ID            bson.ObjectId `bson:"_id,omitempty"`
+	PlayerID      string
+	ServerName    string
+	ServerKey     string
+	GridPositions []string
+	Items         map[string]int
+	AlertAt       time.Time
+	ValidUntil    time.Time
+	MessageID     string // The private message ID in discord
+	NotifyCount   int
 }
 
-func (rn RaidAlert) String() string {
+type RaiAlertWithMessageChannel struct {
+	RaidAlert
+	MessageIDChannel chan string
+}
+
+func (ra RaidAlert) ItemCount() int {
+	count := 0
+	for _, v := range ra.Items {
+		count += v
+	}
+	return count
+}
+
+func (ra RaidAlert) String() string {
 	index := 0
-	items := make([]string, len(rn.Items))
-	for k, v := range rn.Items {
+	items := make([]string, len(ra.Items))
+	for k, v := range ra.Items {
 		items[index] = fmt.Sprintf("%s(%d)", k, v)
 		index++
 	}
 
-	return messages.RaidAlert(rn.ServerName, rn.GridPositions, items)
+	return messages.RaidAlert(ra.ServerName, ra.GridPositions, items)
 }

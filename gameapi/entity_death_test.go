@@ -12,6 +12,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/poundbot/poundbot/storage/mocks"
 	"github.com/poundbot/poundbot/types"
+
 	// "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -101,8 +102,8 @@ func TestEntityDeath_Handle(t *testing.T) {
 			ras := mocks.RaidAlertsStore{}
 			tt.e.raa = &ras
 
-			ras.On("AddInfo", mock.AnythingOfType("time.Duration"), mock.AnythingOfType("types.EntityDeath")).
-				Return(func(t time.Duration, ed types.EntityDeath) error {
+			ras.On("AddInfo", mock.AnythingOfType("time.Duration"), mock.AnythingOfType("time.Duration"), mock.AnythingOfType("types.EntityDeath")).
+				Return(func(t, v time.Duration, ed types.EntityDeath) error {
 					added = &ed
 					return nil
 				})

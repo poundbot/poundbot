@@ -462,9 +462,9 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 				TemplateData: map[string]string{
 					"Name":                server.Name,
 					"ID":                  fmt.Sprint(serverID + 1),
-					"RaidNotifyFrequency": server.RaidDelay,
+					"RaidNotifyFrequency": server.RaidNotifyFrequency,
 				},
-			}), //fmt.Sprintf("RaidDelay for %d:%s is now %s", serverID+1, server.Name, server.RaidDelay),
+			}),
 		}
 	}
 	return instructResponse{responseType: instructResponseNone}
@@ -506,8 +506,15 @@ func instructServerArgs(parts []string, servers []types.AccountServer) (int, []s
 		},
 	})
 
+	raidNotifyFrequencyCmd := localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID:    "InstructCommandServerRaidNotifyFrequency",
+			Other: "raidnotifyfrequency",
+		},
+	})
+
 	var serverID int
-	var commands = []string{resetCmd, renameCmd, deleteCmd, chathereCmd, raidDelayCmd}
+	var commands = []string{resetCmd, renameCmd, deleteCmd, chathereCmd, raidDelayCmd, raidNotifyFrequencyCmd}
 	isCommand := func(s string) bool {
 		for i := range commands {
 			if s == commands[i] {

@@ -15,7 +15,7 @@ import (
 const upgradeURL = "https://umod.org/plugins/pound-bot"
 
 type discordHandler interface {
-	RaidNotify(types.RaidAlert)
+	RaidNotify(types.RaiAlertWithMessageChannel)
 	AuthDiscord(types.DiscordAuth)
 	SendChatMessage(types.ChatMessage)
 	SendGameMessage(types.GameMessage, time.Duration) error

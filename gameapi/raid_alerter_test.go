@@ -13,12 +13,14 @@ type raidHandler struct {
 	RaidAlert *types.RaidAlert
 }
 
-func (rh *raidHandler) RaidNotify(ra types.RaidAlert) {
-	rh.RaidAlert = &ra
+func (rh *raidHandler) RaidNotify(ra types.RaiAlertWithMessageChannel) {
+	rh.RaidAlert = &ra.RaidAlert
 }
 
 func TestRaidAlerter_Run(t *testing.T) {
 	t.Parallel()
+
+	miu := func(ra types.RaiAlertWithMessageChannel, is messageIDSetter) {}
 
 	var ra = types.RaidAlert{PlayerID: "1234"}
 
@@ -52,12 +54,14 @@ func TestRaidAlerter_Run(t *testing.T) {
 				}, nil)
 
 			if len(tt.raidAlerts) != 0 {
+				mockRA.On("IncrementNotifyCount", ra).Return(nil).Once()
 				mockRA.On("Remove", ra).Return(nil).Once()
 			}
 
-			ra := newRaidAlerter(&mockRA, mockRH, done)
-			ra.SleepTime = 1 * time.Microsecond
-			ra.Run()
+			raidAlerter := newRaidAlerter(&mockRA, mockRH, done)
+			raidAlerter.SleepTime = 1 * time.Microsecond
+			raidAlerter.miu = miu
+			raidAlerter.Run()
 			mockRA.AssertExpectations(t)
 			assert.EqualValues(t, tt.want, mockRH.RaidAlert, "They should be equal")
 		})
