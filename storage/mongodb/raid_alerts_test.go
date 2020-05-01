@@ -126,7 +126,9 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 				}
 				alertAt := rn.AlertAt
 				validUntil := rn.ValidUntil
+
 				rn.AlertAt = time.Time{}
+				rn.ValidUntil = time.Time{}
 
 				if tt.atTimeNew {
 					assert.NotEqual(t, rn.AlertAt, alertAt)
@@ -245,7 +247,10 @@ func TestRaidAlerts_Remove(t *testing.T) {
 			defer coll.Close()
 
 			for _, alert := range tt.alerts {
-				coll.C.Insert(alert)
+				err := coll.C.Insert(alert)
+				if err != nil {
+					t.Errorf("RaidAlerts.Remove() insert error = %v", err)
+				}
 			}
 
 			if err := raidAlerts.Remove(tt.alert); (err != nil) != tt.wantErr {

@@ -49,7 +49,7 @@ func (c *Collection) Close() {
 	defer s.Unlock()
 	dbs[c.id] = false
 	c.db.DropDatabase()
-
+	c.db.Session.Close()
 }
 
 func newDb(dbId int) (*mgo.Database, error) {

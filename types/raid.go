@@ -33,7 +33,7 @@ type RaidAlert struct {
 	ValidUntil       time.Time
 	MessageID        string // The private message ID in discord
 	NotifyCount      int
-	MessageIDChannel chan string // The channel to receive the message ID for updating
+	MessageIDChannel chan string `bson:"-"` // The channel to receive the message ID for updating
 }
 
 func (rn RaidAlert) String() string {
