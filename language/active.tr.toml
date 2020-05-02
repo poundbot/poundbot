@@ -27,7 +27,7 @@ hash = "sha1-561e32aae36c4fd90e2b835bd2b3b1e47c5ac704"
 other = "sohbetkanalı"
 
 [InstructCommandServerChatHereResponse]
-hash = "sha1-2a6fa3afc92880c9a23e54b24dbcfc66018d576a"
+hash = "sha1-20a6ffa93644d4a9c1684988695dfa912bbfc42a"
 other = "Sunucu {{.Name}} ({{.ID}}) sohbet kanalı artık burada olacak."
 
 [InstructCommandServerDelete]

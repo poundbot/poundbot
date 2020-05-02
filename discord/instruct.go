@@ -407,7 +407,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			responseType: instructResponseChannel,
 			message: localizer.MustLocalize(&i18n.LocalizeConfig{
 				DefaultMessage: &i18n.Message{
-					ID:    "InstructCommandServerChatHereResponse",
+					ID:    "InstructCommandRaidDelayResponse",
 					Other: "RaidDelay for {{.ID}}:{{.Name}} is now {{.RaidDelay}}",
 				},
 				TemplateData: map[string]string{
@@ -456,7 +456,7 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			responseType: instructResponseChannel,
 			message: localizer.MustLocalize(&i18n.LocalizeConfig{
 				DefaultMessage: &i18n.Message{
-					ID:    "InstructCommandServerChatHereResponse",
+					ID:    "InstructCommandServerRaidNotificationFrequencyResponse",
 					Other: "RaidNotifyFrequency for {{.ID}}:{{.Name}} is now {{.RaidNotifyFrequency}}",
 				},
 				TemplateData: map[string]string{
