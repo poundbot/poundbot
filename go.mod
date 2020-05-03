@@ -9,6 +9,7 @@ require (
 	github.com/eminetto/mongo-migrate v0.1.4
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-acme/lego v2.7.2+incompatible
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.4.2 // indirect
@@ -17,6 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.0.3
 	github.com/pelletier/go-toml v1.7.0 // indirect
+	github.com/prometheus/common v0.4.0
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect

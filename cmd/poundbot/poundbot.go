@@ -10,7 +10,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime"
 	"sync"
 	"syscall"
 
@@ -81,17 +80,6 @@ func main() {
 
 	servicesCount := 2 // Always at least 1 for discord, but should always be >1
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	if len(*configFile) == 0 {
-		viper.SetConfigName("poundbot.yml")
-		viper.AddConfigPath("/etc/poundbot")
-		viper.AddConfigPath("$HOME/.poundbot")
-		viper.AddConfigPath(".")
-	} else {
-		viper.SetConfigFile(*configFile)
-	}
-
 	viper.SetDefault("mongo.dial", "mongodb://localhost:27017")
 	viper.SetDefault("mongo.database", "poundbot")
 	viper.SetDefault("http.bind_addr", "")
@@ -101,15 +89,24 @@ func main() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	if len(viper.ConfigFileUsed()) == 0 {
-		log.Info("No config file found. Using defaults and env only.")
+	if len(*configFile) == 0 {
+		log.Info("using default config locations")
+		viper.SetConfigName("poundbot")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("/etc/poundbot/")
+		viper.AddConfigPath("$HOME/.poundbot/")
 	} else {
+		viper.SetConfigFile(*configFile)
+	}
 
-		err := viper.ReadInConfig() // Find and read the config file
-		if err != nil {
-			log.Warnf("Error reading config file: %s,%s", reflect.TypeOf(err), err)
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			log.Errorf("Error reading config file: %s,%s", reflect.TypeOf(err), err)
 			os.Exit(1)
 		}
+		log.Info("No config file found. Using defaults and env only.")
 	}
 
 	if *writeConfigForce {
@@ -117,7 +114,7 @@ func main() {
 	}
 
 	if *writeConfig {
-		err := viper.WriteConfig()
+		err := viper.WriteConfigAs("poundbot.yml")
 		if err != nil {
 			log.Fatalf("Could not write config: %s", err)
 		}
@@ -125,9 +122,18 @@ func main() {
 		os.Exit(0)
 	}
 
-	go func() {
-		log.Fatal(http.ListenAndServe("localhost:"+viper.GetString("profiler.port"), nil))
-	}()
+	discordToken := viper.GetString("discord.token")
+
+	if len(discordToken) == 0 || discordToken == "YOUR DISCORD BOT AUTH TOKEN" {
+		log.Warn("No discord auth token found")
+		os.Exit(1)
+	}
+
+	if viper.GetInt("profiler.port") != 0 {
+		go func() {
+			log.Fatal(http.ListenAndServe("localhost:"+viper.GetString("profiler.port"), nil))
+		}()
+	}
 
 	dialAddr := viper.GetString("mongo.dial-addr")
 	if len(dialAddr) != 0 {
@@ -150,7 +156,7 @@ func main() {
 	webConfig := newServerConfig(viper.GetViper(), store)
 
 	// Discord server
-	dr := discord.NewRunner(viper.GetString("discord.token"), store.Accounts(), store.DiscordAuths(),
+	dr := discord.NewRunner(discordToken, store.Accounts(), store.DiscordAuths(),
 		store.Users(), store.MessageLocks(), store.ChatQueue())
 	if err := start(dr, "Discord"); err != nil {
 		log.Fatalf("Could not start Discord, %v", err)
