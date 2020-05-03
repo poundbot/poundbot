@@ -1,18 +1,29 @@
 Commands:
 ```
-  server add <name>         - Adds a Rust server and will PM you the API key.
-                              Chat will be relayed into the channel you send
-                              this message from.
-  server list               - Sends a private message with all your defined Rust
-                              servers
-  server [ID] rename <name> - Sets server's name
-  server [ID] reset         - Resets your server API Key. A new key will be sent
-                              to you.
-  server [ID] delete        - Deletes your server and API key.
-  server [ID] chathere      - Sets the channel for server chat to the channel
-                              you sent this message from.
-  server [ID] raiddelay <d> - Set raid notification.
-                              Example: "2h5m" = 2 hours and 5 minutes
+  server add <name>           - Adds a Rust server and will PM you the API key.
+                                Chat will be relayed into the channel you send
+                                this message from.
+  server list                 - Sends a private message with all your defined Rust
+                                servers
+
+  server [ID] <command> <options>
+    command and options are as follows:
+      - rename <name>           - Sets server's name
+      - reset                   - Resets your server API Key. A new key will be sent
+                                          to you.
+      - delete                  - Deletes your server and API key.
+      - chathere                - Sets the channel for server chat to the channel
+                                  you sent this message from.
+      - raiddelay <d>           - Set raid notification.
+                                  Example: "2h5m" = 2 hours and 5 minutes
+      - raidnotifyfrequency <d> - Set raid notification.
+                                  Example: "2h5m" = 2 hours and 5 minutes
+
+    Examples:
+      !pb server 2 raiddelay 1h30m22s
+        - Sets raiddelay for server #2 to 1h30m22s
+      !pb server chathere
+        - Sets server chat for your server to the channel you sent this command in.
 ```
 
 Download the plugin at https://umod.org/plugins/pound-bot
