@@ -142,14 +142,7 @@ func TestRaidAlerts_AddInfo(t *testing.T) {
 					assert.Equal(t, rn.AlertAt, alertAt)
 				}
 
-				if tt.validUntilNew {
-					assert.NotEqual(t, rn.ValidUntil, validUntil)
-					// since we don't know the object ID, we empty it.
-					assert.NotEqual(t, rn.ID, "")
-					rn.ID = ""
-				} else {
-					assert.Equal(t, existingValidUntil, validUntil)
-				}
+				assert.NotEqual(t, rn.ValidUntil, validUntil)
 
 				assert.Equal(t, tt.want, rn)
 			}
