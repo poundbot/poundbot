@@ -6,21 +6,21 @@ other = "RaidDelay for {{.ID}}:{{.Name}} is now {{.RaidDelay}}"
 hash = "sha1-50ab63d96be1af7a6fc9e477414575c2b971e6f8"
 other = "Invalid server ID. Check server list."
 
-[InstructCommandServerRaidNotificationFrequencyInvalidFormat]
+[InstructCommandServerRaidCooldown]
+hash = "sha1-86431996906dcfa579050eddd4efb5a283a5efb9"
+other = "raidcooldown"
+
+[InstructCommandServerRaidCooldownInvalidFormat]
 hash = "sha1-b608ffb6418cf49658d19c626e9c2cb34b8f8f0a"
 other = "Invalid duration format. Examples: `5m` = 5 minutes, `1h` = 1 hour, `1s` = 1 second"
 
-[InstructCommandServerRaidNotificationFrequencyResponse]
-hash = "sha1-8bd70a98a85c9282047ade77ec16a030f06b202f"
-other = "RaidNotifyFrequency for {{.ID}}:{{.Name}} is now {{.RaidNotifyFrequency}}"
+[InstructCommandServerRaidCooldownResponse]
+hash = "sha1-e0eacef258490c7363c083aa95d0c932829a99b7"
+other = "RaidCooldown for {{.ID}}:{{.Name}} is now {{.RaidCooldown}}"
 
-[InstructCommandServerRaidNotificationFrequencyUsage]
+[InstructCommandServerRaidCooldownUsage]
 hash = "sha1-29bb72e62e1d546c956c803b26754ffc5333b9e8"
 other = "Usage: `server [id] raidnotificationfrequency <duration>`"
-
-[InstructCommandServerRaidNotifyFrequency]
-hash = "sha1-779fb6e612f0ff9a5fd981b32384ffb76d493a65"
-other = "raidnotifyfrequency"
 
 [InstructCommandStatus]
 hash = "sha1-48a3661d846478fa991a825ebd10b78671444b5b"

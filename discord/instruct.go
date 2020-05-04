@@ -189,11 +189,11 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			return instructResponse{responseType: instructResponseNone}
 		}
 		server := types.AccountServer{
-			Name:                strings.Join(parts[1:], " "),
-			Key:                 ruid.String(),
-			Channels:            []types.AccountServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
-			RaidDelay:           "1m",
-			RaidNotifyFrequency: "10m",
+			Name:         strings.Join(parts[1:], " "),
+			Key:          ruid.String(),
+			Channels:     []types.AccountServerChannel{{ChannelID: channelID, Tags: []string{"chat", "serverchat"}}},
+			RaidDelay:    "1m",
+			RaidCooldown: "10m",
 		}
 		err = au.AddServer(guildID, server)
 		if err != nil {
@@ -264,10 +264,10 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 		},
 	})
 
-	raidNotifyFrequencyCmd := localizer.MustLocalize(&i18n.LocalizeConfig{
+	raidCooldownCmd := localizer.MustLocalize(&i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
-			ID:    "InstructCommandServerRaidNotifyFrequency",
-			Other: "raidnotifyfrequency",
+			ID:    "InstructCommandServerRaidCooldown",
+			Other: "raidcooldown",
 		},
 	})
 
@@ -418,15 +418,15 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			}), //fmt.Sprintf("RaidDelay for %d:%s is now %s", serverID+1, server.Name, server.RaidDelay),
 		}
 
-	case raidNotifyFrequencyCmd:
-		isLog = isLog.WithField("cmd", "server raidNotifyFrequency")
-		isLog.Trace("server raidNotifyFrequency")
+	case raidCooldownCmd:
+		isLog = isLog.WithField("cmd", "server raidCooldown")
+		isLog.Trace("server raidCooldown")
 		if len(instructions) != 2 {
 			return instructResponse{
 				responseType: instructResponseChannel,
 				message: localizer.MustLocalize(&i18n.LocalizeConfig{
 					DefaultMessage: &i18n.Message{
-						ID:    "InstructCommandServerRaidNotificationFrequencyUsage",
+						ID:    "InstructCommandServerRaidCooldownUsage",
 						Other: "Usage: `server [id] raidnotificationfrequency <duration>`",
 					},
 				}),
@@ -438,14 +438,14 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 				responseType: instructResponseChannel,
 				message: localizer.MustLocalize(&i18n.LocalizeConfig{
 					DefaultMessage: &i18n.Message{
-						ID:    "InstructCommandServerRaidNotificationFrequencyInvalidFormat",
+						ID:    "InstructCommandServerRaidCooldownInvalidFormat",
 						Other: "Invalid duration format. Examples: `5m` = 5 minutes, `1h` = 1 hour, `1s` = 1 second",
 					},
 				}),
 			}
 		}
 
-		server.RaidNotifyFrequency = instructions[1]
+		server.RaidCooldown = instructions[1]
 
 		if err = au.UpdateServer(guildID, server.Key, server); err != nil {
 			isLog.WithError(err).Error("storage error updating server")
@@ -456,13 +456,13 @@ func instructServer(parts []string, channelID, guildID string, account types.Acc
 			responseType: instructResponseChannel,
 			message: localizer.MustLocalize(&i18n.LocalizeConfig{
 				DefaultMessage: &i18n.Message{
-					ID:    "InstructCommandServerRaidNotificationFrequencyResponse",
-					Other: "RaidNotifyFrequency for {{.ID}}:{{.Name}} is now {{.RaidNotifyFrequency}}",
+					ID:    "InstructCommandServerRaidCooldownResponse",
+					Other: "RaidCooldown for {{.ID}}:{{.Name}} is now {{.RaidCooldown}}",
 				},
 				TemplateData: map[string]string{
-					"Name":                server.Name,
-					"ID":                  fmt.Sprint(serverID + 1),
-					"RaidNotifyFrequency": server.RaidNotifyFrequency,
+					"Name":         server.Name,
+					"ID":           fmt.Sprint(serverID + 1),
+					"RaidCooldown": server.RaidCooldown,
 				},
 			}),
 		}
@@ -506,15 +506,15 @@ func instructServerArgs(parts []string, servers []types.AccountServer) (int, []s
 		},
 	})
 
-	raidNotifyFrequencyCmd := localizer.MustLocalize(&i18n.LocalizeConfig{
+	raidCooldownCmd := localizer.MustLocalize(&i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
-			ID:    "InstructCommandServerRaidNotifyFrequency",
-			Other: "raidnotifyfrequency",
+			ID:    "InstructCommandServerRaidCooldown",
+			Other: "raidcooldown",
 		},
 	})
 
 	var serverID int
-	var commands = []string{resetCmd, renameCmd, deleteCmd, chathereCmd, raidDelayCmd, raidNotifyFrequencyCmd}
+	var commands = []string{resetCmd, renameCmd, deleteCmd, chathereCmd, raidDelayCmd, raidCooldownCmd}
 	isCommand := func(s string) bool {
 		for i := range commands {
 			if s == commands[i] {

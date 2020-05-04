@@ -9,14 +9,14 @@ import (
 )
 
 type AccountServer struct {
-	Name                string
-	Key                 string
-	Address             string
-	Clans               []Clan
-	RaidDelay           string
-	RaidNotifyFrequency string
-	Timestamp           `bson:",inline"`
-	Channels            []AccountServerChannel `bson:",omitempty" json:"channels"`
+	Name         string
+	Key          string
+	Address      string
+	Clans        []Clan
+	RaidDelay    string
+	RaidCooldown string
+	Timestamp    `bson:",inline"`
+	Channels     []AccountServerChannel `bson:",omitempty" json:"channels"`
 }
 
 // ChannelIDForTag returns the discord channel id for a message tag

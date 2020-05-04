@@ -1,29 +1,38 @@
-Commands:
-```
-  server add <name>           - Adds a Rust server and will PM you the API key.
-                                Chat will be relayed into the channel you send
-                                this message from.
-  server list                 - Sends a private message with all your defined Rust
-                                servers
+Server Commands:
 
-  server [ID] <command> <options>
-    command and options are as follows:
-      - rename <name>           - Sets server's name
-      - reset                   - Resets your server API Key. A new key will be sent
-                                  to you.
-      - delete                  - Deletes your server and API key.
-      - chathere                - Sets the channel for server chat to the channel
-                                  you sent this message from.
-      - raiddelay <d>           - Set raid notification.
-                                  Example: "2h5m" = 2 hours and 5 minutes
-      - raidnotifyfrequency <d> - Set raid notification.
-                                  Example: "2h5m" = 2 hours and 5 minutes
+`!pb server add <name>`
+ - Adds a Rust server and will PM you the API key. Chat will be relayed 
+   into the channel you send this message from.
 
-    Examples:
-      !pb server 2 raiddelay 1h30m22s
-        - Sets raiddelay for server #2 to 1h30m22s
-      !pb server chathere
-        - Sets server chat for your server to the channel you sent this command in.
-```
+`!pb server list`
+ - Sends a private message with all your defined Rust servers
+
+`!pb server [ID] rename <name>`
+ - Sets server's name
+
+`!pb server [ID] reset`
+ - Resets your server API Key. A new key will be sent to you.
+
+`!pb server [ID] delete`
+ - Deletes your server and API key.
+
+`!pb server [ID] chathere`
+ - Sets the channel for server chat to the channel you sent this message from.
+
+`!pb server [ID] raiddelay <d>`
+ - Set raid notification.
+   Example: `2h5m` = 2 hours and 5 minutes
+
+`!pb server [ID] raidcooldown <d>`
+ - Cooldown between new messages sent to the user. Messages will be updated
+   with new items destroyed between raiddelay and until raidcooldown expires.
+   This is to prevent excessive notifications to users.
+   Example: `2h5m` = 2 hours and 5 minutes
+
+Examples:
+  - `!pb server chathere`
+    - Sets server chat for your server to the channel you sent this command in.
+  - `!pb server 2 raiddelay 1h30m22s`
+    - Sets raiddelay for server #2 to 1h30m22s
 
 Download the plugin at https://umod.org/plugins/pound-bot

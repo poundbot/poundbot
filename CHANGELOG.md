@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 4.0.2-RC4
 
 ### Added
-- New `raidnotifyfrequency` feature.
+- New `raidcooldown` feature.
   - After the `raiddelay`, messages will be updated with new
     raid events instead of new messages sent. This prevents
     excessive notifications being sent but the user still

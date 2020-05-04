@@ -94,7 +94,7 @@ func (e *entityDeath) handle(w http.ResponseWriter, r *http.Request) {
 		alertAt = sAlertAt
 	}
 
-	sValidUntil, err := time.ParseDuration(sc.server.RaidNotifyFrequency)
+	sValidUntil, err := time.ParseDuration(sc.server.RaidCooldown)
 	if err == nil {
 		validUntil = sValidUntil
 	}

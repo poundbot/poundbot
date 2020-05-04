@@ -37,10 +37,12 @@ func (r RaidAlerts) AddInfo(alertIn, invalidIn time.Duration, ed types.EntityDea
 			bson.M{
 				"$setOnInsert": bson.M{
 					"alertat":     time.Now().UTC().Add(alertIn),
-					"validuntil":  validUntil,
 					"servername":  ed.ServerName,
 					"serverkey":   ed.ServerKey,
 					"notifycount": 0,
+				},
+				"$set": bson.M{
+					"validuntil": validUntil,
 				},
 				"$inc": bson.M{
 					fmt.Sprintf("items.%s", ed.Name): 1,
