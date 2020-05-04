@@ -137,7 +137,7 @@ func main() {
 
 	dialAddr := viper.GetString("mongo.dial-addr")
 	if len(dialAddr) != 0 {
-		log.Warn("DEPRICATION WARNING: mongo.dial-addr has been renamed to mongo.dial.")
+		log.Warn("DEPRECIATION WARNING: mongo.dial-addr has been renamed to mongo.dial.")
 	} else {
 		dialAddr = viper.GetString("mongo.dial")
 	}

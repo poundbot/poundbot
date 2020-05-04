@@ -1,6 +1,6 @@
 package types
 
-// GamesInfo steam id translater between server and DB
+// GamesInfo steam id translator between server and DB
 // also used as a selector on the DB
 type GamesInfo struct {
 	PlayerName string   `bson:",omitempty"`

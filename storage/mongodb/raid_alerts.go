@@ -52,6 +52,10 @@ func (r RaidAlerts) AddInfo(alertIn, invalidIn time.Duration, ed types.EntityDea
 				},
 			},
 		)
+
+		if err != nil {
+			log.WithError(err).Error("could not add info")
+		}
 	}
 	return nil
 }

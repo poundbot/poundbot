@@ -170,11 +170,11 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 		{
 			name: "one of two",
 			alerts: []types.RaidAlert{
-				types.RaidAlert{ID: oid, PlayerID: "1001", AlertAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC)},
-				types.RaidAlert{AlertAt: time.Now().UTC().Add(time.Hour)},
+				{ID: oid, PlayerID: "1001", AlertAt: time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC)},
+				{AlertAt: time.Now().UTC().Add(time.Hour)},
 			},
 			want: []types.RaidAlert{
-				types.RaidAlert{
+				{
 					ID:            oid,
 					PlayerID:      "1001",
 					AlertAt:       time.Date(2014, 1, 31, 14, 50, 20, 720408938, time.UTC).Truncate(time.Millisecond),
@@ -187,8 +187,8 @@ func TestRaidAlerts_GetReady(t *testing.T) {
 		{
 			name: "none",
 			alerts: []types.RaidAlert{
-				types.RaidAlert{AlertAt: time.Now().UTC().Add(time.Hour)},
-				types.RaidAlert{AlertAt: time.Now().UTC().Add(time.Hour)},
+				{AlertAt: time.Now().UTC().Add(time.Hour)},
+				{AlertAt: time.Now().UTC().Add(time.Hour)},
 			},
 			want: nil,
 		},
@@ -227,8 +227,8 @@ func TestRaidAlerts_Remove(t *testing.T) {
 			name:  "one of two",
 			alert: types.RaidAlert{ID: oid},
 			alerts: []types.RaidAlert{
-				types.RaidAlert{PlayerID: "1001"},
-				types.RaidAlert{ID: oid, PlayerID: "1002"},
+				{PlayerID: "1001"},
+				{ID: oid, PlayerID: "1002"},
 			},
 			wantCount: 1,
 		},
@@ -236,8 +236,8 @@ func TestRaidAlerts_Remove(t *testing.T) {
 			name:  "none",
 			alert: types.RaidAlert{ID: oid, PlayerID: "1003"},
 			alerts: []types.RaidAlert{
-				types.RaidAlert{PlayerID: "1001"},
-				types.RaidAlert{PlayerID: "1002"},
+				{PlayerID: "1001"},
+				{PlayerID: "1002"},
 			},
 			wantCount: 2,
 			wantErr:   true,

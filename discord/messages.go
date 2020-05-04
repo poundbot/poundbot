@@ -88,6 +88,9 @@ func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 		case instructResponseChannel:
 			err = r.sendChannelMessage(r.session.State.User.ID, m.ChannelID, response.message)
 		}
+		if err != nil {
+			mcLog.WithError(err).Error("error sending response to command")
+		}
 		return
 	}
 
