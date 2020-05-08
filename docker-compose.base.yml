@@ -3,7 +3,7 @@ services:
   poundbot:
     build:
       context: .
-      dockerfile: Dockerfile.Poundbot
+      dockerfile: Dockerfile
     env_file: .poundbot.env
     depends_on:
       - mongo

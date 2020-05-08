@@ -25,31 +25,34 @@ You can also build poundbot and run it. This is outside of the scope of this doc
 
 ### Configuration
 
-#### Initialize a new config.json
+#### Initialize a new configuration file
 
-Create a new configuration file with
+Create a new configuration file (`poundbot.yaml`) with:
+
 `poundbot -init`
 
-#### Sample Config
+#### Default Config
 
-```json
-{
-  "discord": {
-    "token": "YOUR DISCORD BOT AUTH TOKEN"
-  },
-  "http": {
-    "bind_addr": "",
-    "port": 9090
-  },
-  "mongo": {
-    "dial": "mongodb://localhost",
-    "database": "poundbot",
-  },
-  "profiler": {
-    "port": 6061
-  }
-}
+```yaml
+discord:
+  token: "YOUR DISCORD BOT AUTH TOKEN"
+http:
+  bind_addr: "",
+  port: 9090
+mongo:
+  dial: "mongodb://localhost",
+  database: "poundbot",
+profiler:
+  port: 6061
 ```
+
+#### Configuration via Environment Variables
+
+Configuration may also be done via environment variables. 
+
+* Keys are uppercased.
+* Nested keys are are seperated with an underscore (`.`) character. E.G.:  
+  `discord.token` would be `DISCORD_TOKEN`.
 
 ## Getting Help
 

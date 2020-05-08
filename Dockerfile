@@ -8,7 +8,8 @@ COPY . .
 RUN go mod download
 
 # Build the application
-RUN go build -o poundbot cmd/poundbot/poundbot.go
+RUN go build -ldflags="-s -w -X main.version=`cat cmd/poundbot/VERSION` -X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.githash=`git rev-parse --short HEAD`" \
+    -o poundbot cmd/poundbot/poundbot.go
 
 FROM alpine:latest
 
