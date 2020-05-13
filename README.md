@@ -14,7 +14,7 @@ Please note you **WILL NOT** get support for this, but some people have asked fo
 
 ### Requirements
 
-* [go 1.13+](https://golang.org)
+* [go 1.14+](https://golang.org)
 * [MongoDB 4.2+](https://mongodb.org)
 
 ### Running
