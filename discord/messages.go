@@ -35,7 +35,7 @@ func (r *Runner) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate)
 				das:      r.das,
 				authChan: r.AuthSuccess,
 			}
-			s.ChannelMessageSend(m.ChannelID, d.process(m))
+			s.ChannelMessageSend(m.ChannelID, d.process(*m))
 		}()
 		return
 	}

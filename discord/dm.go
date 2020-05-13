@@ -33,7 +33,7 @@ type dm struct {
 	authChan chan<- types.DiscordAuth
 }
 
-func (i dm) process(m *discordgo.MessageCreate) string {
+func (i dm) process(m discordgo.MessageCreate) string {
 	pLog := log.WithFields(logrus.Fields{"sys": "dm.process()"})
 	message := strings.TrimSpace(m.Content)
 
@@ -52,6 +52,14 @@ func (i dm) process(m *discordgo.MessageCreate) string {
 	}
 
 	parts := strings.Fields(message)
+
+	if len(parts) == 0 {
+		return localizer.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "InstructInvalidCommand",
+				Other: "Invalid command. See `help`",
+			}})
+	}
 
 	switch parts[0] {
 	case localizer.MustLocalize(&i18n.LocalizeConfig{
